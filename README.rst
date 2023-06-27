@@ -35,8 +35,7 @@ If you are unable to clone the repo with the above, try the https version instea
 Licence and Citation
 ====================
 
-Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2307.YYYYY>`_,
-and are encourgaed to cite the ``numpyro`` papers, for which the following bibtex can be used
+Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2307.YYYYY>`_, for which the following bibtex can be used
 
 .. code:: bibtex
 
@@ -55,16 +54,18 @@ and are encourgaed to cite the ``numpyro`` papers, for which the following bibte
           url = {https://arxiv.org/abs/2307.YYYYY},
   }
 
+and are encourgaed to cite the ``numpyro`` papers
 
 .. code:: bibtex
-    @article{numpyro1,
+
+  @ARTICLE{numpyro1,
 	title={Composable Effects for Flexible and Accelerated Probabilistic Programming in NumPyro},
 	author={Phan, Du and Pradhan, Neeraj and Jankowiak, Martin},
 	journal={arXiv preprint arXiv:1912.11554},
 	year={2019}
     }
 
-    @article{bingham2019pyro,
+  @ARTICLE{numpyro2,
 	author    = {Eli Bingham and
 	       Jonathan P. Chen and
 	       Martin Jankowiak and
@@ -83,7 +84,35 @@ and are encourgaed to cite the ``numpyro`` papers, for which the following bibte
 	url       = {http://jmlr.org/papers/v20/18-403.html}
     }
 
-Additionally, if you use the function ``roxy.plotting.posterior_predictive_plot``, then, as this used the ``fgivenx`` package, you must cite
+
+.. code:: bibtex
+    @article{numpyro1,
+	title={Composable Effects for Flexible and Accelerated Probabilistic Programming in NumPyro},
+	author={Phan, Du and Pradhan, Neeraj and Jankowiak, Martin},
+	journal={arXiv preprint arXiv:1912.11554},
+	year={2019}
+    }
+
+    @ARTICLE{bingham2019pyro,
+	author    = {Eli Bingham and
+	       Jonathan P. Chen and
+	       Martin Jankowiak and
+	       Fritz Obermeyer and
+	       Neeraj Pradhan and
+	       Theofanis Karaletsos and
+	       Rohit Singh and
+	       Paul A. Szerlip and
+	       Paul Horsfall and
+	       Noah D. Goodman},
+	title     = {Pyro: Deep Universal Probabilistic Programming},
+	journal   = {J. Mach. Learn. Res.},
+	volume    = {20},
+	pages     = {28:1--28:6},
+	year      = {2019},
+	url       = {http://jmlr.org/papers/v20/18-403.html}
+    }
+
+Additionally, if you use the function ``roxy.plotting.posterior_predictive_plot``, then, as this used the ``fgivenx`` `package <https://fgivenx.readthedocs.io/en/latest/?badge=latest>`_, you must cite
 
 .. code:: bibtex
 
@@ -101,10 +130,11 @@ Additionally, if you use the function ``roxy.plotting.posterior_predictive_plot`
    }
 
 
-We also provide simple routines to plot posterior distribtuions with ``roxy.plotting.triangle_plot``. If you use ``module='corner'`` with this function, please cite
+We also provide simple routines to plot posterior distribtuions with ``roxy.plotting.triangle_plot``. If you use ``module="corner"`` with this function, please cite
 
 .. code:: bibtex
-    @article{corner,
+
+   @article{corner,
 	doi = {10.21105/joss.00024},
 	url = {https://doi.org/10.21105/joss.00024},
 	year  = {2016},
@@ -118,10 +148,11 @@ We also provide simple routines to plot posterior distribtuions with ``roxy.plot
 	journal = {The Journal of Open Source Software}
     }
 
-and if you use ``module='getdist'``, please cite
+and if you use ``module="getdist"``, please cite
 
 .. code:: bibtex
-    @article{getdist,
+
+   @article{getdist,
       author         = "Lewis, Antony",
       title          = "{GetDist: a Python package for analysing Monte Carlo
                         samples}",
@@ -132,9 +163,6 @@ and if you use ``module='getdist'``, please cite
       SLACcitation   = "%%CITATION = ARXIV:1910.13970;%%",
       url            = "https://getdist.readthedocs.io"
      }
-
-
-
 
 ADD LICENCE INFORMATION HERE
 
