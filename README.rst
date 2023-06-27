@@ -40,7 +40,7 @@ for which the following bibtex can be used
 
 .. code:: bibtex
 
-  @ARTICLE{2023arXiv23XX.YYYYY,
+  @ARTICLE{2023arXiv2307.YYYYY,
        author = {{Desmond}, H. and {Bartlett}, D.~J.},
         title = "{Marginalised Normal Regression: unbiased curve fitting in the presence of x-errors}",
       journal = {arXiv e-prints},

@@ -4,6 +4,8 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """
     Return - log(like)
     """
+    if sig < 0:
+        return jnp.nan
     N = len(xobs)
     Ai = fprime
     if len(Ai) == 1:
@@ -28,6 +30,8 @@ def negloglike_profile(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
     Return - log(like)
     """
+    if sig < 0:
+        return jnp.nan
     N = len(xobs)
     Ai = fprime
     Bi = f - Ai * xobs
@@ -48,6 +52,8 @@ def negloglike_uniform(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
     Return - log(like)
     """
+    if sig < 0:
+        return jnp.nan
     N = len(xobs)
     Ai = jnp.atleast_1d(fprime)
     if len(Ai) == 1:
