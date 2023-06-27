@@ -45,7 +45,7 @@ class RoxyRegressor():
             
     def get_param_index(self, params_to_opt, verbose=True):
         # Get indices of params to optimise
-        pidx = [self.param_names.index(p) for p in params_to_opt]
+        pidx = [self.param_names.index(p) for p in params_to_opt if p in self.param_names]
         if len(pidx) != len(self.param_names) and verbose:
             print('\nNot optimising all parameters. Using defaults:')
             for pname, pdefault in zip(self.param_names, self.param_default):

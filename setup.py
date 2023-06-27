@@ -19,6 +19,7 @@ setup(
 	'corner',
 	'getdist',
 	'arviz',
+	'fgivenx',
         ],
     classifiers=[
         'Development Status :: 1 - Planning',

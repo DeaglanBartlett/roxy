@@ -1,9 +1,13 @@
 import corner
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 import roxy.mcmc
 from getdist import plots, MCSamples
 import arviz as az
+from fgivenx import plot_contours
+
+rcParams['text.usetex'] = True
 
 def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_prior=None, savename=None, show=True):
 
@@ -74,4 +78,36 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 
     return
     
-# Plot data and the function
+def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True):
+
+    names, all_samples = roxy.mcmc.samples_to_array(samples)
+    pidx = reg.get_param_index(names, verbose=False)
+    
+    def f(x, theta):
+        # Parameters of function
+        t = reg.param_default
+        t = t.at[pidx].set(theta[:len(pidx)])
+        return reg.value(x, t)
+        
+    x = np.linspace(xobs.min(), xobs.max(), 200)
+    plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
+                 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}
+        
+    print('\nMaking posterior predictive plot')
+    fig, ax = plt.subplots(1, 1)
+    cbar = plot_contours(f, x, all_samples, ax)
+    cbar = plt.colorbar(cbar,ticks=[0,1,2,3])
+    cbar.set_ticklabels(['',r'$1\sigma$',r'$2\sigma$',r'$3\sigma$'])
+    ax.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
+    ax.set_xlabel(r'$x$')
+    ax.set_ylabel(r'$y$')
+    fig.tight_layout()
+    
+    if savename is not None:
+        plt.savefig(savename)
+    if show:
+        plt.show()
+    plt.clf()
+    plt.close(plt.gcf())
+
+    return

@@ -4,8 +4,8 @@ import numpy as np
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
 
-#run_name = 'linear'
-run_name = 'quadratic'
+run_name = 'linear'
+#run_name = 'quadratic'
 
 if run_name == 'linear':
 
@@ -14,7 +14,7 @@ if run_name == 'linear':
 
     param_names = ['A', 'B']
     theta0 = [2, 0.5]
-    param_prior = {'A':[0, 5], 'B':[-1, 1], 'sig':[0, 0.3]}
+    param_prior = {'A':[0, 5], 'B':[-1, 1], 'sig':[0, 3.0]}
     
 elif run_name == 'quadratic':
 
@@ -23,16 +23,17 @@ elif run_name == 'quadratic':
     
     param_names = ['A', 'B', 'C']
     theta0 = [2, 0.5, -3]
-    param_prior = {'A':[0, 5], 'B':[-1, 1], 'C': [-10, 10], 'sig':[0, 0.3]}
+    param_prior = {'A':[0, 5], 'B':[-1, 1], 'C': [-10, 10], 'sig':[0, 3.0]}
 
 reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
+nx = 20
 xerr = 0.1
-yerr = 0.2
-sig = 0.1
+yerr = 0.5
+sig = 0.5
 nwarm, nsamp = 700, 5000
     
-xtrue = np.linspace(0, 5, 100)
+xtrue = np.linspace(0, 5, nx)
 ytrue = reg.value(xtrue, theta0)
 xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
 yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
@@ -45,6 +46,7 @@ for method in ['mnr']:
     samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method)
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior)
     roxy.plotting.trace_plot(samples, to_plot='all')
+    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr)
 
 
 #y = reg.value(all_x, theta0)
