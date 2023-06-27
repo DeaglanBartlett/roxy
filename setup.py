@@ -15,6 +15,7 @@ setup(
         'jaxlib',
         'scipy',
         'numpyro',
+        'matplotlib',
         ],
     classifiers=[
         'Development Status :: 1 - Planning',

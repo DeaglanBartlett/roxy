@@ -13,7 +13,7 @@ class mylike_MNR(dist.Distribution):
         raise NotImplementedError
         
     def log_prob(self, value):
-        return - roxy.likelihoods.marg_normal()  # ADD ARGS HERE
+        return - roxy.likelihoods.negloglike_mnr()  # ADD ARGS HERE
         
         
 class mylike_prof(dist.Distribution):
@@ -26,7 +26,7 @@ class mylike_prof(dist.Distribution):
         raise NotImplementedError
         
     def log_prob(self, value):
-        return - roxy.likelihoods.marg_prof()  # ADD ARGS HERE
+        return - roxy.likelihoods.negloglike_profile()  # ADD ARGS HERE
         
 
 class mylike_unif(dist.Distribution):
@@ -39,4 +39,4 @@ class mylike_unif(dist.Distribution):
         raise NotImplementedError
         
     def log_prob(self, value):
-        return - roxy.likelihoods.marg_unif()  # ADD ARGS HERE
+        return - roxy.likelihoods.negloglike_uniform()  # ADD ARGS HERE
