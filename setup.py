@@ -20,6 +20,9 @@ setup(
 	'getdist',
 	'arviz',
 	'fgivenx',
+	'sphinx>=5.0',
+	'myst-parser',
+	'sphinx-rtd-theme',
         ],
     classifiers=[
         'Development Status :: 1 - Planning',
