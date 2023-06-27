@@ -16,6 +16,9 @@ setup(
         'scipy',
         'numpyro',
         'matplotlib',
+	'corner',
+	'getdist',
+	'arviz',
         ],
     classifiers=[
         'Development Status :: 1 - Planning',
