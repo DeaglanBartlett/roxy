@@ -10,7 +10,18 @@ from fgivenx import plot_contours
 rcParams['text.usetex'] = True
 
 def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_prior=None, savename=None, show=True):
-
+    """
+    Plot the 1D and 2D posterior distributions of the parameters in a triangle plot.
+    
+    Args:
+        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
+        :labels (list, default=None): List of parameter labels ot use in the plot. If None, then use the names given as keys in samples.
+        :to_plot (list, default='all'): If 'all', then use all parameters. If a list, then only use the parameters given in that list
+        :module (str, default='corner'): Which module to use to make the triangle plot ('corner' or 'getdist' currently available)
+        :param_prior (dict, default=None): If not None and using 'getdist', use this to specify the range of the varibales to prevent undesirable smoothing effects.
+        :savename (str, default=None): If not None, save the figure to the file given by this argument.
+        :show (bool, default=True): If True, display the figure with plt.show()
+    """
     names, all_samples = roxy.mcmc.samples_to_array(samples)
     
     if to_plot != 'all':
@@ -51,7 +62,7 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
         raise NotImplementedError
         
     if savename is not None:
-        plt.savefig(savename)
+        plt.savefig(savename, transparent=True)
     if show:
         plt.show()
     plt.clf()
@@ -61,6 +72,16 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
     
     
 def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
+    """
+    Plot the trace of the parameter values as a function of MCMC step
+    
+    Args:
+        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
+        :labels (list, default=None): List of parameter labels ot use in the plot. If None, then use the names given as keys in samples.
+        :to_plot (list, default='all'): If 'all', then use all parameters. If a list, then only use the parameters given in that list
+        :savename (str, default=None): If not None, save the figure to the file given by this argument.
+        :show (bool, default=True): If True, display the figure with plt.show()
+    """
 
     res = az.from_dict(samples)
     if to_plot == 'all':
@@ -70,7 +91,7 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
     plt.tight_layout()
     
     if savename is not None:
-        plt.savefig(savename)
+        plt.savefig(savename, transparent=True)
     if show:
         plt.show()
     plt.clf()
@@ -79,12 +100,26 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
     return
     
 def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True):
+    """
+    Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
+    of the function given the inferred parameters and plot the observed points on
+    the same plot.
+    
+    Args:
+        :reg (roxy.regressor.RoxyRegressor): The regressor object used for the inference
+        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :savename (str, default=None): If not None, save the figure to the file given by this argument.
+        :show (bool, default=True): If True, display the figure with plt.show()
+    """
 
     names, all_samples = roxy.mcmc.samples_to_array(samples)
     pidx = reg.get_param_index(names, verbose=False)
     
     def f(x, theta):
-        # Parameters of function
         t = reg.param_default
         t = t.at[pidx].set(theta[:len(pidx)])
         return reg.value(x, t)
@@ -104,7 +139,7 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
     fig.tight_layout()
     
     if savename is not None:
-        plt.savefig(savename)
+        plt.savefig(savename, transparent=True)
     if show:
         plt.show()
     plt.clf()

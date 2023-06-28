@@ -1,19 +1,17 @@
 .. roxy documentation master file
 
-Welcome to ESR's documentation!
+Welcome to roxy's documentation!
 ========================================
-
-.. include:: README.rst
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   Home <self>
+   Introduction <intro>
    tutorial
    api
 
-
+.. include:: ../../README.rst
 
 Indices and tables
 ==================

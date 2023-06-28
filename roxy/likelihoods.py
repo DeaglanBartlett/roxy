@@ -2,7 +2,22 @@ import jax.numpy as jnp
 
 def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """
-    Return - log(like)
+    Computes the negative log-likelihood under the assumption of an uncorrelated
+    Gaussian likelihood with a Gaussian prior on the true x positions.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+        
+    Returns:
+        :ngeglogP (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = fprime
@@ -26,7 +41,21 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     
 def negloglike_profile(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
-    Return - log(like)
+    Computes the negative log-likelihood under the assumption of an uncorrelated
+    Gaussian likelihood, evaluated at the maximum likelihood values of xtrue
+    (the profile likelihood)
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        
+    Returns:
+        :ngeglogP (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = fprime
@@ -46,7 +75,21 @@ def negloglike_profile(xobs, yobs, xerr, yerr, f, fprime, sig):
 
 def negloglike_uniform(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
-    Return - log(like)
+    Computes the negative log-likelihood under the assumption of an uncorrelated
+    Gaussian likelihood, where we have marginalised over the true x values,
+    assuming an infinite uniform prior on these.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        
+    Returns:
+        :ngeglogP (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = jnp.atleast_1d(fprime)

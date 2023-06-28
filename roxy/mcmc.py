@@ -9,6 +9,22 @@ import roxy.likelihoods
 class Likelihood_MNR(dist.Distribution):
    
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
+        """
+        Class to be used by ``numpyro`` to evaluate the log-likelihood under
+        the assumption of an uncorrelated Gaussian likelihood with a Gaussian
+        prior on the true x positions.
+        
+        Args:
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+            :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+            :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+            :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+        """
         self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig, self.mu_gauss, self.w_gauss = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss)
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
@@ -33,6 +49,20 @@ class Likelihood_MNR(dist.Distribution):
 class Likelihood_profile(dist.Distribution):
    
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
+        """
+        Class to be used by ``numpyro`` to evaluate the log-likelihood under
+        the assumption of an uncorrelated Gaussian likelihood, evaluated at
+        the maximum likelihood values of xtrue (the profile likelihood)
+        
+        Args:
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+            :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        """
         self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
@@ -55,6 +85,21 @@ class Likelihood_profile(dist.Distribution):
 class Likelihood_uniform(dist.Distribution):
    
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
+        """
+        Class to be used by ``numpyro`` to evaluate the log-likelihood under
+        the assumption of an uncorrelated Gaussian likelihood, where we have
+        marginalised over the true x values, assuming an infinite uniform
+        prior on these.
+        
+        Args:
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :f (jnp.ndarray): If we are fitting the funciton f(x), this is f(x) evaluated at xobs
+            :fprime (jnp.ndarray): If we are fitting the funciton f(x), this is df/dx evaluated at xobs
+            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        """
         self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
@@ -75,6 +120,17 @@ class Likelihood_uniform(dist.Distribution):
         
         
 def samples_to_array(samples):
+    """
+    Converts a dictionary of samples returned by ``numpro`` to a list of names
+    and an array of samples.
+    
+    Args:
+        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
+        
+    Returns:
+        :labels (np.ndarray): The names of the sampled variables
+        :all_samples (np.ndarray): The sampled values for these variables. Shape = (number of samples, number of parameters).
+    """
 
     keys = list(samples.keys())
 

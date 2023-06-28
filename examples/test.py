@@ -14,7 +14,7 @@ if run_name == 'linear':
 
     param_names = ['A', 'B']
     theta0 = [2, 0.5]
-    param_prior = {'A':[0, 5], 'B':[-1, 1], 'sig':[0, 3.0]}
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
     
 elif run_name == 'quadratic':
 
@@ -23,7 +23,7 @@ elif run_name == 'quadratic':
     
     param_names = ['A', 'B', 'C']
     theta0 = [2, 0.5, -3]
-    param_prior = {'A':[0, 5], 'B':[-1, 1], 'C': [-10, 10], 'sig':[0, 3.0]}
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'C': [-10, 10], 'sig':[0, 3.0]}
 
 reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -32,11 +32,26 @@ xerr = 0.1
 yerr = 0.5
 sig = 0.5
 nwarm, nsamp = 700, 5000
+
+np.random.seed(0)
     
 xtrue = np.linspace(0, 5, nx)
 ytrue = reg.value(xtrue, theta0)
 xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
 yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+
+plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
+                 'capsize':1, 'elinewidth':1.0, 'color':'k', 'alpha':1}
+plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
+plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
+plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
+plt.tight_layout()
+plt.savefig('../docs/source/data.png', transparent=True)
+plt.clf()
+plt.close(plt.gcf())
+
+reg.optimise(param_names, xobs, yobs, xerr, yerr, method='mnr')
+
 #theta0 = [2, 0.5, -3]
 
 #for method in ['uniform', 'profile', 'mnr']:
@@ -44,9 +59,9 @@ for method in ['mnr']:
     print(reg.negloglike(theta0, xobs, yobs, xerr, yerr, sig, method=method))
 #    reg.optimise(['A'], xobs, yobs, xerr, yerr, method=method)
     samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method)
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior)
-    roxy.plotting.trace_plot(samples, to_plot='all')
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr)
+    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename='../docs/source/triangle.png')
+    roxy.plotting.trace_plot(samples, to_plot='all', savename='../docs/source/trace.png')
+    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename='../docs/source/posterior_predictive.png')
 
 
 #y = reg.value(all_x, theta0)

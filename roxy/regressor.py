@@ -11,6 +11,18 @@ import roxy.mcmc
 class RoxyRegressor():
 
     def __init__(self, fun, param_names, param_default, param_prior):
+        """
+        Regressor class which handles optimisation and MCMC for ``roxy``. One can
+        use this class to evaluate the function of interest and its derivative,
+        optimise the parameters using and of the defined likelihoods and run an
+        MCMC for these parameters.
+        
+        Args:
+            :fun (callable): The function, f, to be considered by this regressor y = f(x, theta). The function must take two arguments, the first of which is the independent variable, the second of which are the parameters (as an array or list).
+            :param_names (list): The list of parameter names, in the order which they are supplied to fun
+            :param_default (list): The default valus of the parameters
+            :param_prior (dict): The prior range for each of the parameters. The prior is assumed to be uniform in this range
+        """
         
         self.single_fun = fun
         self.single_gradfun = jax.grad(self.single_fun, argnums=0)
@@ -22,12 +34,47 @@ class RoxyRegressor():
         self.param_prior = param_prior
         
     def value(self, x, theta):
+        """
+        If we are fitting the function f(x, theta), this is f(x, theta) evaluated at (x, theta)
+        
+        Args:
+            :x (jnp.ndarray): The x values
+            :theta (jnp.ndarray): The parameter values
+            
+        Returns:
+            :jnp.ndarray: f(x, theta) evaluated at (x, theta)
+        """
         return self.fun(x, theta)
         
     def gradient(self, x, theta):
+        """
+        If we are fitting the function f(x, theta), this is df/dx evaluated at (x, theta)
+                
+        Args:
+            :x (jnp.ndarray): The x values
+            :theta (jnp.ndarray): The parameter values
+            
+        Returns:
+            :jnp.ndarray: df/dx evaluated at (x, theta)
+        """
         return self.gradfun(x, theta)
         
     def negloglike(self, theta, xobs, yobs, xerr, yerr, sig=0., mu_gauss=0., w_gauss=1., method='mnr'):
+        """
+        Computes the negative log-likelihood under the assumption of an uncorrelated
+        Gaussian likelihood, using the likelihood specififed by 'method'.
+        
+        Args:
+            :theta (jnp.ndarray): The parameters of the function to use
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :sig (float, default=0.): The intrinsic scatter, which is added in quadrature with yerr
+            :mu_gauss (float, default=0.): The mean of the Gaussian prior on the true x positions (only used if method='mnr')
+            :w_gauss (float, default=1.): The standard deviation of the Gaussian prior on the true x positions (only used if method='mnr')
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+        """
         f = self.value(xobs, theta)
         fprime = self.gradient(xobs, theta)
         
@@ -44,6 +91,17 @@ class RoxyRegressor():
             raise NotImplementedError
             
     def get_param_index(self, params_to_opt, verbose=True):
+        """
+        If the function of interest if f(x, theta), find the index in theta for each
+        of the parameters we wish to optimise
+        
+        Args:
+            :params_to_opt (list): The names of the parameters we wish to optimise
+            :verbose (bool, default=True): Whether to print the names and values of parameters which are not fitted
+            
+        Returns:
+            :pidx (jnp.ndarray): The indices of the parameters to optimise
+        """
         # Get indices of params to optimise
         pidx = [self.param_names.index(p) for p in params_to_opt if p in self.param_names]
         if len(pidx) != len(self.param_names) and verbose:
@@ -55,7 +113,21 @@ class RoxyRegressor():
             
     def optimise(self, params_to_opt, xobs, yobs, xerr, yerr, method='mnr', infer_intrinsic=True, initial=None):
         """
-        scipy.optimize._optimize.OptimizeResult
+        Optimise the parameters of the function given some data, under the assumption of
+        an uncorrelated Gaussian likelihood, using the likelihood specififed by 'method'.
+        
+        Args:
+            :params_to_opt (list): The names of the parameters we wish to optimise
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            :initial (jnp.ndarray, default=None): The starting point for the optimised. If None, a random value in the prior range is chosen
+        
+        Returns:
+            :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
         """
     
         # Get indices of params to optimise
@@ -108,7 +180,28 @@ class RoxyRegressor():
         
         return res
 
-    def mcmc(self, params_to_opt, xobs, yobs, xerr, yerr, nwarm, nsamp, method='mnr', infer_intrinsic=True, progress_bar=True):
+    def mcmc(self, params_to_opt, xobs, yobs, xerr, yerr, nwarm, nsamp, method='mnr', infer_intrinsic=True, progress_bar=True, seed=1234):
+        """
+        Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
+        function given some data, under the assumption of an uncorrelated Gaussian likelihood,
+        using the likelihood specififed by 'method'.
+        
+        Args:
+            :params_to_opt (list): The names of the parameters we wish to optimise
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :nwarm (int): The number of warmup steps to use in the MCMC
+            :nsamp (int): The number of samples to obtain in the MCMC
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
+            :seed (int, default=1234): The seed to use when initialising the sampler
+        
+        Returns:
+            :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
+        """
 
         pidx = self.get_param_index(params_to_opt, verbose=False)
                 
@@ -156,7 +249,7 @@ class RoxyRegressor():
             else:
                 raise NotImplementedError
              
-        rng_key = jax.random.PRNGKey(np.random.randint(1234))
+        rng_key = jax.random.PRNGKey(np.random.randint(seed))
         rng_key, rng_key_ = jax.random.split(rng_key)
         
         try:
