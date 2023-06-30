@@ -99,7 +99,7 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 
     return
     
-def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True):
+def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$'):
     """
     Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
     of the function given the inferred parameters and plot the observed points on
@@ -114,6 +114,8 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
         :yerr (jnp.ndarray): The error on the observed y values
         :savename (str, default=None): If not None, save the figure to the file given by this argument.
         :show (bool, default=True): If True, display the figure with plt.show()
+        :xlabel (str, default='$x$'): The label to use for the x axis
+        :ylabel (str, default='$x$'): The label to use for the y axis
     """
 
     names, all_samples = roxy.mcmc.samples_to_array(samples)
@@ -134,8 +136,8 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
     cbar = plt.colorbar(cbar,ticks=[0,1,2,3])
     cbar.set_ticklabels(['',r'$1\sigma$',r'$2\sigma$',r'$3\sigma$'])
     ax.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
-    ax.set_xlabel(r'$x$')
-    ax.set_ylabel(r'$y$')
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     fig.tight_layout()
     
     if savename is not None:
