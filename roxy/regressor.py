@@ -134,7 +134,20 @@ class RoxyRegressor():
         pidx = self.get_param_index(params_to_opt)
         
         def fopt(theta):
-            
+        
+            # Check prior
+            for i, p in enumerate(params_to_opt):
+                if theta[i] < self.param_prior[p][0] or theta[i] > self.param_prior[p][1]:
+                    return np.inf
+            if method == 'mnr':
+                if theta[-2] < xobs.min() or theta[-1] > xobs.max():
+                    return np.inf
+                if theta[-1] < 0 or theta[-1] > 5 * xobs.std():
+                    return np.inf
+            if infer_intrinsic:
+                if theta[len(pidx)] < self.param_prior['sig'][0] or theta[len(pidx)] > self.param_prior['sig'][1]:
+                    return np.inf
+                
             # Parameters of function
             t = self.param_default
             t = t.at[pidx].set(theta[:len(pidx)])

@@ -8,6 +8,7 @@ import arviz as az
 from fgivenx import plot_contours
 
 rcParams['text.usetex'] = True
+rcParams.update({'font.size': 14})
 
 def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_prior=None, savename=None, show=True):
     """
@@ -60,7 +61,8 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
             
     else:
         raise NotImplementedError
-        
+    plt.gcf().align_labels()
+    
     if savename is not None:
         plt.savefig(savename, transparent=True)
     if show:
@@ -99,7 +101,7 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 
     return
     
-def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$'):
+def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':1, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}):
     """
     Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
     of the function given the inferred parameters and plot the observed points on
@@ -116,6 +118,10 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
         :show (bool, default=True): If True, display the figure with plt.show()
         :xlabel (str, default='$x$'): The label to use for the x axis
         :ylabel (str, default='$x$'): The label to use for the y axis
+        :errorbar_kwargs (dict): Dictionary of kwargs to pass to plt.errorbar
+    
+    Returns:
+        :fig (matplotlib.figure.Figure): The figure containing the posterior predictive plot
     """
 
     names, all_samples = roxy.mcmc.samples_to_array(samples)
@@ -125,26 +131,25 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
         t = reg.param_default
         t = t.at[pidx].set(theta[:len(pidx)])
         return reg.value(x, t)
-        
-    x = np.linspace(xobs.min(), xobs.max(), 200)
-    plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
-                 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}
-        
+
     print('\nMaking posterior predictive plot')
     fig, ax = plt.subplots(1, 1)
+    ax.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **errorbar_kwargs)
+    
+    xmin, xmax = ax.get_xlim()
+    x = np.linspace(xmin, xmax, 200)
     cbar = plot_contours(f, x, all_samples, ax)
     cbar = plt.colorbar(cbar,ticks=[0,1,2,3])
     cbar.set_ticklabels(['',r'$1\sigma$',r'$2\sigma$',r'$3\sigma$'])
-    ax.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
+    
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    ax.set_xlim(xmin, xmax)
     fig.tight_layout()
     
     if savename is not None:
         plt.savefig(savename, transparent=True)
     if show:
         plt.show()
-    plt.clf()
-    plt.close(plt.gcf())
 
-    return
+    return fig
