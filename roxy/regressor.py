@@ -4,6 +4,7 @@ from scipy.optimize import minimize
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
+import warnings
 
 import roxy.likelihoods
 import roxy.mcmc
@@ -280,5 +281,15 @@ class RoxyRegressor():
 
         sampler.print_summary()
         samples = sampler.get_samples()
+        
+        # Raise warning if too few effective samples
+        neff = np.zeros(len(samples))
+        for i, (k, v) in enumerate(samples.items()):
+            x = jnp.expand_dims(v, axis=0)
+            neff[i] = numpyro.diagnostics.effective_sample_size(x)
+        m = neff < 100
+        if m.sum() > 0:
+            bad_keys = [k for i,k in enumerate(samples.keys()) if m[i]]
+            warnings.warn('Fewer than 100 effective samples for parameters: ' + ', '.join(bad_keys), category=Warning, stacklevel=2)
 
         return samples
