@@ -160,3 +160,49 @@ def samples_to_array(samples):
     all_samples = np.array(all_samples)
 
     return labels, all_samples
+    
+
+class Likelihood_GMM(dist.Distribution):
+
+    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss, all_weights):
+        """
+        Class to be used by ``numpyro`` to evaluate the log-likelihood under
+        the assumption of an uncorrelated Gaussian likelihood with a Gaussian
+        Mixture Model prior on the true x positions.
+
+        Args:
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+            :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+            :all_mu_gauss (jnp.ndarray): The mean of the Gaussians in the GMM prior on the true x positions
+            :all_w_gauss (jnp.ndarray): The standard deviation of the Gaussians in the GMM prior on the true x positions
+            :all_weights (jnp.ndarray): The weights of the Gaussians in the GMM prior on the true x positions
+        """
+
+        self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
+        
+        self.all_mu_gauss, self.all_w_gauss, self.all_weights = promote_shapes(all_mu_gauss, all_w_gauss, all_weights)
+        
+        batch_shape = lax.broadcast_shapes(
+            jnp.shape(xobs),
+            jnp.shape(yobs),
+            jnp.shape(xerr),
+            jnp.shape(yerr),
+            jnp.shape(f),
+            jnp.shape(fprime),
+            jnp.shape(sig),
+            (),
+            (),
+            ()
+        )
+        super(Likelihood_GMM, self).__init__(batch_shape = batch_shape,)
+
+    def sample(self, key, sample_shape=()):
+        raise NotImplementedError
+
+    def log_prob(self, value):
+        return - roxy.likelihoods.negloglike_gmm(self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig, self.all_mu_gauss, self.all_w_gauss, self.all_weights)

@@ -17,7 +17,7 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
         :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
         
     Returns:
-        :ngeglogP (float): The negative log-likelihood
+        :neglogP (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = fprime
@@ -39,6 +39,64 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     return neglogP
     
     
+def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss, all_weights):
+    """
+    Computes the negative log-likelihood under the assumption of an uncorrelated
+    Gaussian likelihood with a GMM prior on the true x positions.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :all_mu_gauss (jnp.ndarray): The means of the Gaussians in the GMM prior on the true x positions
+        :all_w_gauss (jnp.ndarray): The standard deviations of the Gaussians in the GMM prior on the true x positions
+        :all_weights (jnp.ndarray): The weights of the Gaussians in the GMM prior on the true x positions
+        
+    Returns:
+        :neglogP (float): The negative log-likelihood
+    """
+    
+    ngauss = len(all_weights)
+    N = len(xobs)
+    all_logP = jnp.empty((ngauss, N))
+    
+    for i in range(ngauss):
+    
+        mu_gauss = all_mu_gauss[i]
+        w_gauss = all_w_gauss[i]
+        weight = all_weights[i]
+    
+        Ai = fprime
+        if len(Ai) == 1:
+            Ai = jnp.full(N, Ai[0])
+        Bi = f - Ai * xobs
+        
+        s2 = yerr ** 2 + sig ** 2
+        den = Ai ** 2 * w_gauss ** 2 * xerr ** 2 + s2 * (w_gauss ** 2 + xerr ** 2)
+        
+        all_logP = all_logP.at[i,:].set(
+            - jnp.log(weight)
+            + 1/2 * jnp.log(2 * jnp.pi)
+            + 1/2 * jnp.log(den)
+            + 1/2 * (w_gauss ** 2 * (Ai * xobs + Bi - yobs) ** 2 / den)
+            + 1/2 * (xerr ** 2 * (Ai * mu_gauss + Bi - yobs) ** 2 / den)
+            + 1/2 * (s2 * (xobs - mu_gauss) ** 2 / den)
+        )
+                                    
+    all_logP = - all_logP
+    
+    # Combine the Gaussians
+    max_logP = jnp.amax(all_logP, axis=0)
+    neglogP = - (max_logP + jnp.log(jnp.sum(jnp.exp(all_logP - max_logP), axis=0)))
+    neglogP = jnp.sum(neglogP)
+    
+    return neglogP
+    
+    
 def negloglike_profile(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
@@ -55,7 +113,7 @@ def negloglike_profile(xobs, yobs, xerr, yerr, f, fprime, sig):
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         
     Returns:
-        :ngeglogP (float): The negative log-likelihood
+        :neglogP (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = fprime
@@ -89,7 +147,7 @@ def negloglike_uniform(xobs, yobs, xerr, yerr, f, fprime, sig):
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         
     Returns:
-        :ngeglogP (float): The negative log-likelihood
+        :neglogP (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = jnp.atleast_1d(fprime)

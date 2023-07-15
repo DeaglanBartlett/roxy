@@ -36,6 +36,15 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
             if (p in names) and ((p in to_plot) or (to_plot == 'all')):
                 i = np.squeeze(np.where(names==p))
                 labs[i] = l
+                
+        # GMM parameters
+        if 'weights_0' in names:
+            # Extract number of Gaussians
+            ngauss = len([n for n in names if n.startswith('weights')])
+            for i in range(ngauss):
+                for p, l in zip([f'mu_gauss_{i}', f'w_gauss_{i}', f'weights_{i}'], [r'\mu_{%i}'%i, r'w_{%i}'%i, r'\nu_{%i}'%i]):
+                    j = np.squeeze(np.where(names==p))
+                    labs[j] = l
     else:
         labs = [labels[n] for n in names]
         
@@ -48,6 +57,11 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
         else:
             ranges = param_prior
         ranges['w_gauss'] = [0, None]
+        
+        if 'weights_0' in names:
+            for i in range(ngauss):
+                ranges[f'w_gauss_{i}'] = [0, None]
+                ranges[f'weights_{i}'] = [0, 1]
     
         samps = MCSamples(
             samples=all_samples,
@@ -85,7 +99,18 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
         :show (bool, default=True): If True, display the figure with plt.show()
     """
 
-    res = az.from_dict(samples)
+    # Check for GMM
+    if 'weights' in samples.keys():
+        new_samples = samples.copy()
+        for k in ['mu_gauss', 'w_gauss', 'weights']:
+            new_samples.pop(k)
+            v = samples[k]
+            for i in range(v.shape[1]):
+                new_samples[f'{k}_{i}'] = v[:,i]
+        res = az.from_dict(new_samples)
+    else:
+        res = az.from_dict(samples)
+        
     if to_plot == 'all':
         az.plot_trace(res, compact=True)
     else:

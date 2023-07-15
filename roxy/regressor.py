@@ -60,7 +60,7 @@ class RoxyRegressor():
         """
         return self.gradfun(x, theta)
         
-    def negloglike(self, theta, xobs, yobs, xerr, yerr, sig=0., mu_gauss=0., w_gauss=1., method='mnr'):
+    def negloglike(self, theta, xobs, yobs, xerr, yerr, sig=0., mu_gauss=0., w_gauss=1., weights_gauss=1., method='mnr',):
         """
         Computes the negative log-likelihood under the assumption of an uncorrelated
         Gaussian likelihood, using the likelihood specififed by 'method'.
@@ -72,9 +72,10 @@ class RoxyRegressor():
             :xerr (jnp.ndarray): The error on the observed x values
             :yerr (jnp.ndarray): The error on the observed y values
             :sig (float, default=0.): The intrinsic scatter, which is added in quadrature with yerr
-            :mu_gauss (float, default=0.): The mean of the Gaussian prior on the true x positions (only used if method='mnr')
-            :w_gauss (float, default=1.): The standard deviation of the Gaussian prior on the true x positions (only used if method='mnr')
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :mu_gauss (float or jnp.ndarray, default=0.): The mean of the Gaussian prior on the true x positions (only used if method='mnr' or 'gmm'). If using 'mnr' and this is an array, only the first mean is used.
+            :w_gauss (float or jnp.ndarray, default=1.): The standard deviation of the Gaussian prior on the true x positions (only used if method='mnr').
+            :weights_gauss (float or jnp.ndarray, default=1.): The weights of the Gaussians in a GMM prior on the true x positions (only used if method='gmm').
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
         """
         f = self.value(xobs, theta)
         fprime = self.gradient(xobs, theta)
@@ -84,6 +85,11 @@ class RoxyRegressor():
         
         if method == 'mnr':
             return roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss)
+        elif method == 'gmm':
+            mu = jnp.array(mu_gauss)
+            w = jnp.array(w_gauss)
+            weights = jnp.array(weights_gauss)
+            return roxy.likelihoods.negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, mu, w, weights)
         elif method == 'uniform':
             return roxy.likelihoods.negloglike_uniform(xobs, yobs, xerr, yerr, f, fprime, sig)
         elif method == 'profile':
@@ -112,7 +118,7 @@ class RoxyRegressor():
                     print(f'{pname}:\t{pdefault}')
         return jnp.array(pidx)
             
-    def optimise(self, params_to_opt, xobs, yobs, xerr, yerr, method='mnr', infer_intrinsic=True, initial=None):
+    def optimise(self, params_to_opt, xobs, yobs, xerr, yerr, method='mnr', infer_intrinsic=True, initial=None, ngauss=1):
         """
         Optimise the parameters of the function given some data, under the assumption of
         an uncorrelated Gaussian likelihood, using the likelihood specififed by 'method'.
@@ -123,9 +129,10 @@ class RoxyRegressor():
             :yobs (jnp.ndarray): The observed y values
             :xerr (jnp.ndarray): The error on the observed x values
             :yerr (jnp.ndarray): The error on the observed y values
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :initial (jnp.ndarray, default=None): The starting point for the optimised. If None, a random value in the prior range is chosen
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
         
         Returns:
             :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
@@ -167,10 +174,25 @@ class RoxyRegressor():
             if method == 'mnr':
                 mu_gauss = theta[-2]
                 w_gauss = theta[-1]
+                weights_gauss = 1.
+            elif method == 'gmm':
+                imin = len(params_to_opt)
+                if infer_intrinsic:
+                    imin += 1
+                mu_gauss = theta[imin:imin+ngauss]
+                w_gauss = theta[imin+ngauss:imin+2*ngauss]
+                weights_gauss = np.zeros(ngauss)
+                weights_gauss[:ngauss-1] = theta[imin+2*ngauss:]
+                weights_gauss[-1] = 1 - sum(theta[imin+2*ngauss:])
+                
+                if jnp.any(weights_gauss > 1) or jnp.any(weights_gauss < 0):
+                    return np.inf
+                if jnp.any(w_gauss < 0):
+                    return np.inf
             else:
-                mu_gauss, w_gauss = None, None
-            
-            return self.negloglike(t, xobs, yobs, xerr, yerr, sig=sig, mu_gauss=mu_gauss, w_gauss=w_gauss, method=method)
+                mu_gauss, w_gauss, weights_gauss = None, None, None
+
+            return self.negloglike(t, xobs, yobs, xerr, yerr, sig=sig, mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss, method=method,)
         
         # Get initial guess
         if initial is None:
@@ -179,6 +201,13 @@ class RoxyRegressor():
                 initial = initial + [np.random.uniform(*self.param_prior['sig'])]
             if method == 'mnr':
                 initial = initial + [np.mean(xobs), np.std(xobs)]
+            elif method == 'gmm':
+                initial = (
+                    initial
+                    + list(np.random.uniform(xobs.min(), xobs.max(), ngauss))
+                    + list(np.random.uniform(0, np.std(xobs), ngauss))
+                    + [1./ngauss] * (ngauss - 1)
+                )
             
         res = minimize(fopt, initial, method="Nelder-Mead")
         
@@ -191,10 +220,21 @@ class RoxyRegressor():
         if method == 'mnr':
             print(f'mu_gauss:\t{res.x[-2]}')
             print(f'w_gauss:\t{res.x[-1]}')
+        elif method == 'gmm':
+            imin = len(params_to_opt)
+            if infer_intrinsic:
+                imin += 1
+            for i in range(ngauss):
+                print(f'mu_gauss_{i}:\t{res.x[imin+i]}')
+            for i in range(ngauss):
+                print(f'w_gauss_{i}:\t{res.x[imin+ngauss+i]}')
+            for i in range(ngauss-1):
+                print(f'weight_gauss_{i}:\t{res.x[imin+2*ngauss+i]}')
+            print(res.fun)
         
         return res
 
-    def mcmc(self, params_to_opt, xobs, yobs, xerr, yerr, nwarm, nsamp, method='mnr', infer_intrinsic=True, progress_bar=True, seed=1234):
+    def mcmc(self, params_to_opt, xobs, yobs, xerr, yerr, nwarm, nsamp, method='mnr', ngauss=1., infer_intrinsic=True, progress_bar=True, seed=1234):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian likelihood,
@@ -208,7 +248,8 @@ class RoxyRegressor():
             :yerr (jnp.ndarray): The error on the observed y values
             :nwarm (int): The number of warmup steps to use in the MCMC
             :nsamp (int): The number of samples to obtain in the MCMC
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
             :seed (int, default=1234): The seed to use when initialising the sampler
@@ -240,6 +281,10 @@ class RoxyRegressor():
             if method == 'mnr':
                 mu_gauss = numpyro.sample("mu_gauss", dist.Uniform(xobs.min(), xobs.max()))
                 w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)))
+            elif method == 'gmm':
+                all_mu_gauss = numpyro.sample("mu_gauss", dist.Uniform(xobs.min(), xobs.max()), sample_shape=(ngauss,))
+                all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
+                all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
 
             # Sample
             if method == 'mnr':
@@ -258,6 +303,12 @@ class RoxyRegressor():
                 numpyro.sample(
                     'obs',
                     roxy.mcmc.Likelihood_profile(xobs, yobs, xerr, yerr, f, fprime, sig),
+                    obs=yobs,
+                )
+            elif method == 'gmm':
+                numpyro.sample(
+                    'obs',
+                    roxy.mcmc.Likelihood_GMM(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss, all_weights),
                     obs=yobs,
                 )
             else:
@@ -286,7 +337,10 @@ class RoxyRegressor():
         neff = np.zeros(len(samples))
         for i, (k, v) in enumerate(samples.items()):
             x = jnp.expand_dims(v, axis=0)
-            neff[i] = numpyro.diagnostics.effective_sample_size(x)
+            try:
+                neff[i] = numpyro.diagnostics.effective_sample_size(x)
+            except:
+                neff[i] = min(numpyro.diagnostics.effective_sample_size(x))
         m = neff < 100
         if m.sum() > 0:
             bad_keys = [k for i,k in enumerate(samples.keys()) if m[i]]
