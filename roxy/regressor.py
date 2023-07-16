@@ -5,6 +5,7 @@ import numpy as np
 import numpyro
 import numpyro.distributions as dist
 import warnings
+from sklearn.mixture import GaussianMixture
 
 import roxy.likelihoods
 import roxy.mcmc
@@ -202,11 +203,15 @@ class RoxyRegressor():
             if method == 'mnr':
                 initial = initial + [np.mean(xobs), np.std(xobs)]
             elif method == 'gmm':
-                initial = (
+                gm = GaussianMixture(n_components=ngauss, random_state=0).fit(xobs.reshape(-1,1))
+                gm_means = np.atleast_1d(np.squeeze(gm.means_))
+                gm_ws = np.sqrt(np.atleast_1d(np.squeeze(gm.covariances_)))
+                gm_weights = np.atleast_1d(np.squeeze(gm.weights_))
+                initial = jnp.array(
                     initial
-                    + list(np.random.uniform(xobs.min(), xobs.max(), ngauss))
-                    + list(np.random.uniform(0, np.std(xobs), ngauss))
-                    + [1./ngauss] * (ngauss - 1)
+                    + list(gm_means)
+                    + list(gm_weights)
+                    + list(gm_weights[:ngauss - 1])
                 )
             
         res = minimize(fopt, initial, method="Nelder-Mead")
@@ -318,7 +323,7 @@ class RoxyRegressor():
         rng_key, rng_key_ = jax.random.split(rng_key)
         
         try:
-            vals = self.optimise(params_to_opt, xobs, yobs, xerr, yerr, method=method, infer_intrinsic=infer_intrinsic).x
+            vals = self.optimise(params_to_opt, xobs, yobs, xerr, yerr, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss).x
             kernel = numpyro.infer.NUTS(model, init_strategy=numpyro.infer.initialization.init_to_value(values=vals))
             print('\nRunning MCMC')
             sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)

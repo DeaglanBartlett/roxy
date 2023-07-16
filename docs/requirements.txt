@@ -11,3 +11,4 @@ fgivenx
 sphinx>=5.0
 myst-parser
 sphinx-rtd-theme
+scikit-learn
