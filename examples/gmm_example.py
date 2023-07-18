@@ -58,3 +58,6 @@ for method in ['gmm']:
 #    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
 #    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
 #    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)
+
+max_ngauss = 3
+reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100)

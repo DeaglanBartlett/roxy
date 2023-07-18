@@ -377,3 +377,93 @@ class RoxyRegressor():
             warnings.warn('Fewer than 100 effective samples for parameters: ' + ', '.join(bad_keys), category=Warning, stacklevel=2)
 
         return samples
+        
+    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=700, nsamp=5000, seed=1234):
+        """
+        Find the number of Gaussians to use in a Gaussian Mixture Model
+        hyper-prior on the true x values, accoridng to some metric.
+        We first run a MCMC to get an initial guess for the maximum likelihood
+        point, and we then an optimsier from this point to get a better
+        estimate for this. Since we do not need good MCMC convergence for this,
+        small values of nwarm and nsamp can be used.
+        
+        Args:
+            :params_to_opt (list): The names of the parameters we wish to optimise
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :xerr (jnp.ndarray): The error on the observed x values
+            :yerr (jnp.ndarray): The error on the observed y values
+            :max_ngauss (int): The maximum number of Gaussians to consider
+            :best_metric (str): Metric to use to compare fits (supported: AIC and BIC)
+            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            :nwarm (int): The number of warmup steps to use in the MCMC
+            :nsamp (int): The number of samples to obtain in the MCMC
+            :seed (int, default=1234): The seed to use when initialising the sampler
+            
+        Returns:
+            :ngauss (int): The best number of Gaussians to use according to the metric
+        
+        """
+    
+        npar = np.empty(max_ngauss)
+        negloglike = np.empty(max_ngauss)
+    
+        for ngauss in range(1, max_ngauss+1):
+            
+            # First run a MCMC to get a guess at the peak
+            samples = self.mcmc(params_to_opt,
+                            xobs,
+                            yobs,
+                            xerr,
+                            yerr,
+                            nwarm,
+                            nsamp,
+                            method='gmm',
+                            ngauss=ngauss,
+                            infer_intrinsic=infer_intrinsic,
+                            progress_bar=True,
+                            seed=seed
+            )
+            labels, samples = roxy.mcmc.samples_to_array(samples)
+            labels = list(labels)
+            
+            # Now put in order expected by optimisers
+            param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig'))]
+            if infer_intrinsic:
+                param_idx = param_idx + [labels.index('sig')]
+            param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
+            param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
+            param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
+            param_names = [labels[i] for i in param_idx]
+            
+            # Extract medians
+            initial = jnp.median(samples[:,param_idx], axis=0)
+
+            # Run new optimiser
+            res = self.optimise(params_to_opt,
+                        xobs,
+                        yobs,
+                        xerr,
+                        yerr,
+                        method='gmm',
+                        infer_intrinsic=infer_intrinsic,
+                        initial=initial,
+                        ngauss=ngauss
+            )
+            npar[ngauss-1] = len(initial)
+            negloglike[ngauss-1] = res.fun
+
+        if best_metric == 'AIC':
+            metric = 2 * negloglike + 2 * npar
+        elif best_metric == 'BIC':
+            metric = 2 * negloglike + npar * jnp.log(len(xobs))
+        else:
+            raise NotImplementedError
+        
+        ngauss = np.argmin(metric) + 1
+        print(f'\nBest ngauss according to {best_metric}:', ngauss)
+        metric -= np.amin(metric)
+        for i, m in enumerate(metric):
+            print(i+1, m)
+
+        return ngauss
