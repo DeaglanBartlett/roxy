@@ -35,25 +35,26 @@ for i in range(len(true_means)):
     print(i, m.sum())
     xtrue[m] = np.random.normal(true_means[i], true_w[i], m.sum())
     
-plt.hist(xtrue, bins=30, density=True, histtype='step')
-plt.show()
+#plt.hist(xtrue, bins=30, density=True, histtype='step')
+#plt.show()
 
 ytrue = reg.value(xtrue, theta0)
 xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
 yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
-plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
-                 'capsize':1, 'elinewidth':1.0, 'color':'k', 'alpha':1}
-plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
-plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
-plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
-plt.tight_layout()
-plt.show()
+#plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
+#                 'capsize':1, 'elinewidth':1.0, 'color':'k', 'alpha':1}
+#plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
+#plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
+#plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
+#plt.tight_layout()
+#plt.show()
 
 reg.optimise(param_names, xobs, yobs, xerr, yerr, method='gmm', ngauss=2)
 
 for method in ['gmm']:
-    samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method, ngauss=2)
-    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)
+    for i in range(1,3):
+        samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method, ngauss=2, seed=i)
+#    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
+#    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
+#    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)

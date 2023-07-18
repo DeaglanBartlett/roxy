@@ -6,6 +6,7 @@ import numpyro
 import numpyro.distributions as dist
 import warnings
 from sklearn.mixture import GaussianMixture
+from operator import attrgetter
 
 import roxy.likelihoods
 import roxy.mcmc
@@ -207,12 +208,14 @@ class RoxyRegressor():
                 gm_means = np.atleast_1d(np.squeeze(gm.means_))
                 gm_ws = np.sqrt(np.atleast_1d(np.squeeze(gm.covariances_)))
                 gm_weights = np.atleast_1d(np.squeeze(gm.weights_))
+                idx = np.argsort(gm_weights)
                 initial = jnp.array(
                     initial
-                    + list(gm_means)
-                    + list(gm_weights)
-                    + list(gm_weights[:ngauss - 1])
+                    + list(gm_means[idx])
+                    + list(gm_weights[idx])
+                    + list((gm_weights[idx])[:ngauss - 1])
                 )
+                print(initial)
             
         res = minimize(fopt, initial, method="Nelder-Mead")
         
@@ -335,8 +338,30 @@ class RoxyRegressor():
             sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
             sampler.run(rng_key_)
 
-        sampler.print_summary()
         samples = sampler.get_samples()
+        
+        # Order Gaussians by weight in GMM
+        if method == 'gmm' and ngauss > 1:
+            i = jnp.argsort(-samples['weights'], axis=1)
+            for k in ['weights', 'mu_gauss', 'w_gauss']:
+                samples[k] = jnp.take_along_axis(samples[k], i, axis=1)
+                
+        # Print summary
+        sites = samples
+        if isinstance(samples, dict):
+            state_sample_field = attrgetter(sampler._sample_field)(sampler._last_state)
+            if isinstance(state_sample_field, dict):
+                sites = {
+                    k: jnp.expand_dims(v, axis=0)
+                    for k, v in samples.items()
+                    if k in state_sample_field
+                }
+        numpyro.diagnostics.print_summary(sites, prob=0.95)
+        extra_fields = sampler.get_extra_fields()
+        if "diverging" in extra_fields:
+            print(
+                "Number of divergences: {}".format(jnp.sum(extra_fields["diverging"]))
+            )
         
         # Raise warning if too few effective samples
         neff = np.zeros(len(samples))
