@@ -45,11 +45,20 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
                 for p, l in zip([f'mu_gauss_{i}', f'w_gauss_{i}', f'weights_{i}'], [r'\mu_{%i}'%i, r'w_{%i}'%i, r'\nu_{%i}'%i]):
                     j = np.squeeze(np.where(names==p))
                     labs[j] = l
+        
+        # Kelly prior parameters
+        if 'hyper_mu' in names:
+            for p, l in zip(['hyper_mu', 'hyper_w2', 'hyper_u2'], [r'\mu_\star', r'w_\star^2', r'u_\star^2']):
+                j = np.squeeze(np.where(names==p))
+                labs[j] = l
+        
     else:
         labs = [labels[n] for n in names]
         
     if module == 'corner':
-        corner.corner(all_samples, labels=labs)
+        labs = ['$'+l+'$' for l in labs]
+        fig, _ = plt.subplots(len(labs), len(labs), figsize=(8,8))
+        corner.corner(all_samples, labels=labs, fig=fig)
     elif module == 'getdist':
     
         if param_prior is None:
@@ -62,6 +71,10 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
             for i in range(ngauss):
                 ranges[f'w_gauss_{i}'] = [0, None]
                 ranges[f'weights_{i}'] = [0, 1]
+                
+        if 'hyper_mu' in names:
+            ranges['hyper_w2'] = [0, None]
+            ranges['hyper_u2'] = [0, None]
     
         samps = MCSamples(
             samples=all_samples,
@@ -70,7 +83,7 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
             ranges=ranges
         )
             
-        g = plots.get_subplot_plotter()
+        g = plots.get_subplot_plotter(width_inch=8)
         g.triangle_plot(samps, filled=True)
             
     else:
@@ -107,14 +120,20 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
             v = samples[k]
             for i in range(v.shape[1]):
                 new_samples[f'{k}_{i}'] = v[:,i]
+        npar = len(new_samples.keys())
         res = az.from_dict(new_samples)
     else:
         res = az.from_dict(samples)
-        
+        npar = len(samples.keys())
+    
+    if to_plot != 'all':
+        npar = len(to_plot)
+    figsize = (12, min(2 * npar, 10))
+    
     if to_plot == 'all':
-        az.plot_trace(res, compact=True)
+        az.plot_trace(res, compact=True, figsize=figsize)
     else:
-        az.plot_trace(res, compact=True, var_names=to_plot)
+        az.plot_trace(res, compact=True, var_names=to_plot, figsize=figsize)
     plt.tight_layout()
     
     if savename is not None:

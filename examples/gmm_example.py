@@ -52,12 +52,19 @@ yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
 reg.optimise(param_names, xobs, yobs, xerr, yerr, method='gmm', ngauss=2)
 
-for method in ['gmm']:
-    for i in range(1,3):
+#for method in ['gmm']:
+for method in ['kelly']:
+#    for i in range(1,3):
+    for i in [1]:
         samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method, ngauss=2, seed=i)
 #    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
-#    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
+    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
 #    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)
 
-max_ngauss = 3
-reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100)
+#max_ngauss = 3
+#reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100)
+
+"""
+TO DO:
+- Init to value for Kely
+"""

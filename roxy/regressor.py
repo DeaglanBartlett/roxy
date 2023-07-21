@@ -256,8 +256,8 @@ class RoxyRegressor():
             :yerr (jnp.ndarray): The error on the observed y values
             :nwarm (int): The number of warmup steps to use in the MCMC
             :nsamp (int): The number of samples to obtain in the MCMC
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
-            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'kelly', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information. Note 'kelly' is the same as 'gmm' but with a different prior on the GMM components.
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm' or 'kelly'
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
             :seed (int, default=1234): The seed to use when initialising the sampler
@@ -293,6 +293,13 @@ class RoxyRegressor():
                 all_mu_gauss = numpyro.sample("mu_gauss", dist.Uniform(xobs.min(), xobs.max()), sample_shape=(ngauss,))
                 all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
                 all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
+            elif method == 'kelly':
+                hyper_mu = numpyro.sample("hyper_mu", dist.Uniform(xobs.min(), xobs.max()))
+                hyper_w2 = numpyro.sample("hyper_w2", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
+                hyper_u2 = numpyro.sample("hyper_u2", dist.InverseGamma(1/2, hyper_w2/2))
+                all_mu_gauss = numpyro.sample("mu_gauss", dist.Normal(hyper_mu, jnp.sqrt(hyper_u2)), sample_shape=(ngauss,))
+                all_w_gauss = numpyro.sample("w_gauss", dist.InverseGamma(1/2, hyper_w2/2), sample_shape=(ngauss,))
+                all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
 
             # Sample
             if method == 'mnr':
@@ -313,7 +320,7 @@ class RoxyRegressor():
                     roxy.mcmc.Likelihood_profile(xobs, yobs, xerr, yerr, f, fprime, sig),
                     obs=yobs,
                 )
-            elif method == 'gmm':
+            elif method in ['gmm', 'kelly']:
                 numpyro.sample(
                     'obs',
                     roxy.mcmc.Likelihood_GMM(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss, all_weights),
@@ -341,7 +348,7 @@ class RoxyRegressor():
         samples = sampler.get_samples()
         
         # Order Gaussians by weight in GMM
-        if method == 'gmm' and ngauss > 1:
+        if method in ['gmm', 'kelly'] and ngauss > 1:
             i = jnp.argsort(-samples['weights'], axis=1)
             for k in ['weights', 'mu_gauss', 'w_gauss']:
                 samples[k] = jnp.take_along_axis(samples[k], i, axis=1)
