@@ -138,6 +138,7 @@ class RoxyRegressor():
         
         Returns:
             :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
+            :param_names (list): List of parameter names in order of res.x
         """
     
         # Get indices of params to optimise
@@ -221,26 +222,34 @@ class RoxyRegressor():
         
         # Print results
         print('\nOptimisation Results:')
+        param_names = []
         for p, val in zip(params_to_opt, res.x):
             print(f'{p}:\t{val}')
+            param_names.append(p)
         if infer_intrinsic:
             print(f'sig:\t{res.x[len(params_to_opt)]}')
+            param_names.append('sig')
         if method == 'mnr':
             print(f'mu_gauss:\t{res.x[-2]}')
             print(f'w_gauss:\t{res.x[-1]}')
+            param_names.append('mu_gauss')
+            param_names.append('w_gauss')
         elif method == 'gmm':
             imin = len(params_to_opt)
             if infer_intrinsic:
                 imin += 1
             for i in range(ngauss):
                 print(f'mu_gauss_{i}:\t{res.x[imin+i]}')
+                param_names.append(f'mu_gauss_{i}')
             for i in range(ngauss):
                 print(f'w_gauss_{i}:\t{res.x[imin+ngauss+i]}')
+                param_names.append(f'w_gauss_{i}')
             for i in range(ngauss-1):
                 print(f'weight_gauss_{i}:\t{res.x[imin+2*ngauss+i]}')
+                param_names.append(f'weight_gauss_{i}')
             print(res.fun)
         
-        return res
+        return res, param_names
 
     def mcmc(self, params_to_opt, xobs, yobs, xerr, yerr, nwarm, nsamp, method='mnr', ngauss=1., infer_intrinsic=True, progress_bar=True, seed=1234):
         """
@@ -333,8 +342,29 @@ class RoxyRegressor():
         rng_key, rng_key_ = jax.random.split(rng_key)
         
         try:
-            vals = self.optimise(params_to_opt, xobs, yobs, xerr, yerr, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss).x
-            kernel = numpyro.infer.NUTS(model, init_strategy=numpyro.infer.initialization.init_to_value(values=vals))
+            if method == 'kelly':
+                vals, param_names = self.optimise(params_to_opt, xobs, yobs, xerr, yerr, method='gmm', infer_intrinsic=infer_intrinsic, ngauss=ngauss)
+            else:
+                vals, param_names = self.optimise(params_to_opt, xobs, yobs, xerr, yerr, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss)
+            vals = vals.x
+            init = {k:v for k,v in zip(param_names, vals)}
+            if 'mu_gauss_0' in param_names:
+                init_mu = [0.] * ngauss
+                init_w = [0.] * ngauss
+                init_weight = [0.] * ngauss
+                for i in range(ngauss):
+                    init_mu[i] = init[f'mu_gauss_{i}']
+                    init_w[i] = init[f'w_gauss_{i}']
+                    init.pop(f'mu_gauss_{i}')
+                    init.pop(f'w_gauss_{i}')
+                for i in range(ngauss - 1):
+                    init_weight[i] = init[f'weight_gauss_{i}']
+                    init.pop(f'weight_gauss_{i}')
+                init_weight[-1] = 1. - sum(init_weight)
+                init['mu_gauss'] = jnp.array(init_mu)
+                init['w_gauss'] = jnp.array(init_w)
+                init['weight_gauss'] = jnp.array(init_weight)
+            kernel = numpyro.infer.NUTS(model, init_strategy=numpyro.infer.initialization.init_to_value(values=init))
             print('\nRunning MCMC')
             sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
             sampler.run(rng_key_)
@@ -447,7 +477,7 @@ class RoxyRegressor():
             initial = jnp.median(samples[:,param_idx], axis=0)
 
             # Run new optimiser
-            res = self.optimise(params_to_opt,
+            res, _ = self.optimise(params_to_opt,
                         xobs,
                         yobs,
                         xerr,
