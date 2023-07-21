@@ -42,7 +42,7 @@ Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2307.YYYYY
 .. code:: bibtex
 
   @ARTICLE{roxy,
-       author = {{Desmond}, H. and {Bartlett}, D.~J.},
+       author = {{Bartlett}, D.~J. and {Desmond}, H.},
         title = "{Marginalised Normal Regression: unbiased curve fitting in the presence of x-errors}",
       journal = {arXiv e-prints},
      keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics},
