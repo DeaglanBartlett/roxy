@@ -4,7 +4,11 @@ roxy
 :roxy: Regression and Optimisation with X and Y errors
 :Authors: Deaglan J. Bartlett and Harry Desmond
 :Homepage: https://github.com/DeaglanBartlett/roxy
-:Documentation: MAKE DOCUMENTATION
+:Documentation: https://roxy.readthedocs.io/en/latest/
+
+.. image:: https://readthedocs.org/projects/roxy/badge/?version=latest
+  :target: https://roxy.readthedocs.io/en/latest/?badge=latest
+  :alt: Documentation Status
 
 .. image:: https://img.shields.io/badge/astro.CO-arXiv%32307.YYYYY-B31B1B.svg
   :target: https://arxiv.org/abs/2307.YYYYY
@@ -201,7 +205,8 @@ Below is a list of contributors to this repository.
 Documentation
 =============
 
-MAKE DOCUMENTATION
+The documentation for this project can be found
+`at this link <https://roxy.readthedocs.io/>`_
 
 Acknowledgements
 ================
