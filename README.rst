@@ -13,7 +13,33 @@ roxy
 About
 =====
 
-WRITE AN ABOUT SECTION
+``roxy`` (Regression and Optimisation with X and Y errors) is a python package for performing
+MCMC where the data have both x and y errors. The common approach for this problem is to use a
+Gaussian likelihood with a mean given by :math:`f(x_{\rm obs}, \theta)` and a variance
+:math:`\sigma_y^2 + f^\prime(x_{\rm obs}, \theta)^2 \sigma_x^2`, but this ignores the underlying
+distribution of true x values and thus gives biased results. Instead, this package allows
+one to use the MNR (Marginalised Normal Regression) method which does not exhibit such 
+biases. 
+
+The code uses automatic differentiation enabled by jax to both sample the
+likelihood using Hamiltonian Monte Carlo and to compute the derivatives 
+required for the likelihood. We employ the NUTS method implemented in ``numpyro``
+for fast sampling. For the galaxy cluster example in the MNR paper 
+(which contains over 250 data points), a single chain run on a laptop performs 
+approximately 3500 iterations per second, such that a chain with 700 warm-up
+steps and 5000 samples takes approximately 1.6 seconds to sample, and gives
+over 3500 effective samples for each of the parameters, with Gelman Rubin statistics 
+equal to unity within less than 0.01. Given its efficiency and simplicity to use (one 
+need to just define the function of interest, the parameters to sample and their
+prior ranges), we advocate for its use not just in the presence of x errors,
+but also without these.
+
+As well as returning posterior samples and allowing likelihood computations
+(which can be integrated into the user's larger code), ``roxy`` is interfaced with 
+``arviz`` to produce trace plots, ``corner`` and ``getdist`` to make two-dimensional
+posterior plots, and ``fgivenx`` for posterior predictive plots. See below for 
+the relevant citations one must use if one uses these modules.
+
 
 Installation
 ============
@@ -141,7 +167,28 @@ and if you use ``module="getdist"``, please cite
       url            = "https://getdist.readthedocs.io"
      }
 
-ADD LICENCE INFORMATION HERE
+MIT License
+
+Copyright (c) 2023 Deaglan John Bartlett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 
 Contributors
 ============
