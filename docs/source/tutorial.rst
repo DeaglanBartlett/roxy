@@ -73,7 +73,7 @@ We begin by finding the maximum likelihood point, which is as simple as
 
 .. code-block:: python
 
-	res = reg.optimise(param_names, xobs, yobs, xerr, yerr, method='mnr')
+	res = reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr')
 
 .. code-block:: console
 
@@ -97,7 +97,7 @@ We print the parameter mean and median values, their standard deviations, the 5%
 .. code-block:: python
 
 	nwarm, nsamp = 700, 5000
-	samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method)
+	samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
 
 .. code-block:: console
 
@@ -239,7 +239,8 @@ For example, running
 	
 	import roxy.plotting
 
-	reg.optimise(param_names, xobs, yobs, xerr, yerr, method='gmm', ngauss=2)
+	nwarm, nsamp = 700, 5000
+        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2)
 	roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, show=True)
 
 

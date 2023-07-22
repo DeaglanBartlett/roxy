@@ -51,14 +51,14 @@ plt.show()
 plt.clf()
 plt.close(plt.gcf())
 
-reg.optimise(param_names, xobs, yobs, xerr, yerr, method='mnr')
+reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr')
 
 #theta0 = [2, 0.5, -3]
 
 #for method in ['uniform', 'profile', 'mnr']:
 for method in ['mnr']:
-    print(reg.negloglike(theta0, xobs, yobs, xerr, yerr, sig, method=method))
-    samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method)
+    print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig, method=method))
+    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior,) #savename='../docs/source/triangle.png')
     roxy.plotting.trace_plot(samples, to_plot='all',) #savename='../docs/source/trace.png')
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr) #, savename='../docs/source/posterior_predictive.png')

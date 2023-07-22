@@ -162,3 +162,115 @@ def negloglike_uniform(xobs, yobs, xerr, yerr, f, fprime, sig):
     )
 
     return neglogP
+    
+    
+def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
+    """
+    Computes the negative log-likelihood under the assumption of a correlated
+    Gaussian likelihood (i.e. arbitrary covariance matrix) with a Gaussian prior
+    on the true x positions.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+        
+    Returns:
+        :neglogP (float): The negative log-likelihood
+    """
+    
+    nx = len(xobs)
+    ny = len(yobs)
+    W = jnp.identity(nx) * w_gauss ** 2
+    GW = jnp.matmul(G, W)
+    
+    # Covariance
+    M = Sigma + jnp.concatenate([
+                            jnp.concatenate([W, GW.T], axis=-1),
+                            jnp.concatenate([GW, jnp.matmul(GW, G.T) + jnp.identity(ny) * sig ** 2], axis=-1)
+                            ])
+    _, logdet2piM = jnp.linalg.slogdet(2 * jnp.pi * M)
+    Minv = jnp.linalg.inv(M)
+    
+    # Vector
+    z = jnp.concatenate([mu_gauss - xobs, f + jnp.matmul(G, mu_gauss - xobs) - yobs])
+    
+    neglogP = 1/2 * logdet2piM + 1/2 * jnp.sum(z * jnp.matmul(Minv, z))
+
+    return neglogP
+    
+    
+def negloglike_profile_mv(xobs, yobs, Sigma, f, G, sig):
+    """
+    Computes the negative log-likelihood under the assumption of a correlated
+    Gaussian likelihood (i.e. arbitrary covariance matrix), evaluated at the
+    maximum likelihood values of xtrue (the profile likelihood)
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        
+    Returns:
+        :neglogP (float): The negative log-likelihood
+    """
+    
+    nx = len(xobs)
+    ny = len(yobs)
+    D = (
+        Sigma[nx:,nx:] + + jnp.identity(ny) * sig ** 2
+        + jnp.matmul(G, jnp.matmul(Sigma[:nx,:nx], G.T))
+        - jnp.matmul(Sigma[nx:,:nx], G.T) - jnp.matmul(G, Sigma[:nx,nx:])
+    )
+    S = jnp.array(Sigma)
+    S = S.at[nx:,nx:].set(S[nx:,nx:] + jnp.identity(ny) * sig ** 2)
+    _, logdet2piS = jnp.linalg.slogdet(2 * jnp.pi * S)
+    Dinv = jnp.linalg.inv(D)
+    
+    z = f - yobs
+    neglogP = 1/2 * logdet2piS + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
+        
+    return neglogP
+
+    
+def negloglike_uniform_mv(xobs, yobs, Sigma, f, G, sig):
+    """
+    Computes the negative log-likelihood under the assumption of a correlated
+    Gaussian likelihood (i.e. arbitrary covariance matrix), where we have
+    marginalised over the true x values, assuming an infinite uniform prior on these.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        
+    Returns:
+        :neglogP (float): The negative log-likelihood
+    """
+    
+    nx = len(xobs)
+    ny = len(yobs)
+    D = (
+        Sigma[nx:,nx:] + + jnp.identity(ny) * sig ** 2
+        + jnp.matmul(G, jnp.matmul(Sigma[:nx,:nx], G.T))
+        - jnp.matmul(Sigma[nx:,:nx], G.T) - jnp.matmul(G, Sigma[:nx,nx:])
+    )
+    _, logdet2piD = jnp.linalg.slogdet(2 * jnp.pi * D)
+    Dinv = jnp.linalg.inv(D)
+    
+    z = f - yobs
+    neglogP = 1/2 * logdet2piD + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
+        
+    return neglogP
+

@@ -65,18 +65,18 @@ plt.savefig('../docs/source/gmm_data.png', transparent=True)
 plt.clf()
 plt.close(plt.gcf())
 
-reg.optimise(param_names, xobs, yobs, xerr, yerr, method='gmm', ngauss=2)
+reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='gmm', ngauss=2)
 
 #for method in ['gmm']:
 #for method in ['kelly']:
 ##    for i in range(1,3):
 #    for i in [1]:
-#        samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method=method, ngauss=2, seed=i)
+#        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method, ngauss=2, seed=i)
 #    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
 #    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
 #    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)
 
-samples = reg.mcmc(param_names, xobs, yobs, xerr, yerr, nwarm, nsamp, method='gmm', ngauss=2)
+samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2)
 roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename='../docs/source/gmm_corner.png', show=True)
 
 max_ngauss = 5
