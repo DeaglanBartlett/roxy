@@ -37,7 +37,7 @@ for dset in ['LP15', 'ITP13', 'SDSS']:
     t4 += m4.sum()
     ptab.add_row([dset, m0.sum(), m1.sum(), m2.sum(), m3.sum(), m4.sum()])
 ptab.add_row(['Total', t0, t1, t2, t3, t4])
-print('\nCompare to Table 1 of arXiv:2111.13071 (SEEMS WRONG?)')
+print('\nCompare to Table 1 of arXiv:2111.13071')
 print(ptab)
 
 m = None

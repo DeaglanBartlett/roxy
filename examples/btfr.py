@@ -70,8 +70,11 @@ plt.savefig('btfr_corner.pdf')
 plt.clf()
 plt.close(plt.gcf())
 
+xlabel = r'$\log_{10} \left( \frac{V_{\rm flat}}{{\rm km \, s^{-1}}} \right)$'
+ylabel = r'$\log_{10} \left( \frac{M_{\rm bar}}{{\rm \, M_{\odot}}} \right)$'
+
 errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':-1, 'capsize':1, 'elinewidth':0.2, 'color':'k', 'alpha':1}
-fig = roxy.plotting.posterior_predictive_plot(reg, mnr_samps, xobs, yobs, xerr, yerr, savename=None, show=False, xlabel=r'$\log_{10} \left( \frac{V_{\rm flat}}{{\rm km \, s^{-1}}} \right)$', ylabel=r'$\log_{10} \left( \frac{M_{\rm bar}}{{\rm \, M_{\odot}}} \right)$', errorbar_kwargs=errorbar_kwargs)
+fig = roxy.plotting.posterior_predictive_plot(reg, mnr_samps, xobs, yobs, xerr, yerr, savename=None, show=False, xlabel=xlabel, ylabel=ylabel, errorbar_kwargs=errorbar_kwargs)
 ax = fig.gca()
 x = np.array(ax.get_xlim())
 for gradient, intercept, method_label in zip(all_gradient, all_intercept, all_method_label):
