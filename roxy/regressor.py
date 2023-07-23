@@ -477,7 +477,7 @@ class RoxyRegressor():
         
         return samples
         
-    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=700, nsamp=5000, seed=1234):
+    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, seed=1234):
         """
         Find the number of Gaussians to use in a Gaussian Mixture Model
         hyper-prior on the true x values, accoridng to some metric.
@@ -495,8 +495,8 @@ class RoxyRegressor():
             :max_ngauss (int): The maximum number of Gaussians to consider
             :best_metric (str): Metric to use to compare fits (supported: AIC and BIC)
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
-            :nwarm (int): The number of warmup steps to use in the MCMC
-            :nsamp (int): The number of samples to obtain in the MCMC
+            :nwarm (int, default=100): The number of warmup steps to use in the MCMC
+            :nsamp (int, default=100): The number of samples to obtain in the MCMC
             :seed (int, default=1234): The seed to use when initialising the sampler
             
         Returns:
