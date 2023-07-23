@@ -465,7 +465,16 @@ class RoxyRegressor():
         if m.sum() > 0:
             bad_keys = [k for i,k in enumerate(samples.keys()) if m[i]]
             warnings.warn('Fewer than 100 effective samples for parameters: ' + ', '.join(bad_keys), category=Warning, stacklevel=2)
-
+            
+        # Raise warning if the peak of the posterior is too close to the edge of the prior
+        bad_keys = []
+        for p in params_to_opt:
+            counts, _ = np.histogram(samples[p], np.linspace(self.param_prior[p][0], self.param_prior[p][1], 30))
+            if (np.argmax(counts) < 2) or (np.argmax(counts) > 27):
+                bad_keys.append(p)
+        if len(bad_keys) > 0:
+            warnings.warn('Posterior near edge of prior for parameters: ' + ', '.join(bad_keys), category=Warning, stacklevel=2)
+        
         return samples
         
     def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=700, nsamp=5000, seed=1234):
