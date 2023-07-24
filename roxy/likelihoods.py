@@ -131,7 +131,7 @@ def negloglike_profile(xobs, yobs, xerr, yerr, f, fprime, sig):
     return neglogP
 
 
-def negloglike_uniform(xobs, yobs, xerr, yerr, f, fprime, sig):
+def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
     Gaussian likelihood, where we have marginalised over the true x values,
@@ -241,7 +241,7 @@ def negloglike_profile_mv(xobs, yobs, Sigma, f, G, sig):
     return neglogP
 
     
-def negloglike_uniform_mv(xobs, yobs, Sigma, f, G, sig):
+def negloglike_unif_mv(xobs, yobs, Sigma, f, G, sig):
     """
     Computes the negative log-likelihood under the assumption of a correlated
     Gaussian likelihood (i.e. arbitrary covariance matrix), where we have

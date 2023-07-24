@@ -196,7 +196,7 @@ class Likelihood_profile_MV(dist.Distribution):
     
         
 
-class Likelihood_uniform(dist.Distribution):
+class Likelihood_unif(dist.Distribution):
    
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
         """
@@ -224,16 +224,16 @@ class Likelihood_uniform(dist.Distribution):
             jnp.shape(fprime),
             jnp.shape(sig),
         )
-        super(Likelihood_uniform, self).__init__(batch_shape = batch_shape)
+        super(Likelihood_unif, self).__init__(batch_shape = batch_shape)
         
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
         
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_uniform(self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig)
+        return - roxy.likelihoods.negloglike_unif(self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig)
         
         
-class Likelihood_uniform_MV(dist.Distribution):
+class Likelihood_unif_MV(dist.Distribution):
    
     def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig):
         """
@@ -275,7 +275,7 @@ class Likelihood_uniform_MV(dist.Distribution):
                     )
         self.f = f_p[...,0]
         self.sig = sig[...,0]
-        super(Likelihood_uniform_MV, self).__init__(
+        super(Likelihood_unif_MV, self).__init__(
             batch_shape = batch_shape,
             event_shape = event_shape
         )
@@ -284,7 +284,7 @@ class Likelihood_uniform_MV(dist.Distribution):
         raise NotImplementedError
         
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_uniform_mv(self.xobs, self.yobs, self.Sigma, self.f, self.G, self.sig)
+        return - roxy.likelihoods.negloglike_unif_mv(self.xobs, self.yobs, self.Sigma, self.f, self.G, self.sig)
         
         
 class Likelihood_GMM(dist.Distribution):

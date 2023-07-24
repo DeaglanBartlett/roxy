@@ -77,7 +77,7 @@ class RoxyRegressor():
             :mu_gauss (float or jnp.ndarray, default=0.): The mean of the Gaussian prior on the true x positions (only used if method='mnr' or 'gmm'). If using 'mnr' and this is an array, only the first mean is used.
             :w_gauss (float or jnp.ndarray, default=1.): The standard deviation of the Gaussian prior on the true x positions (only used if method='mnr').
             :weights_gauss (float or jnp.ndarray, default=1.): The weights of the Gaussians in a GMM prior on the true x positions (only used if method='gmm').
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'profile'). See ``roxy.likelihoods`` for more information
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
         """
         f = self.value(xobs, theta)
@@ -103,11 +103,11 @@ class RoxyRegressor():
                 raise NotImplementedError
             else:
                 return roxy.likelihoods.negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, mu, w, weights)
-        elif method == 'uniform':
+        elif method == 'unif':
             if covmat:
-                return roxy.likelihoods.negloglike_uniform_mv(xobs, yobs, errors, f, G, sig)
+                return roxy.likelihoods.negloglike_unif_mv(xobs, yobs, errors, f, G, sig)
             else:
-                return roxy.likelihoods.negloglike_uniform(xobs, yobs, xerr, yerr, f, fprime, sig)
+                return roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig)
         elif method == 'profile':
             if covmat:
                 return roxy.likelihoods.negloglike_profile_mv(xobs, yobs, errors, f, G, sig)
@@ -148,7 +148,7 @@ class RoxyRegressor():
             :xobs (jnp.ndarray): The observed x values
             :yobs (jnp.ndarray): The observed y values
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving the error on the observed x and y values. Otherwise, this is the covariance matrix in the order (x, y)
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'profile'). See ``roxy.likelihoods`` for more information
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :initial (jnp.ndarray, default=None): The starting point for the optimised. If None, a random value in the prior range is chosen
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
@@ -282,7 +282,7 @@ class RoxyRegressor():
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving the error on the observed x and y values. Otherwise, this is the covariance matrix in the order (x, y)
             :nwarm (int): The number of warmup steps to use in the MCMC
             :nsamp (int): The number of samples to obtain in the MCMC
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'kelly', 'uniform' or 'profile'). See ``roxy.likelihoods`` for more information. Note 'kelly' is the same as 'gmm' but with a different prior on the GMM components.
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'kelly', 'unif' or 'profile'). See ``roxy.likelihoods`` for more information. Note 'kelly' is the same as 'gmm' but with a different prior on the GMM components.
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm' or 'kelly'
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
@@ -353,17 +353,17 @@ class RoxyRegressor():
                         roxy.mcmc.Likelihood_MNR(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss),
                         obs=yobs,
                     )
-            elif method == 'uniform':
+            elif method == 'unif':
                 if covmat:
                     numpyro.sample(
                         'obs',
-                        roxy.mcmc.Likelihood_uniform_MV(xobs, yobs, Sxx, Syy, Sxy, f, G, sig),
+                        roxy.mcmc.Likelihood_unif_MV(xobs, yobs, Sxx, Syy, Sxy, f, G, sig),
                         obs=yobs,
                     )
                 else:
                     numpyro.sample(
                         'obs',
-                        roxy.mcmc.Likelihood_uniform(xobs, yobs, xerr, yerr, f, fprime, sig),
+                        roxy.mcmc.Likelihood_unif(xobs, yobs, xerr, yerr, f, fprime, sig),
                         obs=yobs,
                     )
             elif method == 'profile':

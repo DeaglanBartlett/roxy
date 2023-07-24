@@ -55,7 +55,7 @@ reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr')
 
 #theta0 = [2, 0.5, -3]
 
-#for method in ['uniform', 'profile', 'mnr']:
+#for method in ['unif', 'profile', 'mnr']:
 for method in ['mnr']:
     print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig, method=method))
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)

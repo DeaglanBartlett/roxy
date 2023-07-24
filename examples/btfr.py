@@ -28,7 +28,6 @@ reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 # MCMC params
 nwarm = 700
 nsamp = 5000
-method = 'mnr'
 
 ranges = param_prior
 ranges['w_gauss'] = [0, None]
@@ -36,7 +35,7 @@ all_samps = []
 all_gradient = []
 all_intercept = []
 
-all_method = ['mnr', 'uniform', 'profile']
+all_method = ['mnr', 'unif', 'profile']
 all_method_label = ['MNR', 'Uniform', 'Profile']
 
 for method, method_label in zip(all_method, all_method_label):
