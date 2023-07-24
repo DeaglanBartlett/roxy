@@ -86,6 +86,11 @@ We begin by finding the maximum likelihood point, which is as simple as
 
 Note that ``res`` here is a ``scipy.optimize._optimize.OptimizeResult`` object, so you can use all the usual functionality this contains.
 
+In this example, we optimised all the parameters. If, instead, we just wished to only find the gradient,
+we could have used ``['A']`` instead of ``param_names``, and then the intercept would be fixed to the default value in
+``theta0`` which we gave when initialising the regressor object (so in this case 0.5). We can also choose
+to not infer the intrinsic scatter by using the argument ``infer_intrinsic=False`` when calling ``reg.optimise``.
+
 
 Markov chain Monte Carlo
 ------------------------
@@ -130,6 +135,12 @@ These plots make use of the `arviz <https://www.arviz.org/en/latest/>`_, `getdis
 
 .. image:: posterior_predictive.png
         :width: 480px
+
+
+Again, in this case we sampled all the parameters. If, instead, we just wished to just sample the gradient,
+we could have passed ``['A']`` for ``param_names``, and then the intercept would be fixed to the default value in
+``theta0`` which we gave when initialising the regressor object (so in this case 0.5). We can also choose
+to not infer the intrinsic scatter by using the argument ``infer_intrinsic=False`` when calling ``reg.mcmc``.
 
 
 Gaussian Mixture Models
