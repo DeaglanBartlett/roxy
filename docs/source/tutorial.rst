@@ -4,12 +4,20 @@ Tutorial
 ========
 
 In this tutorial we demonstrate how to fit a function to data using both a maximum-likelihood method, and by running a 
-MCMC using the ``roxy`` module. We then plot our results. Throughout we call functions with the argument ``method='mnr'`` 
-as this is the recommended likelihood for data with x and y errors, however this can be replaced with ``method='uniform'`` 
+MCMC using the ``roxy`` module. We then plot our results. 
+
+To start with, we call functions with the argument ``method='mnr'`` 
+as this is the simplest recommended likelihood for data with x and y errors, however this can be replaced with ``method='uniform'`` 
 for an infinite uniform prior on the true x values, or ``method='profile'`` to use the profile likelihood. 
+
 At the end of the tutorial we show how to extend the MNR method to a sum of Gaussians using the arguments
 ``method='gmm'`` or ``method='kelly'``.
-See the MNR paper for more details on these likelihoods and their advantages/disadvantages.
+Given that the user will not know whether more than one Gaussian is appropriate a priori, we recommend
+going through this section and applying these methods on your dataset. We leave this to the end of the
+tutorial, however, so that you can get used to ``roxy``'s features before worrying about the choice
+of likelihood
+
+Please see the MNR paper for more details on these likelihoods and their advantages/disadvantages.
 
 Defining our function
 ---------------------
