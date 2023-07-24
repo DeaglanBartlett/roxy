@@ -35,7 +35,7 @@ all_samps = []
 all_gradient = []
 all_intercept = []
 
-all_method = ['mnr', 'unif', 'profile']
+all_method = ['mnr', 'unif', 'prof']
 all_method_label = ['MNR', 'Uniform', 'Profile']
 
 for method, method_label in zip(all_method, all_method_label):

@@ -85,7 +85,7 @@ reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 nwarm = 700
 nsamp = 5000
 
-all_method = ['mnr', 'unif', 'profile']
+all_method = ['mnr', 'unif', 'prof']
 all_method_label = ['MNR', 'Uniform', 'Profile']
 
 ranges = param_prior

@@ -106,7 +106,7 @@ class Likelihood_MNR_MV(dist.Distribution):
         return - roxy.likelihoods.negloglike_mnr_mv(self.xobs, self.yobs, self.Sigma, self.f, self.G, self.sig, self.mu_gauss, self.w_gauss)
         
         
-class Likelihood_profile(dist.Distribution):
+class Likelihood_prof(dist.Distribution):
    
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
         """
@@ -133,16 +133,16 @@ class Likelihood_profile(dist.Distribution):
             jnp.shape(fprime),
             jnp.shape(sig),
         )
-        super(Likelihood_profile, self).__init__(batch_shape = batch_shape)
+        super(Likelihood_prof, self).__init__(batch_shape = batch_shape)
         
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
         
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_profile(self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig)
+        return - roxy.likelihoods.negloglike_prof(self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig)
         
         
-class Likelihood_profile_MV(dist.Distribution):
+class Likelihood_prof_MV(dist.Distribution):
    
     def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig):
         """
@@ -183,7 +183,7 @@ class Likelihood_profile_MV(dist.Distribution):
                     )
         self.f = f_p[...,0]
         self.sig = sig[...,0]
-        super(Likelihood_profile_MV, self).__init__(
+        super(Likelihood_prof_MV, self).__init__(
             batch_shape = batch_shape,
             event_shape = event_shape
         )
@@ -192,7 +192,7 @@ class Likelihood_profile_MV(dist.Distribution):
         raise NotImplementedError
         
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_profile_mv(self.xobs, self.yobs, self.Sigma, self.f, self.G, self.sig)
+        return - roxy.likelihoods.negloglike_prof_mv(self.xobs, self.yobs, self.Sigma, self.f, self.G, self.sig)
     
         
 

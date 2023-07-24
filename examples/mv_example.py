@@ -36,7 +36,7 @@ xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
 yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
 
-for method in ['mnr', 'unif', 'profile']:
+for method in ['mnr', 'unif', 'prof']:
 
     # Compare the two optimisation routines
     reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)

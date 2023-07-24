@@ -97,7 +97,7 @@ def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_g
     return neglogP
     
     
-def negloglike_profile(xobs, yobs, xerr, yerr, f, fprime, sig):
+def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
     Gaussian likelihood, evaluated at the maximum likelihood values of xtrue
@@ -205,7 +205,7 @@ def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
     return neglogP
     
     
-def negloglike_profile_mv(xobs, yobs, Sigma, f, G, sig):
+def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig):
     """
     Computes the negative log-likelihood under the assumption of a correlated
     Gaussian likelihood (i.e. arbitrary covariance matrix), evaluated at the

@@ -8,7 +8,7 @@ MCMC using the ``roxy`` module. We then plot our results.
 
 To start with, we call functions with the argument ``method='mnr'`` 
 as this is the simplest recommended likelihood for data with x and y errors, however this can be replaced with ``method='unif'`` 
-for an infinite uniform prior on the true x values, or ``method='profile'`` to use the profile likelihood. 
+for an infinite uniform prior on the true x values, or ``method='prof'`` to use the profile likelihood. 
 
 At the end of the tutorial we show how to extend the MNR method to a sum of Gaussians using the arguments
 ``method='gmm'`` or ``method='kelly'``.
