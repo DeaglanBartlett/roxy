@@ -3,6 +3,7 @@ import jax.numpy as jnp
 import numpyro.distributions as dist
 from numpyro.distributions.util import promote_shapes
 import numpy as np
+from numpyro.distributions.util import validate_sample
 
 import roxy.likelihoods
 
@@ -374,3 +375,47 @@ def samples_to_array(samples):
 
     return labels, all_samples
     
+    
+class OrderedNormal(dist.Distribution):
+    arg_constraints = {"loc": dist.constraints.real, "scale": dist.constraints.positive}
+    support = dist.constraints.ordered_vector
+    reparametrized_params = ["loc", "scale"]
+
+    def __init__(self, loc=0.0, scale=1.0, *, validate_args=None):
+        self.loc, self.scale = promote_shapes(loc, scale)
+        batch_shape = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
+        super(OrderedNormal, self).__init__(
+            batch_shape=batch_shape, validate_args=validate_args
+        )
+
+    def sample(self, key, sample_shape=()):
+        assert is_prng_key(key)
+        eps = jax.random.normal(
+            key, shape=sample_shape + self.batch_shape + self.event_shape
+        )
+        res = self.loc + eps * self.scale
+        return jnp.sort(res)
+
+    @validate_sample
+    def log_prob(self, value):
+        normalize_term = jnp.log(jnp.sqrt(2 * jnp.pi) * self.scale)
+        value_scaled = (value - self.loc) / self.scale
+        return -0.5 * value_scaled**2 - normalize_term
+
+    def cdf(self, value):
+        scaled = (value - self.loc) / self.scale
+        return ndtr(scaled)
+
+    def log_cdf(self, value):
+        return jax_norm.logcdf(value, loc=self.loc, scale=self.scale)
+
+    def icdf(self, q):
+        return self.loc + self.scale * ndtri(q)
+
+    @property
+    def mean(self):
+        return jnp.broadcast_to(self.loc, self.batch_shape)
+
+    @property
+    def variance(self):
+        return jnp.broadcast_to(self.scale**2, self.batch_shape)

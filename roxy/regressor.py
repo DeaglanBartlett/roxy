@@ -227,7 +227,7 @@ class RoxyRegressor():
                 gm_means = np.atleast_1d(np.squeeze(gm.means_))
                 gm_ws = np.sqrt(np.atleast_1d(np.squeeze(gm.covariances_)))
                 gm_weights = np.atleast_1d(np.squeeze(gm.weights_))
-                idx = np.argsort(gm_weights)
+                idx = np.argsort(gm_means)
                 initial = jnp.array(
                     initial
                     + list(gm_means[idx])
@@ -328,14 +328,14 @@ class RoxyRegressor():
                 mu_gauss = numpyro.sample("mu_gauss", dist.Uniform(xobs.min(), xobs.max()))
                 w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)))
             elif method == 'gmm':
-                all_mu_gauss = numpyro.sample("mu_gauss", dist.Uniform(xobs.min(), xobs.max()), sample_shape=(ngauss,))
+                all_mu_gauss = numpyro.sample("mu_gauss", dist.ImproperUniform(dist.constraints.ordered_vector, (), (ngauss,)))
                 all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
                 all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
             elif method == 'kelly':
                 hyper_mu = numpyro.sample("hyper_mu", dist.Uniform(xobs.min(), xobs.max()))
                 hyper_w2 = numpyro.sample("hyper_w2", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
                 hyper_u2 = numpyro.sample("hyper_u2", dist.InverseGamma(1/2, hyper_w2/2))
-                all_mu_gauss = numpyro.sample("mu_gauss", dist.Normal(hyper_mu, jnp.sqrt(hyper_u2)), sample_shape=(ngauss,))
+                all_mu_gauss = numpyro.sample("mu_gauss", roxy.mcmc.OrderedNormal(hyper_mu, jnp.sqrt(hyper_u2)), sample_shape=(ngauss,))
                 all_w_gauss = numpyro.sample("w_gauss", dist.InverseGamma(1/2, hyper_w2/2), sample_shape=(ngauss,))
                 all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
 
@@ -379,7 +379,7 @@ class RoxyRegressor():
                         roxy.mcmc.Likelihood_profile(xobs, yobs, xerr, yerr, f, fprime, sig),
                         obs=yobs,
                     )
-            elif method == 'gmm':
+            elif method in ['gmm', 'kelly']:
                 if covmat:
                     raise NotImplementedError
                 else:
@@ -429,29 +429,7 @@ class RoxyRegressor():
             sampler.run(rng_key_)
 
         samples = sampler.get_samples()
-        
-        # Order Gaussians by weight in GMM
-        if method in ['gmm', 'kelly'] and ngauss > 1:
-            i = jnp.argsort(-samples['weights'], axis=1)
-            for k in ['weights', 'mu_gauss', 'w_gauss']:
-                samples[k] = jnp.take_along_axis(samples[k], i, axis=1)
-                
-        # Print summary
-        sites = samples
-        if isinstance(samples, dict):
-            state_sample_field = attrgetter(sampler._sample_field)(sampler._last_state)
-            if isinstance(state_sample_field, dict):
-                sites = {
-                    k: jnp.expand_dims(v, axis=0)
-                    for k, v in samples.items()
-                    if k in state_sample_field
-                }
-        numpyro.diagnostics.print_summary(sites, prob=0.95)
-        extra_fields = sampler.get_extra_fields()
-        if "diverging" in extra_fields:
-            print(
-                "Number of divergences: {}".format(jnp.sum(extra_fields["diverging"]))
-            )
+        sampler.print_summary()
         
         # Raise warning if too few effective samples
         neff = np.zeros(len(samples))
