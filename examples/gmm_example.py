@@ -17,7 +17,7 @@ nx = 1000
 xerr = 0.1
 yerr = 0.5
 sig = 0.5
-nwarm, nsamp = 700, 5000
+nwarm, nsamp = 700, 10000
 
 np.random.seed(0)
 
@@ -65,17 +65,17 @@ plt.savefig('../docs/source/gmm_data.png', transparent=True)
 plt.clf()
 plt.close(plt.gcf())
 
-reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='gmm', ngauss=2, gmm_prior='uniform')
+#reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='gmm', ngauss=2, gmm_prior='hyper')
 
 #for gmm_prior in ['uniform']:
-for gmm_prior in ['hyper']:
-    for i in range(1,3):
+#for gmm_prior in ['hyper', 'uniform']:
+##    for i in range(1,3):
 #    for i in [1]:
-        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2, gmm_prior=gmm_prior, seed=i)
+#        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2, gmm_prior=gmm_prior, seed=i)
 #    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
 #    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
 #    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)
 
-#max_ngauss = 5
-gmm_prior = 'uniform'
-#reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior=gmm_prior)
+max_ngauss = 3
+gmm_prior = 'hyper'
+reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior=gmm_prior)

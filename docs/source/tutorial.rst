@@ -311,7 +311,7 @@ AIC or BIC. For example, with these data, we can check to see whether we should 
 .. code-block:: python
 
 	max_ngauss = 3
-	reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
+	reg.find_best_gmm(param_names, xobs, yobs, [xerr, yerr], max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
 
 which gives (alongside some other output)
 

@@ -191,6 +191,9 @@ class RoxyRegressor():
                 sig = theta[len(pidx)]
             else:
                 sig = 0.
+
+            # Variable to store any prior knowledge
+            nll = 0.
             
             # MNR parameters
             if method == 'mnr':
@@ -198,26 +201,40 @@ class RoxyRegressor():
                 w_gauss = theta[-1]
                 weights_gauss = 1.
             elif method == 'gmm':
-                if gmm_prior == 'uniform':
-                    imin = len(params_to_opt)
-                    if infer_intrinsic:
-                        imin += 1
-                    mu_gauss = theta[imin:imin+ngauss]
-                    w_gauss = theta[imin+ngauss:imin+2*ngauss]
-                    weights_gauss = np.zeros(ngauss)
-                    weights_gauss[:ngauss-1] = theta[imin+2*ngauss:]
-                    weights_gauss[-1] = 1 - sum(theta[imin+2*ngauss:])
+                imin = len(params_to_opt)
+                if infer_intrinsic:
+                    imin += 1
+                mu_gauss = theta[imin:imin+ngauss]
+                w_gauss = theta[imin+ngauss:imin+2*ngauss]
+                weights_gauss = np.zeros(ngauss)
+                weights_gauss[:ngauss-1] = theta[imin+2*ngauss:imin+3*ngauss-1]
+                weights_gauss[-1] = 1 - sum(weights_gauss)
+                
+                if jnp.any(weights_gauss > 1) or jnp.any(weights_gauss < 0):
+                    return np.inf
+                if jnp.any(w_gauss < 0):
+                    return np.inf
                     
-                    if jnp.any(weights_gauss > 1) or jnp.any(weights_gauss < 0):
+                if gmm_prior == 'uniform':
+                    pass
+                elif gmm_prior == 'hyper':
+                    hyper_mu, hyper_w2, hyper_u2 = theta[imin+3*ngauss-1:]
+                    if (hyper_w2 < 0) or (hyper_u2 < 0):
                         return np.inf
-                    if jnp.any(w_gauss < 0):
-                        return np.inf
+                    nll = (
+                        0.5 * (-jnp.log(hyper_w2) + 3 * jnp.log(hyper_u2) + hyper_w2 / hyper_u2)
+                        + jnp.sum(
+                            0.5 * jnp.log(hyper_u2) + 3/2 * jnp.log(w_gauss) - 0.5 * jnp.log(hyper_w2) + jnp.log(2 * jnp.pi)
+                            + (mu_gauss - hyper_mu) ** 2 / (2 * hyper_w2) + hyper_w2 / (2 * w_gauss ** 2)
+                        )
+                    )
+                    
                 else:
                     raise NotImplementedError
             else:
                 mu_gauss, w_gauss, weights_gauss = None, None, None
 
-            return self.negloglike(t, xobs, yobs, errors, sig=sig, mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss, method=method, covmat=covmat)
+            return nll + self.negloglike(t, xobs, yobs, errors, sig=sig, mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss, method=method, covmat=covmat)
         
         # Get initial guess
         if initial is None:
@@ -236,12 +253,19 @@ class RoxyRegressor():
                     initial = jnp.array(
                         initial
                         + list(gm_means[idx])
-                        + list(gm_weights[idx])
+                        + list(gm_ws[idx])
                         + list((gm_weights[idx])[:ngauss - 1])
+                    )
+                elif gmm_prior == 'hyper':
+                    initial = jnp.array(
+                        initial
+                        + list(gm_means[idx])
+                        + list(gm_ws[idx])
+                        + list((gm_weights[idx])[:ngauss - 1])
+                        + [gm_means[idx[0]], gm_ws[idx[0]]**2, gm_ws[idx[0]]**2/3]
                     )
                 else:
                     raise NotImplementedError
-                print(initial)
             
         res = minimize(fopt, initial, method="Nelder-Mead")
         
@@ -273,8 +297,12 @@ class RoxyRegressor():
                 print(f'weight_gauss_{i}:\t{res.x[imin+2*ngauss+i]}')
                 param_names.append(f'weight_gauss_{i}')
             if gmm_prior == 'hyper':
-                raise NotImplementedError
-            print(res.fun)
+                print(f'hyper_mu:\t{res.x[imin+3*ngauss-1]}')
+                param_names.append(f'hyper_mu')
+                print(f'hyper_u2:\t{res.x[imin+3*ngauss]}')
+                param_names.append(f'hyper_w2')
+                print(f'hyper_w2:\t{res.x[imin+3*ngauss+1]}')
+                param_names.append(f'hyper_u2')
         
         return res, param_names
 
@@ -343,11 +371,11 @@ class RoxyRegressor():
                     all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
                     all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
                 elif gmm_prior == 'hyper':
-                    hyper_mu = numpyro.sample("hyper_mu", dist.Uniform(xobs.min(), xobs.max()))
+                    hyper_mu = numpyro.sample("hyper_mu", dist.ImproperUniform(dist.constraints.real, (), event_shape=()))
                     hyper_w2 = numpyro.sample("hyper_w2", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
                     hyper_u2 = numpyro.sample("hyper_u2", dist.InverseGamma(1/2, hyper_w2/2))
                     all_mu_gauss = numpyro.sample("mu_gauss", roxy.mcmc.OrderedNormal(hyper_mu, jnp.sqrt(hyper_u2)), sample_shape=(ngauss,))
-                    all_w_gauss = numpyro.sample("w_gauss", dist.InverseGamma(1/2, hyper_w2/2), sample_shape=(ngauss,))
+                    all_w_gauss = jnp.sqrt(numpyro.sample("w_gauss", dist.InverseGamma(1/2, hyper_w2/2), sample_shape=(ngauss,)))
                     all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
                 else:
                     raise NotImplementedError
@@ -425,8 +453,15 @@ class RoxyRegressor():
                     init.pop(f'weight_gauss_{i}')
                 init_weight[-1] = 1. - sum(init_weight)
                 init['mu_gauss'] = jnp.array(init_mu)
-                init['w_gauss'] = jnp.array(init_w)
+                if gmm_prior == 'uniform':
+                    init['w_gauss'] = jnp.array(init_w)
+                elif gmm_prior == 'hyper':
+                    init['w_gauss'] = jnp.array(init_w) ** 2
                 init['weight_gauss'] = jnp.array(init_weight)
+                idx = jnp.argsort(init['mu_gauss'])
+                init['mu_gauss'] = init['mu_gauss'][idx]
+                init['w_gauss'] = init['w_gauss'][idx]
+                init['weight_gauss'] = init['weight_gauss'][idx]
             kernel = numpyro.infer.NUTS(model, init_strategy=numpyro.infer.initialization.init_to_value(values=init))
             print('\nRunning MCMC')
             sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
@@ -439,7 +474,27 @@ class RoxyRegressor():
             sampler.run(rng_key_)
 
         samples = sampler.get_samples()
-        sampler.print_summary()
+        
+        # We actually samples w2 if gmm_prior = 'hyper', so correct for this
+        if method == 'gmm' and gmm_prior == 'hyper':
+            samples['w_gauss'] = jnp.sqrt(samples['w_gauss'])
+            
+        # Print summary
+        sites = samples
+        if isinstance(samples, dict):
+            state_sample_field = attrgetter(sampler._sample_field)(sampler._last_state)
+            if isinstance(state_sample_field, dict):
+                sites = {
+                    k: jnp.expand_dims(v, axis=0)
+                    for k, v in samples.items()
+                    if k in state_sample_field
+                }
+        numpyro.diagnostics.print_summary(sites, prob=0.95)
+        extra_fields = sampler.get_extra_fields()
+        if "diverging" in extra_fields:
+            print(
+                "Number of divergences: {}".format(jnp.sum(extra_fields["diverging"]))
+            )
         
         # Raise warning if too few effective samples
         neff = np.zeros(len(samples))
@@ -498,12 +553,13 @@ class RoxyRegressor():
     
         for ngauss in range(1, max_ngauss+1):
             
-            # First run a MCMC to get a guess at the peak
-            samples = self.mcmc(params_to_opt,
+            # First run a MCMC to get a guess at the peak, catching the low neff warning
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                samples = self.mcmc(params_to_opt,
                             xobs,
                             yobs,
-                            xerr,
-                            yerr,
+                            [xerr, yerr],
                             nwarm,
                             nsamp,
                             method='gmm',
@@ -512,30 +568,28 @@ class RoxyRegressor():
                             progress_bar=True,
                             gmm_prior=gmm_prior,
                             seed=seed
-            )
+                )
             labels, samples = roxy.mcmc.samples_to_array(samples)
             labels = list(labels)
             
             # Now put in order expected by optimisers
-            param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig'))]
+            param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hyper'))]
             if infer_intrinsic:
                 param_idx = param_idx + [labels.index('sig')]
             param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
             param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
             param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
             if gmm_prior == 'hyper':
-                raise NotImplementedError
+                param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
             param_names = [labels[i] for i in param_idx]
             
             # Extract medians
             initial = jnp.median(samples[:,param_idx], axis=0)
-
             # Run new optimiser
             res, _ = self.optimise(params_to_opt,
                         xobs,
                         yobs,
-                        xerr,
-                        yerr,
+                        [xerr, yerr],
                         method='gmm',
                         infer_intrinsic=infer_intrinsic,
                         initial=initial,
