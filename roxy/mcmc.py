@@ -8,24 +8,24 @@ from numpyro.distributions.util import validate_sample
 import roxy.likelihoods
 
 class Likelihood_MNR(dist.Distribution):
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of an uncorrelated Gaussian likelihood with a Gaussian
+    prior on the true x positions.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+    """
    
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
-        """
-        Class to be used by ``numpyro`` to evaluate the log-likelihood under
-        the assumption of an uncorrelated Gaussian likelihood with a Gaussian
-        prior on the true x positions.
-        
-        Args:
-            :xobs (jnp.ndarray): The observed x values
-            :yobs (jnp.ndarray): The observed y values
-            :xerr (jnp.ndarray): The error on the observed x values
-            :yerr (jnp.ndarray): The error on the observed y values
-            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-            :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
-            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-            :mu_gauss (float): The mean of the Gaussian prior on the true x positions
-            :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
-        """
         self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig, self.mu_gauss, self.w_gauss = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss)
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
@@ -48,25 +48,25 @@ class Likelihood_MNR(dist.Distribution):
         
         
 class Likelihood_MNR_MV(dist.Distribution):
-   
-    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig, mu_gauss, w_gauss):
-        """
-        Class to be used by ``numpyro`` to evaluate the log-likelihood under
-        the assumption of a correlated Gaussian likelihood (i.e. arbitrary
-        covariance matrix), with a Gaussian prior on the true x positions.
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of a correlated Gaussian likelihood (i.e. arbitrary
+    covariance matrix), with a Gaussian prior on the true x positions.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :Sxx (jnp.ndarray): The xx component of the covariance matrix giving the errors on the observed (x, y) values
+        :Syy (jnp.ndarray): The yy component of the covariance matrix giving the errors on the observed (x, y) values
+        :Sxy (jnp.ndarray): The xy component of the covariance matrix giving the errors on the observed (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+    """
         
-        Args:
-            :xobs (jnp.ndarray): The observed x values
-            :yobs (jnp.ndarray): The observed y values
-            :Sxx (jnp.ndarray): The xx component of the covariance matrix giving the errors on the observed (x, y) values
-            :Syy (jnp.ndarray): The yy component of the covariance matrix giving the errors on the observed (x, y) values
-            :Sxy (jnp.ndarray): The xy component of the covariance matrix giving the errors on the observed (x, y) values
-            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-            :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
-            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-            :mu_gauss (float): The mean of the Gaussian prior on the true x positions
-            :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
-        """
+    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig, mu_gauss, w_gauss):
         xobs_p = xobs[..., jnp.newaxis]
         yobs_p = yobs[..., jnp.newaxis]
         f_p = f[..., jnp.newaxis]
@@ -107,22 +107,22 @@ class Likelihood_MNR_MV(dist.Distribution):
         
         
 class Likelihood_prof(dist.Distribution):
-   
-    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
-        """
-        Class to be used by ``numpyro`` to evaluate the log-likelihood under
-        the assumption of an uncorrelated Gaussian likelihood, evaluated at
-        the maximum likelihood values of xtrue (the profile likelihood)
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of an uncorrelated Gaussian likelihood, evaluated at
+    the maximum likelihood values of xtrue (the profile likelihood)
+
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+    """
         
-        Args:
-            :xobs (jnp.ndarray): The observed x values
-            :yobs (jnp.ndarray): The observed y values
-            :xerr (jnp.ndarray): The error on the observed x values
-            :yerr (jnp.ndarray): The error on the observed y values
-            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-            :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
-            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-        """
+    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
         self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
@@ -143,23 +143,23 @@ class Likelihood_prof(dist.Distribution):
         
         
 class Likelihood_prof_MV(dist.Distribution):
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of a correlated Gaussian likelihood (i.e. arbitrary covariance
+    matrix), evaluated at the maximum likelihood values of xtrue (the profile likelihood)
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :Sxx (jnp.ndarray): The xx component of the covariance matrix giving the errors on the observed (x, y) values
+        :Syy (jnp.ndarray): The yy component of the covariance matrix giving the errors on the observed (x, y) values
+        :Sxy (jnp.ndarray): The xy component of the covariance matrix giving the errors on the observed (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+    """
    
     def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig):
-        """
-        Class to be used by ``numpyro`` to evaluate the log-likelihood under
-        the assumption of a correlated Gaussian likelihood (i.e. arbitrary covariance
-        matrix), evaluated at the maximum likelihood values of xtrue (the profile likelihood)
-        
-        Args:
-            :xobs (jnp.ndarray): The observed x values
-            :yobs (jnp.ndarray): The observed y values
-            :Sxx (jnp.ndarray): The xx component of the covariance matrix giving the errors on the observed (x, y) values
-            :Syy (jnp.ndarray): The yy component of the covariance matrix giving the errors on the observed (x, y) values
-            :Sxy (jnp.ndarray): The xy component of the covariance matrix giving the errors on the observed (x, y) values
-            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-            :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
-            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-        """
         xobs_p = xobs[..., jnp.newaxis]
         yobs_p = yobs[..., jnp.newaxis]
         f_p = f[..., jnp.newaxis]
@@ -197,23 +197,23 @@ class Likelihood_prof_MV(dist.Distribution):
         
 
 class Likelihood_unif(dist.Distribution):
-   
-    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
-        """
-        Class to be used by ``numpyro`` to evaluate the log-likelihood under
-        the assumption of an uncorrelated Gaussian likelihood, where we have
-        marginalised over the true x values, assuming an infinite uniform
-        prior on these.
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of an uncorrelated Gaussian likelihood, where we have
+    marginalised over the true x values, assuming an infinite uniform
+    prior on these.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the funciton f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the funciton f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+    """
         
-        Args:
-            :xobs (jnp.ndarray): The observed x values
-            :yobs (jnp.ndarray): The observed y values
-            :xerr (jnp.ndarray): The error on the observed x values
-            :yerr (jnp.ndarray): The error on the observed y values
-            :f (jnp.ndarray): If we are fitting the funciton f(x), this is f(x) evaluated at xobs
-            :fprime (jnp.ndarray): If we are fitting the funciton f(x), this is df/dx evaluated at xobs
-            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-        """
+    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
         self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
@@ -234,24 +234,24 @@ class Likelihood_unif(dist.Distribution):
         
         
 class Likelihood_unif_MV(dist.Distribution):
-   
-    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig):
-        """
-        Class to be used by ``numpyro`` to evaluate the log-likelihood under
-        the assumption of a correlated Gaussian likelihood (i.e. arbitrary covariance
-        matrix), where we have marginalised over the true x values, assuming an
-        infinite uniform prior on these.
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of a correlated Gaussian likelihood (i.e. arbitrary covariance
+    matrix), where we have marginalised over the true x values, assuming an
+    infinite uniform prior on these.
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :Sxx (jnp.ndarray): The xx component of the covariance matrix giving the errors on the observed (x, y) values
+        :Syy (jnp.ndarray): The yy component of the covariance matrix giving the errors on the observed (x, y) values
+        :Sxy (jnp.ndarray): The xy component of the covariance matrix giving the errors on the observed (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+    """
         
-        Args:
-            :xobs (jnp.ndarray): The observed x values
-            :yobs (jnp.ndarray): The observed y values
-            :Sxx (jnp.ndarray): The xx component of the covariance matrix giving the errors on the observed (x, y) values
-            :Syy (jnp.ndarray): The yy component of the covariance matrix giving the errors on the observed (x, y) values
-            :Sxy (jnp.ndarray): The xy component of the covariance matrix giving the errors on the observed (x, y) values
-            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-            :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
-            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-        """
+    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig):
         xobs_p = xobs[..., jnp.newaxis]
         yobs_p = yobs[..., jnp.newaxis]
         f_p = f[..., jnp.newaxis]
@@ -288,25 +288,25 @@ class Likelihood_unif_MV(dist.Distribution):
         
         
 class Likelihood_GMM(dist.Distribution):
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of an uncorrelated Gaussian likelihood with a Gaussian
+    Mixture Model prior on the true x positions.
 
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :all_mu_gauss (jnp.ndarray): The mean of the Gaussians in the GMM prior on the true x positions
+        :all_w_gauss (jnp.ndarray): The standard deviation of the Gaussians in the GMM prior on the true x positions
+        :all_weights (jnp.ndarray): The weights of the Gaussians in the GMM prior on the true x positions
+    """
+        
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss, all_weights):
-        """
-        Class to be used by ``numpyro`` to evaluate the log-likelihood under
-        the assumption of an uncorrelated Gaussian likelihood with a Gaussian
-        Mixture Model prior on the true x positions.
-
-        Args:
-            :xobs (jnp.ndarray): The observed x values
-            :yobs (jnp.ndarray): The observed y values
-            :xerr (jnp.ndarray): The error on the observed x values
-            :yerr (jnp.ndarray): The error on the observed y values
-            :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-            :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
-            :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-            :all_mu_gauss (jnp.ndarray): The mean of the Gaussians in the GMM prior on the true x positions
-            :all_w_gauss (jnp.ndarray): The standard deviation of the Gaussians in the GMM prior on the true x positions
-            :all_weights (jnp.ndarray): The weights of the Gaussians in the GMM prior on the true x positions
-        """
 
         self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
         

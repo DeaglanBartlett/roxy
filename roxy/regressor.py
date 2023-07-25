@@ -12,20 +12,20 @@ import roxy.likelihoods
 import roxy.mcmc
 
 class RoxyRegressor():
+    """
+    Regressor class which handles optimisation and MCMC for ``roxy``. One can
+    use this class to evaluate the function of interest and its derivative,
+    optimise the parameters using and of the defined likelihoods and run an
+    MCMC for these parameters.
+    
+    Args:
+        :fun (callable): The function, f, to be considered by this regressor y = f(x, theta). The function must take two arguments, the first of which is the independent variable, the second of which are the parameters (as an array or list).
+        :param_names (list): The list of parameter names, in the order which they are supplied to fun
+        :param_default (list): The default valus of the parameters
+        :param_prior (dict): The prior range for each of the parameters. The prior is assumed to be uniform in this range
+    """
 
     def __init__(self, fun, param_names, param_default, param_prior):
-        """
-        Regressor class which handles optimisation and MCMC for ``roxy``. One can
-        use this class to evaluate the function of interest and its derivative,
-        optimise the parameters using and of the defined likelihoods and run an
-        MCMC for these parameters.
-        
-        Args:
-            :fun (callable): The function, f, to be considered by this regressor y = f(x, theta). The function must take two arguments, the first of which is the independent variable, the second of which are the parameters (as an array or list).
-            :param_names (list): The list of parameter names, in the order which they are supplied to fun
-            :param_default (list): The default valus of the parameters
-            :param_prior (dict): The prior range for each of the parameters. The prior is assumed to be uniform in this range
-        """
         
         self.single_fun = fun
         self.single_gradfun = jax.grad(self.single_fun, argnums=0)
