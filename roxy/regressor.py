@@ -137,7 +137,7 @@ class RoxyRegressor():
                     print(f'{pname}:\t{pdefault}')
         return jnp.array(pidx)
             
-    def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr', infer_intrinsic=True, initial=None, ngauss=1, covmat=False):
+    def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr', infer_intrinsic=True, initial=None, ngauss=1, covmat=False, gmm_prior='hyper'):
         """
         Optimise the parameters of the function given some data, under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -153,6 +153,7 @@ class RoxyRegressor():
             :initial (jnp.ndarray, default=None): The starting point for the optimised. If None, a random value in the prior range is chosen
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
+            :gmm_prior (string, default='hyper'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hyper' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
         
         Returns:
             :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
@@ -197,19 +198,22 @@ class RoxyRegressor():
                 w_gauss = theta[-1]
                 weights_gauss = 1.
             elif method == 'gmm':
-                imin = len(params_to_opt)
-                if infer_intrinsic:
-                    imin += 1
-                mu_gauss = theta[imin:imin+ngauss]
-                w_gauss = theta[imin+ngauss:imin+2*ngauss]
-                weights_gauss = np.zeros(ngauss)
-                weights_gauss[:ngauss-1] = theta[imin+2*ngauss:]
-                weights_gauss[-1] = 1 - sum(theta[imin+2*ngauss:])
-                
-                if jnp.any(weights_gauss > 1) or jnp.any(weights_gauss < 0):
-                    return np.inf
-                if jnp.any(w_gauss < 0):
-                    return np.inf
+                if gmm_prior == 'uniform':
+                    imin = len(params_to_opt)
+                    if infer_intrinsic:
+                        imin += 1
+                    mu_gauss = theta[imin:imin+ngauss]
+                    w_gauss = theta[imin+ngauss:imin+2*ngauss]
+                    weights_gauss = np.zeros(ngauss)
+                    weights_gauss[:ngauss-1] = theta[imin+2*ngauss:]
+                    weights_gauss[-1] = 1 - sum(theta[imin+2*ngauss:])
+                    
+                    if jnp.any(weights_gauss > 1) or jnp.any(weights_gauss < 0):
+                        return np.inf
+                    if jnp.any(w_gauss < 0):
+                        return np.inf
+                else:
+                    raise NotImplementedError
             else:
                 mu_gauss, w_gauss, weights_gauss = None, None, None
 
@@ -228,12 +232,15 @@ class RoxyRegressor():
                 gm_ws = np.sqrt(np.atleast_1d(np.squeeze(gm.covariances_)))
                 gm_weights = np.atleast_1d(np.squeeze(gm.weights_))
                 idx = np.argsort(gm_means)
-                initial = jnp.array(
-                    initial
-                    + list(gm_means[idx])
-                    + list(gm_weights[idx])
-                    + list((gm_weights[idx])[:ngauss - 1])
-                )
+                if gmm_prior == 'uniform':
+                    initial = jnp.array(
+                        initial
+                        + list(gm_means[idx])
+                        + list(gm_weights[idx])
+                        + list((gm_weights[idx])[:ngauss - 1])
+                    )
+                else:
+                    raise NotImplementedError
                 print(initial)
             
         res = minimize(fopt, initial, method="Nelder-Mead")
@@ -265,11 +272,13 @@ class RoxyRegressor():
             for i in range(ngauss-1):
                 print(f'weight_gauss_{i}:\t{res.x[imin+2*ngauss+i]}')
                 param_names.append(f'weight_gauss_{i}')
+            if gmm_prior == 'hyper':
+                raise NotImplementedError
             print(res.fun)
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1., infer_intrinsic=True, progress_bar=True, covmat=False, seed=1234):
+    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1., infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hyper', seed=1234):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian likelihood,
@@ -282,13 +291,14 @@ class RoxyRegressor():
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving the error on the observed x and y values. Otherwise, this is the covariance matrix in the order (x, y)
             :nwarm (int): The number of warmup steps to use in the MCMC
             :nsamp (int): The number of samples to obtain in the MCMC
-            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'kelly', 'unif' or 'prof'). See ``roxy.likelihoods`` for more information. Note 'kelly' is the same as 'gmm' but with a different prior on the GMM components.
-            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm' or 'kelly'
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more information.
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
+            :gmm_prior (string, default='hyper'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hyper' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
-        
+            
         Returns:
             :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
         """
@@ -328,16 +338,19 @@ class RoxyRegressor():
                 mu_gauss = numpyro.sample("mu_gauss", dist.Uniform(xobs.min(), xobs.max()))
                 w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)))
             elif method == 'gmm':
-                all_mu_gauss = numpyro.sample("mu_gauss", dist.ImproperUniform(dist.constraints.ordered_vector, (), (ngauss,)))
-                all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
-                all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
-            elif method == 'kelly':
-                hyper_mu = numpyro.sample("hyper_mu", dist.Uniform(xobs.min(), xobs.max()))
-                hyper_w2 = numpyro.sample("hyper_w2", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
-                hyper_u2 = numpyro.sample("hyper_u2", dist.InverseGamma(1/2, hyper_w2/2))
-                all_mu_gauss = numpyro.sample("mu_gauss", roxy.mcmc.OrderedNormal(hyper_mu, jnp.sqrt(hyper_u2)), sample_shape=(ngauss,))
-                all_w_gauss = numpyro.sample("w_gauss", dist.InverseGamma(1/2, hyper_w2/2), sample_shape=(ngauss,))
-                all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
+                if gmm_prior == 'uniform':
+                    all_mu_gauss = numpyro.sample("mu_gauss", dist.ImproperUniform(dist.constraints.ordered_vector, (), (ngauss,)))
+                    all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
+                    all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
+                elif gmm_prior == 'hyper':
+                    hyper_mu = numpyro.sample("hyper_mu", dist.Uniform(xobs.min(), xobs.max()))
+                    hyper_w2 = numpyro.sample("hyper_w2", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
+                    hyper_u2 = numpyro.sample("hyper_u2", dist.InverseGamma(1/2, hyper_w2/2))
+                    all_mu_gauss = numpyro.sample("mu_gauss", roxy.mcmc.OrderedNormal(hyper_mu, jnp.sqrt(hyper_u2)), sample_shape=(ngauss,))
+                    all_w_gauss = numpyro.sample("w_gauss", dist.InverseGamma(1/2, hyper_w2/2), sample_shape=(ngauss,))
+                    all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
+                else:
+                    raise NotImplementedError
 
             # Sample
             if method == 'mnr':
@@ -379,7 +392,7 @@ class RoxyRegressor():
                         roxy.mcmc.Likelihood_prof(xobs, yobs, xerr, yerr, f, fprime, sig),
                         obs=yobs,
                     )
-            elif method in ['gmm', 'kelly']:
+            elif method == 'gmm':
                 if covmat:
                     raise NotImplementedError
                 else:
@@ -395,10 +408,7 @@ class RoxyRegressor():
         rng_key, rng_key_ = jax.random.split(rng_key)
         
         try:
-            if method == 'kelly':
-                vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, method='gmm', infer_intrinsic=infer_intrinsic, ngauss=ngauss, covmat=covmat)
-            else:
-                vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss, covmat=covmat)
+            vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior)
             vals = vals.x
             init = {k:v for k,v in zip(param_names, vals)}
             if 'mu_gauss_0' in param_names:
@@ -455,7 +465,7 @@ class RoxyRegressor():
         
         return samples
         
-    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, seed=1234):
+    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, gmm_prior='hyper', seed=1234):
         """
         Find the number of Gaussians to use in a Gaussian Mixture Model
         hyper-prior on the true x values, accoridng to some metric.
@@ -475,6 +485,7 @@ class RoxyRegressor():
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :nwarm (int, default=100): The number of warmup steps to use in the MCMC
             :nsamp (int, default=100): The number of samples to obtain in the MCMC
+            :gmm_prior (string, default='hyper'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hyper' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
             
         Returns:
@@ -499,6 +510,7 @@ class RoxyRegressor():
                             ngauss=ngauss,
                             infer_intrinsic=infer_intrinsic,
                             progress_bar=True,
+                            gmm_prior=gmm_prior,
                             seed=seed
             )
             labels, samples = roxy.mcmc.samples_to_array(samples)
@@ -511,6 +523,8 @@ class RoxyRegressor():
             param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
             param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
             param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
+            if gmm_prior == 'hyper':
+                raise NotImplementedError
             param_names = [labels[i] for i in param_idx]
             
             # Extract medians
@@ -525,7 +539,8 @@ class RoxyRegressor():
                         method='gmm',
                         infer_intrinsic=infer_intrinsic,
                         initial=initial,
-                        ngauss=ngauss
+                        ngauss=ngauss,
+                        gmm_prior=gmm_prior
             )
             npar[ngauss-1] = len(initial)
             negloglike[ngauss-1] = res.fun

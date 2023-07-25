@@ -10,8 +10,8 @@ To start with, we call functions with the argument ``method='mnr'``
 as this is the simplest recommended likelihood for data with x and y errors, however this can be replaced with ``method='unif'`` 
 for an infinite uniform prior on the true x values, or ``method='prof'`` to use the profile likelihood. 
 
-At the end of the tutorial we show how to extend the MNR method to a sum of Gaussians using the arguments
-``method='gmm'`` or ``method='kelly'``.
+At the end of the tutorial we show how to extend the MNR method to a sum of Gaussians using the argument
+``method='gmm'``.
 Given that the user will not know whether more than one Gaussian is appropriate a priori, we recommend
 going through this section and applying these methods to your dataset. We leave this to the end of the
 tutorial, however, so that you can get used to ``roxy``'s features before worrying about the choice
@@ -250,8 +250,13 @@ Which we then plot
         :width: 480px
 
 
-Finally, we can run the same functions as before but with the ``method='gmm'`` argument to optimise or
-run a MCMC. Note that we have to use the argument ``ngauss=2`` if we want to fit using two Gaussians.
+Finally, we can run the same functions as before but with the ``method='gmm'`` argument to optimise or run a MCMC.
+Note that we have to use the argument ``ngauss=2`` if we want to fit using two Gaussians.
+We need to choose a prior for the parameters of the GMM, which is controlled by the argument ``gmm_prior``.
+If you use ``gmm_prior='uniform'``, then a uniform prior is placed on the means and widths of the GMM componenets.
+Instead if you use ``gmm_prior='hyper'``, then the means and width have a Gaussian and Inverse Gamma prior, respectively. The hyper-parameters controlling these priors are drawn from Uniform or Inverse Gamma distributions (see the paper for more details).
+This introduces
+three further parameters which specify the priors, which we also have to sample.
 For example, running
 
 .. code-block:: python
@@ -259,7 +264,7 @@ For example, running
 	import roxy.plotting
 
 	nwarm, nsamp = 700, 5000
-        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2)
+        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2, gmm_prior='uniform')
 	roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, show=True)
 
 
@@ -299,11 +304,6 @@ and
 .. image:: gmm_corner.png
         :width: 600px
 
-Instead of using uniform priors on the GMM components, one can use the priors suggested in Kelly 2007. This introduces
-three further parameters $\mu_\star$, $w_\star^2$ and $u_\star^2$ which specify the priors and which we also have
-to sample. This is achieved by replacing ``method='gmm'`` with ``method='kelly'`` in the MCMC or the optimisation
-functions. 
-
 A priori, we may not know how many Gaussians to use. For this case, we provide a function ``find_best_gmm`` as part of the
 ``roxy.RoxyRegressor`` class, which can iterate through some number of Gaussians, and compare the best through either the
 AIC or BIC. For example, with these data, we can check to see whether we should use 1, 2 or 3 Gaussians
@@ -311,7 +311,7 @@ AIC or BIC. For example, with these data, we can check to see whether we should 
 .. code-block:: python
 
 	max_ngauss = 3
-	reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100)
+	reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
 
 which gives (alongside some other output)
 
