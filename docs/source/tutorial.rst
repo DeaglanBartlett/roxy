@@ -254,7 +254,7 @@ Finally, we can run the same functions as before but with the ``method='gmm'`` a
 Note that we have to use the argument ``ngauss=2`` if we want to fit using two Gaussians.
 We need to choose a prior for the parameters of the GMM, which is controlled by the argument ``gmm_prior``.
 If you use ``gmm_prior='uniform'``, then a uniform prior is placed on the means and widths of the GMM componenets.
-Instead if you use ``gmm_prior='hyper'``, then the means and width have a Gaussian and Inverse Gamma prior, respectively. The hyper-parameters controlling these priors are drawn from Uniform or Inverse Gamma distributions (see the paper for more details).
+Instead if you use ``gmm_prior='hierarchical'``, then the means and width have a Gaussian and Inverse Gamma prior, respectively. The hyper-parameters controlling these priors are drawn from Uniform or Inverse Gamma distributions (see the paper for more details).
 This introduces
 three further parameters which specify the priors, which we also have to sample.
 For example, running

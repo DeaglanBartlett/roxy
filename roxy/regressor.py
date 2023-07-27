@@ -137,7 +137,7 @@ class RoxyRegressor():
                     print(f'{pname}:\t{pdefault}')
         return jnp.array(pidx)
             
-    def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr', infer_intrinsic=True, initial=None, ngauss=1, covmat=False, gmm_prior='hyper'):
+    def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr', infer_intrinsic=True, initial=None, ngauss=1, covmat=False, gmm_prior='hierarchical'):
         """
         Optimise the parameters of the function given some data, under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -153,7 +153,7 @@ class RoxyRegressor():
             :initial (jnp.ndarray, default=None): The starting point for the optimised. If None, a random value in the prior range is chosen
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
-            :gmm_prior (string, default='hyper'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hyper' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
+            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
         
         Returns:
             :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
@@ -217,7 +217,7 @@ class RoxyRegressor():
                     
                 if gmm_prior == 'uniform':
                     pass
-                elif gmm_prior == 'hyper':
+                elif gmm_prior == 'hierarchical':
                     hyper_mu, hyper_w2, hyper_u2 = theta[imin+3*ngauss-1:]
                     if (hyper_w2 < 0) or (hyper_u2 < 0):
                         return np.inf
@@ -256,7 +256,7 @@ class RoxyRegressor():
                         + list(gm_ws[idx])
                         + list((gm_weights[idx])[:ngauss - 1])
                     )
-                elif gmm_prior == 'hyper':
+                elif gmm_prior == 'hierarchical':
                     initial = jnp.array(
                         initial
                         + list(gm_means[idx])
@@ -296,7 +296,7 @@ class RoxyRegressor():
             for i in range(ngauss-1):
                 print(f'weight_gauss_{i}:\t{res.x[imin+2*ngauss+i]}')
                 param_names.append(f'weight_gauss_{i}')
-            if gmm_prior == 'hyper':
+            if gmm_prior == 'hierarchical':
                 print(f'hyper_mu:\t{res.x[imin+3*ngauss-1]}')
                 param_names.append(f'hyper_mu')
                 print(f'hyper_u2:\t{res.x[imin+3*ngauss]}')
@@ -306,7 +306,7 @@ class RoxyRegressor():
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1., infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hyper', seed=1234):
+    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1., infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian likelihood,
@@ -324,7 +324,7 @@ class RoxyRegressor():
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
-            :gmm_prior (string, default='hyper'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hyper' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
+            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
             
         Returns:
@@ -370,7 +370,7 @@ class RoxyRegressor():
                     all_mu_gauss = numpyro.sample("mu_gauss", dist.ImproperUniform(dist.constraints.ordered_vector, (), (ngauss,)))
                     all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
                     all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
-                elif gmm_prior == 'hyper':
+                elif gmm_prior == 'hierarchical':
                     hyper_mu = numpyro.sample("hyper_mu", dist.ImproperUniform(dist.constraints.real, (), event_shape=()))
                     hyper_w2 = numpyro.sample("hyper_w2", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
                     hyper_u2 = numpyro.sample("hyper_u2", dist.InverseGamma(1/2, hyper_w2/2))
@@ -455,7 +455,7 @@ class RoxyRegressor():
                 init['mu_gauss'] = jnp.array(init_mu)
                 if gmm_prior == 'uniform':
                     init['w_gauss'] = jnp.array(init_w)
-                elif gmm_prior == 'hyper':
+                elif gmm_prior == 'hierarchical':
                     init['w_gauss'] = jnp.array(init_w) ** 2
                 init['weight_gauss'] = jnp.array(init_weight)
                 idx = jnp.argsort(init['mu_gauss'])
@@ -475,8 +475,8 @@ class RoxyRegressor():
 
         samples = sampler.get_samples()
         
-        # We actually samples w2 if gmm_prior = 'hyper', so correct for this
-        if method == 'gmm' and gmm_prior == 'hyper':
+        # We actually samples w2 if gmm_prior = 'hierarchical', so correct for this
+        if method == 'gmm' and gmm_prior == 'hierarchical':
             samples['w_gauss'] = jnp.sqrt(samples['w_gauss'])
             
         # Print summary
@@ -520,7 +520,7 @@ class RoxyRegressor():
         
         return samples
         
-    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, gmm_prior='hyper', seed=1234):
+    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, gmm_prior='hierarchical', seed=1234):
         """
         Find the number of Gaussians to use in a Gaussian Mixture Model
         hyper-prior on the true x values, accoridng to some metric.
@@ -540,7 +540,7 @@ class RoxyRegressor():
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
             :nwarm (int, default=100): The number of warmup steps to use in the MCMC
             :nsamp (int, default=100): The number of samples to obtain in the MCMC
-            :gmm_prior (string, default='hyper'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hyper' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
+            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
             
         Returns:
@@ -573,13 +573,13 @@ class RoxyRegressor():
             labels = list(labels)
             
             # Now put in order expected by optimisers
-            param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hyper'))]
+            param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hierarchical'))]
             if infer_intrinsic:
                 param_idx = param_idx + [labels.index('sig')]
             param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
             param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
             param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
-            if gmm_prior == 'hyper':
+            if gmm_prior == 'hierarchical':
                 param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
             param_names = [labels[i] for i in param_idx]
             

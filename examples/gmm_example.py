@@ -65,10 +65,10 @@ plt.savefig('../docs/source/gmm_data.png', transparent=True)
 plt.clf()
 plt.close(plt.gcf())
 
-#reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='gmm', ngauss=2, gmm_prior='hyper')
+#reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='gmm', ngauss=2, gmm_prior='hierarchical')
 
 #for gmm_prior in ['uniform']:
-#for gmm_prior in ['hyper', 'uniform']:
+#for gmm_prior in ['hierarchical', 'uniform']:
 ##    for i in range(1,3):
 #    for i in [1]:
 #        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2, gmm_prior=gmm_prior, seed=i)
@@ -77,5 +77,5 @@ plt.close(plt.gcf())
 #    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)
 
 max_ngauss = 3
-gmm_prior = 'hyper'
+gmm_prior = 'hierarchical'
 reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior=gmm_prior)
