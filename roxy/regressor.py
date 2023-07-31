@@ -29,8 +29,10 @@ class RoxyRegressor():
         
         self.single_fun = fun
         self.single_gradfun = jax.grad(self.single_fun, argnums=0)
+        self.single_secondgradfun = jax.grad(self.single_gradfun, argnums=0)
         self.fun = jax.vmap(self.single_fun, (0, None), 0)
         self.gradfun = jax.vmap(self.single_gradfun, (0, None), 0)
+        self.secondgradfun = jax.vmap(self.single_secondgradfun, (0, None), 0)
         
         self.param_names = param_names
         self.param_default = jnp.array(param_default)
@@ -61,6 +63,19 @@ class RoxyRegressor():
             :jnp.ndarray: df/dx evaluated at (x, theta)
         """
         return self.gradfun(x, theta)
+        
+    def second_derivative(self, x, theta):
+        """
+        If we are fitting the function f(x, theta), this is d^2f/dx^2 evaluated at (x, theta)
+                
+        Args:
+            :x (jnp.ndarray): The x values
+            :theta (jnp.ndarray): The parameter values
+            
+        Returns:
+            :jnp.ndarray: d^2f/dx^2 evaluated at (x, theta)
+        """
+        return self.secondgradfun(x, theta)
         
     def negloglike(self, theta, xobs, yobs, errors, sig=0., mu_gauss=0., w_gauss=1., weights_gauss=1., method='mnr', covmat=False):
         """
@@ -517,7 +532,28 @@ class RoxyRegressor():
                 bad_keys.append(p)
         if len(bad_keys) > 0:
             warnings.warn('Posterior near edge of prior for parameters: ' + ', '.join(bad_keys), category=Warning, stacklevel=2)
-        
+            
+        # Raise warning if the second derivative of the function is too big
+        if covmat:
+            xerr = jnp.diag(errors)[:len(xobs)]
+        else:
+            xerr = errors[0]
+            if not hasattr(xerr, 'len'):
+                xerr = np.full(len(xobs), xerr)
+        # Get medians
+        theta = [np.median(samples[p]) for p in params_to_opt]
+        t = self.param_default
+        t = t.at[pidx].set(theta[:len(pidx)])
+        # Check derivatives
+        f2prime = self.second_derivative(xobs, t)
+        fprime = self.gradient(xobs, t)
+        m = (f2prime == 0) & (fprime == 0)  # This case is fine
+        if m.sum() < len(xerr):
+            crit = np.abs(f2prime[~m] * xerr[~m] / fprime[~m])
+            if np.any(crit >= 1):
+                nbad = np.sum(crit >= 1)
+                warnings.warn(f'Second derivative large for {nbad} data points', category=Warning, stacklevel=2)
+
         return samples
         
     def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, gmm_prior='hierarchical', seed=1234):
