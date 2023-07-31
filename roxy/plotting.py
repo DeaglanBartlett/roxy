@@ -145,7 +145,7 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 
     return
     
-def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':1, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}):
+def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':1, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}, fgivenx_kwargs={}):
     """
     Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
     of the function given the inferred parameters and plot the observed points on
@@ -163,6 +163,7 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
         :xlabel (str, default='$x$'): The label to use for the x axis
         :ylabel (str, default='$x$'): The label to use for the y axis
         :errorbar_kwargs (dict): Dictionary of kwargs to pass to plt.errorbar
+        :fgivenx_kwargs (dict): Dictionary of kwargs to pass to fgivenx.plot_contours
     
     Returns:
         :fig (matplotlib.figure.Figure): The figure containing the posterior predictive plot
@@ -182,7 +183,7 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
     
     xmin, xmax = ax.get_xlim()
     x = np.linspace(xmin, xmax, 200)
-    cbar = plot_contours(f, x, all_samples, ax)
+    cbar = plot_contours(f, x, all_samples, ax, **fgivenx_kwargs)
     cbar = plt.colorbar(cbar,ticks=[0,1,2,3])
     cbar.set_ticklabels(['',r'$1\sigma$',r'$2\sigma$',r'$3\sigma$'])
     

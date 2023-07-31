@@ -74,8 +74,15 @@ for method, method_label in zip(all_method, all_method_label):
             label=method_label
         ))
 
+cm = plt.get_cmap('Set1')
 g = plots.get_subplot_plotter(width_inch=5)
-g.triangle_plot(all_samps, ['A', 'B', 'sig', 'mu_gauss', 'w_gauss'], filled=True)
+g.triangle_plot(all_samps,
+    ['A', 'B', 'sig', 'mu_gauss', 'w_gauss'],
+    contour_colors=[cm(i) for i in range(len(all_samps))],
+    line_args=[{'color':cm(i)} for i in range(len(all_samps))],
+    filled=True
+)
+plt.gcf().align_labels()
 plt.savefig('btfr_corner.pdf')
 plt.clf()
 plt.close(plt.gcf())
@@ -84,11 +91,25 @@ xlabel = r'$\log_{10} \left( \frac{V_{\rm flat}}{{\rm km \, s^{-1}}} \right)$'
 ylabel = r'$\log_{10} \left( \frac{M_{\rm bar}}{{\rm \, M_{\odot}}} \right)$'
 
 errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':-1, 'capsize':1, 'elinewidth':0.2, 'color':'k', 'alpha':1}
-fig = roxy.plotting.posterior_predictive_plot(reg, mnr_samps, xobs, yobs, xerr, yerr, savename=None, show=False, xlabel=xlabel, ylabel=ylabel, errorbar_kwargs=errorbar_kwargs)
+fgivenx_kwargs={'colors':plt.cm.Greys_r}
+fig = roxy.plotting.posterior_predictive_plot(
+    reg,
+    mnr_samps,
+    xobs,
+    yobs,
+    xerr,
+    yerr,
+    savename=None,
+    show=False,
+    xlabel=xlabel,
+    ylabel=ylabel,
+    errorbar_kwargs=errorbar_kwargs,
+    fgivenx_kwargs=fgivenx_kwargs,
+)
 ax = fig.gca()
 x = np.array(ax.get_xlim())
-for gradient, intercept, method_label in zip(all_gradient, all_intercept, all_method_label):
-    ax.plot(x, gradient * x + intercept, label=method_label)
+for i, (gradient, intercept, method_label) in enumerate(zip(all_gradient, all_intercept, all_method_label)):
+    ax.plot(x, gradient * x + intercept, label=method_label, color=cm(i))
 ax.legend()
 ax.set_xlim(x)
 plt.savefig('btfr_predictive.pdf')
