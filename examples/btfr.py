@@ -47,7 +47,8 @@ all_gradient = []
 all_intercept = []
 
 all_method = ['mnr', 'unif', 'prof']
-all_method_label = ['MNR', 'Uniform', 'Profile']
+#all_method_label = ['MNR', 'Uniform', 'Profile']
+all_method_label = all_method
 
 for method, method_label in zip(all_method, all_method_label):
     samps = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)

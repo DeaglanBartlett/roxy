@@ -97,7 +97,8 @@ nwarm = 700
 nsamp = 5000
 
 all_method = ['mnr', 'unif', 'prof']
-all_method_label = ['MNR', 'Uniform', 'Profile']
+#all_method_label = ['MNR', 'Uniform', 'Profile']
+all_method_label = all_method
 
 ranges = param_prior
 ranges['w_gauss'] = [0, None]
