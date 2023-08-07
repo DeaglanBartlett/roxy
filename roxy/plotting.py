@@ -66,6 +66,9 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
         else:
             ranges = param_prior
         ranges['w_gauss'] = [0, None]
+        if 'sig' in ranges and ((param_prior['sig'][0] is None) or (param_prior['sig'][1] is None)):
+            print('UPDATING')
+            ranges['sig'] = [0, param_prior['sig'][1]]
         
         if 'weights_0' in names:
             for i in range(ngauss):

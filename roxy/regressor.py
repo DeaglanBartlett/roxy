@@ -22,7 +22,7 @@ class RoxyRegressor():
         :fun (callable): The function, f, to be considered by this regressor y = f(x, theta). The function must take two arguments, the first of which is the independent variable, the second of which are the parameters (as an array or list).
         :param_names (list): The list of parameter names, in the order which they are supplied to fun
         :param_default (list): The default valus of the parameters
-        :param_prior (dict): The prior range for each of the parameters. The prior is assumed to be uniform in this range
+        :param_prior (dict): The prior range for each of the parameters. The prior is assumed to be uniform in this range. If either entry is None in the prior, then an infinite uniform prior is assumed.
     """
 
     def __init__(self, fun, param_names, param_default, param_prior):
@@ -182,15 +182,19 @@ class RoxyRegressor():
         
             # Check prior
             for i, p in enumerate(params_to_opt):
-                if theta[i] < self.param_prior[p][0] or theta[i] > self.param_prior[p][1]:
-                    return np.inf
+                if (self.param_prior[p][0] is not None) and (self.param_prior[p][1] is not None):
+                    if theta[i] < self.param_prior[p][0] or theta[i] > self.param_prior[p][1]:
+                        return np.inf
             if method == 'mnr':
                 if theta[-2] < xobs.min() or theta[-1] > xobs.max():
                     return np.inf
                 if theta[-1] < 0 or theta[-1] > 5 * xobs.std():
                     return np.inf
             if infer_intrinsic:
-                if theta[len(pidx)] < self.param_prior['sig'][0] or theta[len(pidx)] > self.param_prior['sig'][1]:
+                if (self.param_prior['sig'][0] is not None) and (self.param_prior['sig'][1] is not None):
+                    if theta[len(pidx)] < self.param_prior['sig'][0] or theta[len(pidx)] > self.param_prior['sig'][1]:
+                        return np.inf
+                elif theta[len(pidx)] < 0:
                     return np.inf
                 
             # Parameters of function
@@ -253,9 +257,17 @@ class RoxyRegressor():
         
         # Get initial guess
         if initial is None:
-            initial = [np.random.uniform(*self.param_prior[p]) for p in params_to_opt]
+            initial = [None] * len(params_to_opt)
+            for i, p in enumerate(params_to_opt):
+                if (self.param_prior[p][0] is not None) and (self.param_prior[p][1] is not None):
+                    initial[i] = np.random.uniform(*self.param_prior[p])
+                else:
+                    initial[i] = np.random.uniform(0, 1)
             if infer_intrinsic:
-                initial = initial + [np.random.uniform(*self.param_prior['sig'])]
+                if (self.param_prior['sig'][0] is not None) and (self.param_prior['sig'][1] is not None):
+                    initial = initial + [np.random.uniform(*self.param_prior['sig'])]
+                else:
+                    initial = initial + [np.random.uniform(0, 1)]
             if method == 'mnr':
                 initial = initial + [np.mean(xobs), np.std(xobs)]
             elif method == 'gmm':
@@ -359,7 +371,12 @@ class RoxyRegressor():
         def model():
         
             # Parameters of function
-            theta = [numpyro.sample(p, dist.Uniform(*self.param_prior[p])) for p in params_to_opt]
+            theta = [None] * len(params_to_opt)
+            for i, p in enumerate(params_to_opt):
+                if (self.param_prior[p][0] is not None) and (self.param_prior[p][1] is not None):
+                    theta[i] = numpyro.sample(p, dist.Uniform(*self.param_prior[p]))
+                else:
+                    theta[i] = numpyro.sample(p, dist.ImproperUniform(dist.constraints.real, (), event_shape=()))
             t = self.param_default
             t = t.at[pidx].set(theta[:len(pidx)])
             
@@ -372,18 +389,21 @@ class RoxyRegressor():
             
             # Intrinsic scatter
             if infer_intrinsic:
-                sig = numpyro.sample("sig", dist.Uniform(*self.param_prior['sig']))
+                if (self.param_prior['sig'][0] is not None) and (self.param_prior['sig'][1] is not None):
+                    sig = numpyro.sample("sig", dist.Uniform(*self.param_prior['sig']))
+                else:
+                    sig = numpyro.sample("sig", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
             else:
                 sig = 0.
                 
             # MNR parameters
             if method == 'mnr':
-                mu_gauss = numpyro.sample("mu_gauss", dist.Uniform(xobs.min(), xobs.max()))
-                w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)))
+                mu_gauss = numpyro.sample("mu_gauss", dist.ImproperUniform(dist.constraints.real, (), event_shape=()))
+                w_gauss = numpyro.sample("w_gauss", dist.ImproperUniform(dist.constraints.positive, (), event_shape=()))
             elif method == 'gmm':
                 if gmm_prior == 'uniform':
                     all_mu_gauss = numpyro.sample("mu_gauss", dist.ImproperUniform(dist.constraints.ordered_vector, (), (ngauss,)))
-                    all_w_gauss = numpyro.sample("w_gauss", dist.Uniform(0., 5*jnp.std(xobs)), sample_shape=(ngauss,))
+                    all_w_gauss = numpyro.sample("w_gauss", dist.ImproperUniform(dist.constraints.positive, (), (ngauss,)))
                     all_weights = numpyro.sample("weights", dist.Dirichlet(jnp.ones(ngauss)))
                 elif gmm_prior == 'hierarchical':
                     hyper_mu = numpyro.sample("hyper_mu", dist.ImproperUniform(dist.constraints.real, (), event_shape=()))
@@ -527,9 +547,10 @@ class RoxyRegressor():
         # Raise warning if the peak of the posterior is too close to the edge of the prior
         bad_keys = []
         for p in params_to_opt:
-            counts, _ = np.histogram(samples[p], np.linspace(self.param_prior[p][0], self.param_prior[p][1], 30))
-            if (np.argmax(counts) < 2) or (np.argmax(counts) > 27):
-                bad_keys.append(p)
+            if (self.param_prior[p][0] is not None) and (self.param_prior[p][1] is not None):
+                counts, _ = np.histogram(samples[p], np.linspace(self.param_prior[p][0], self.param_prior[p][1], 30))
+                if (np.argmax(counts) < 2) or (np.argmax(counts) > 27):
+                    bad_keys.append(p)
         if len(bad_keys) > 0:
             warnings.warn('Posterior near edge of prior for parameters: ' + ', '.join(bad_keys), category=Warning, stacklevel=2)
             

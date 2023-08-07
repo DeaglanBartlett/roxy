@@ -37,6 +37,7 @@ We begin by defining a function which we wish to fit. Here we have ``my_fun``, w
 
 The optimisation and MCMC functionality of ``roxy`` can be accessed by the ``roxy.regressor.RoxyRegressor`` class, which we define here. 
 We must supply the names of each of the parameters of ``my_fun``, as well as a fiducial point and the range of the priors (as a dictionary). We assume uniform priors for all parameters.
+If you wish to set improper uniform priors without edges on an parameter, simply include ``None`` in one of the entries of the prior for that parameter.
 
 .. code-block:: python
 	
