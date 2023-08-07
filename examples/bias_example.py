@@ -3,6 +3,7 @@ import numpy as np
 
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
+import roxy.mcmc
 
 np.random.seed(4)
 
@@ -55,5 +56,9 @@ for par in all_param[:1]:
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig_true ** 2)
 
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr', seed=1234)
+    
+    truths = {'A':Atrue, 'B':Btrue, 'sig':sig_true}
+    biases = roxy.mcmc.compute_bias(samples, truths)
+    
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None)
 #    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename='../../Fig5.png')

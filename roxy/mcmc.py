@@ -4,6 +4,7 @@ import numpyro.distributions as dist
 from numpyro.distributions.util import promote_shapes
 import numpy as np
 from numpyro.distributions.util import validate_sample
+import scipy.optimize
 
 import roxy.likelihoods
 
@@ -374,6 +375,56 @@ def samples_to_array(samples):
     all_samples = np.array(all_samples)
 
     return labels, all_samples
+    
+    
+def compute_bias(samples, truths):
+    """
+    Computes the bias between MCMC samples and the true values of the parameters.
+    For the intrinsic scatter, a truncated normal distribution is first fitted to
+    the parameters since this parameter can only take positive values.
+    
+    Args:
+        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
+        :truths (dict): The true values of the parameters. The keys should be a subset of the keys of samples
+    
+    Reurns:
+        : biases (dict): The biases in each of the parameters (units=number of sigmas)
+    """
+    
+    biases = {}
+    
+    for k, v in truths.items():
+        
+        if k == 'sig':
+        
+            # Fit these samples to a truncated Gaussian
+            def negloglike(pars):
+                mu, sig = pars
+                if sig <= 0:
+                    return np.inf
+                nll = (
+                    np.log(2) - 0.5 * np.log(2 * np.pi * sig ** 2)
+                    - np.log(1 + scipy.special.erf(mu / np.sqrt(2) / sig))
+                    - (samples[k] - mu) ** 2 / 2 / sig ** 2
+                )
+                return - np.sum(nll)
+            initial = [np.mean(samples[k]), np.std(samples[k])]
+            bounds = [(None, None), (0, None)]  # sigma must be >= 0
+            res = scipy.optimize.minimize(negloglike, initial, bounds=bounds)
+            mu, sig = res.x
+            print('Truncated normal fit for sig:', mu, sig)
+
+        else:
+            mu = float(np.mean(samples[k]))
+            sig = float(np.std(samples[k]))
+            
+        biases[k] = (mu - v) / sig
+    
+    print('\nComputed biases (units=sigma):')
+    for k, b in biases.items():
+        print(f'{k}:\t{b}')
+
+    return biases
     
     
 class OrderedNormal(dist.Distribution):
