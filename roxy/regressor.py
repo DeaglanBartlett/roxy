@@ -152,7 +152,7 @@ class RoxyRegressor():
                     print(f'{pname}:\t{pdefault}')
         return jnp.array(pidx)
             
-    def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr', infer_intrinsic=True, initial=None, ngauss=1, covmat=False, gmm_prior='hierarchical'):
+    def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr', infer_intrinsic=True, initial=None, ngauss=1, covmat=False, gmm_prior='hierarchical', verbose=True):
         """
         Optimise the parameters of the function given some data, under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -169,6 +169,7 @@ class RoxyRegressor():
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
             :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
+            :verbose (bool, default=True): Whether to print progress or not
         
         Returns:
             :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
@@ -297,17 +298,21 @@ class RoxyRegressor():
         res = minimize(fopt, initial, method="Nelder-Mead")
         
         # Print results
-        print('\nOptimisation Results:')
+        if verbose:
+            print('\nOptimisation Results:')
         param_names = []
         for p, val in zip(params_to_opt, res.x):
-            print(f'{p}:\t{val}')
+            if verbose:
+                print(f'{p}:\t{val}')
             param_names.append(p)
         if infer_intrinsic:
-            print(f'sig:\t{res.x[len(params_to_opt)]}')
+            if verbose:
+                print(f'sig:\t{res.x[len(params_to_opt)]}')
             param_names.append('sig')
         if method == 'mnr':
-            print(f'mu_gauss:\t{res.x[-2]}')
-            print(f'w_gauss:\t{res.x[-1]}')
+            if verbose:
+                print(f'mu_gauss:\t{res.x[-2]}')
+                print(f'w_gauss:\t{res.x[-1]}')
             param_names.append('mu_gauss')
             param_names.append('w_gauss')
         elif method == 'gmm':
@@ -315,25 +320,29 @@ class RoxyRegressor():
             if infer_intrinsic:
                 imin += 1
             for i in range(ngauss):
-                print(f'mu_gauss_{i}:\t{res.x[imin+i]}')
+                if verbose:
+                    print(f'mu_gauss_{i}:\t{res.x[imin+i]}')
                 param_names.append(f'mu_gauss_{i}')
             for i in range(ngauss):
-                print(f'w_gauss_{i}:\t{res.x[imin+ngauss+i]}')
+                if verbose:
+                    print(f'w_gauss_{i}:\t{res.x[imin+ngauss+i]}')
                 param_names.append(f'w_gauss_{i}')
             for i in range(ngauss-1):
-                print(f'weight_gauss_{i}:\t{res.x[imin+2*ngauss+i]}')
+                if verbose:
+                    print(f'weight_gauss_{i}:\t{res.x[imin+2*ngauss+i]}')
                 param_names.append(f'weight_gauss_{i}')
             if gmm_prior == 'hierarchical':
-                print(f'hyper_mu:\t{res.x[imin+3*ngauss-1]}')
+                if verbose:
+                    print(f'hyper_mu:\t{res.x[imin+3*ngauss-1]}')
+                    print(f'hyper_u2:\t{res.x[imin+3*ngauss]}')
+                    print(f'hyper_w2:\t{res.x[imin+3*ngauss+1]}')
                 param_names.append(f'hyper_mu')
-                print(f'hyper_u2:\t{res.x[imin+3*ngauss]}')
                 param_names.append(f'hyper_w2')
-                print(f'hyper_w2:\t{res.x[imin+3*ngauss+1]}')
                 param_names.append(f'hyper_u2')
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1, infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234):
+    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1, infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian likelihood,
@@ -353,6 +362,7 @@ class RoxyRegressor():
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
             :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
+            :verbose (bool, default=True): Whether to print progress or not
             
         Returns:
             :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
@@ -471,7 +481,7 @@ class RoxyRegressor():
         rng_key, rng_key_ = jax.random.split(rng_key)
         
         try:
-            vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior)
+            vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior, verbose=verbose)
             vals = vals.x
             init = {k:v for k,v in zip(param_names, vals)}
             if 'mu_gauss_0' in param_names:
@@ -498,13 +508,16 @@ class RoxyRegressor():
                 init['w_gauss'] = init['w_gauss'][idx]
                 init['weight_gauss'] = init['weight_gauss'][idx]
             kernel = numpyro.infer.NUTS(model, init_strategy=numpyro.infer.initialization.init_to_value(values=init))
-            print('\nRunning MCMC')
+            if verbose:
+                print('\nRunning MCMC')
             sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
             sampler.run(rng_key_)
         except:
-            print('\nCould not init to optimised values')
+            if verbose:
+                print('\nCould not init to optimised values')
             kernel = numpyro.infer.NUTS(model)
-            print('\nRunning MCMC')
+            if verbose:
+                print('\nRunning MCMC')
             sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
             sampler.run(rng_key_)
 
@@ -515,21 +528,22 @@ class RoxyRegressor():
             samples['w_gauss'] = jnp.sqrt(samples['w_gauss'])
             
         # Print summary
-        sites = samples
-        if isinstance(samples, dict):
-            state_sample_field = attrgetter(sampler._sample_field)(sampler._last_state)
-            if isinstance(state_sample_field, dict):
-                sites = {
-                    k: jnp.expand_dims(v, axis=0)
-                    for k, v in samples.items()
-                    if k in state_sample_field
-                }
-        numpyro.diagnostics.print_summary(sites, prob=0.95)
-        extra_fields = sampler.get_extra_fields()
-        if "diverging" in extra_fields:
-            print(
-                "Number of divergences: {}".format(jnp.sum(extra_fields["diverging"]))
-            )
+        if verbose:
+            sites = samples
+            if isinstance(samples, dict):
+                state_sample_field = attrgetter(sampler._sample_field)(sampler._last_state)
+                if isinstance(state_sample_field, dict):
+                    sites = {
+                        k: jnp.expand_dims(v, axis=0)
+                        for k, v in samples.items()
+                        if k in state_sample_field
+                    }
+            numpyro.diagnostics.print_summary(sites, prob=0.95)
+            extra_fields = sampler.get_extra_fields()
+            if ("diverging" in extra_fields):
+                print(
+                    "Number of divergences: {}".format(jnp.sum(extra_fields["diverging"]))
+                )
         
         # Raise warning if too few effective samples
         neff = np.zeros(len(samples))
@@ -577,7 +591,7 @@ class RoxyRegressor():
 
         return samples
         
-    def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs, errors, ngauss=1, infer_intrinsic=True, progress_bar=True, nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234):
+    def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs, errors, ngauss=1, infer_intrinsic=True, progress_bar=True, nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234, verbose=True):
         """
         Compute an information criterion for a given setup
         We first run a MCMC to get an initial guess for the maximum likelihood
@@ -599,6 +613,7 @@ class RoxyRegressor():
             :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more information.
             :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
+            :verbose (bool, default=True): Whether to print progress or not
             
         Returns:
             :negloglike (float): The optimum negative log-likelihood value
@@ -620,7 +635,8 @@ class RoxyRegressor():
                         infer_intrinsic=infer_intrinsic,
                         progress_bar=progress_bar,
                         gmm_prior=gmm_prior,
-                        seed=seed
+                        seed=seed,
+                        verbose=verbose,
             )
         labels, samples = roxy.mcmc.samples_to_array(samples)
         labels = list(labels)
@@ -651,7 +667,8 @@ class RoxyRegressor():
                     infer_intrinsic=infer_intrinsic,
                     initial=initial,
                     ngauss=ngauss,
-                    gmm_prior=gmm_prior
+                    gmm_prior=gmm_prior,
+                    verbose=verbose,
         )
         
         # Count number of parameters and get max-likelihood
@@ -669,7 +686,7 @@ class RoxyRegressor():
         return negloglike, metric
         
         
-    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, progress_bar=True, nwarm=100, nsamp=100, gmm_prior='hierarchical', seed=1234):
+    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, progress_bar=True, nwarm=100, nsamp=100, gmm_prior='hierarchical', seed=1234, verbose=True):
         """
         Find the number of Gaussians to use in a Gaussian Mixture Model
         hyper-prior on the true x values, accoridng to some metric.
@@ -688,6 +705,7 @@ class RoxyRegressor():
             :nsamp (int, default=100): The number of samples to obtain in the MCMC
             :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
+            :verbose (bool, default=True): Whether to print progress or not
             
         Returns:
             :ngauss (int): The best number of Gaussians to use according to the metric
@@ -710,12 +728,14 @@ class RoxyRegressor():
                                             nsamp=nsamp,
                                             method='gmm',
                                             gmm_prior=gmm_prior,
-                                            seed=seed)
+                                            seed=seed,
+                                            verbose=verbose)
         
         ngauss = np.nanargmin(metric) + 1
-        print(f'\nBest ngauss according to {best_metric}:', ngauss)
-        metric -= np.amin(metric)
-        for i, m in enumerate(metric):
-            print(i+1, m)
+        if verbose:
+            print(f'\nBest ngauss according to {best_metric}:', ngauss)
+            metric -= np.amin(metric)
+            for i, m in enumerate(metric):
+                print(i+1, m)
 
         return ngauss

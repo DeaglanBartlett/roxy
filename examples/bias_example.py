@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from mpi4py import MPI
-
+import warnings
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
 import roxy.mcmc
@@ -36,7 +36,7 @@ yerr_std = 0.2
 nwarm, nsamp = 700, 10000
 nrepeat = 4
 max_ngauss = 2
-repeat_fit = True
+repeat_fit = False
 
 # Divide repeats among ranks
 rank_nrepeat = nrepeat // size
@@ -47,12 +47,12 @@ if rank < remainder:
 def my_fun(x, theta):
     return theta[0] * x + theta[1]
 param_names = ['A', 'B']
-
-#param_prior = {'A':[0, 50], 'B':[-50, 50], 'sig':[0, 100]}
-#param_prior = {'A':[-200, 200], 'B':[-1000, 1000], 'sig':[0, 600]}
 param_prior = {'A':[None, None], 'B':[None, None], 'sig':[None, None]}
 
 for ipar, par in enumerate(all_param[:1]):
+
+    if rank == 0:
+        print(f'Parameter set {ipar+1} of {len(all_param)}', flush=True)
 
     if repeat_fit:
         Atrue, sig_true, Npoints, xerr_mean, exp_scale = par
@@ -67,6 +67,9 @@ for ipar, par in enumerate(all_param[:1]):
         np.random.seed(rank)
         
         for i in range(rank_nrepeat):
+        
+            if rank == 0:
+                print(f'\t{i+1} of {rank_nrepeat}', flush=True)
 
             # Make data
             xtrue = np.random.exponential(exp_scale, Npoints)
@@ -80,27 +83,33 @@ for ipar, par in enumerate(all_param[:1]):
             
             for ngauss in range(1, max_ngauss+1):
             
+                if rank == 0:
+                    print(f'\t\tngauss = {ngauss}', flush=True)
+            
                 if ngauss == 1:
                     kwargs = {'method':'mnr'}
                 else:
                     kwargs = {'method':'gmm', 'gmm_prior':'hierarchical', 'ngauss':ngauss}
                 kwargs['seed'] = 1234
                 kwargs['progress_bar'] = False
+                kwargs['verbose'] = False
 
-                samples = reg.mcmc(
-                            param_names,
-                            xobs,
-                            yobs,
-                            [xerr, yerr],
-                            nwarm,
-                            nsamp,
-                            **kwargs
-                        )
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    samples = reg.mcmc(
+                                param_names,
+                                xobs,
+                                yobs,
+                                [xerr, yerr],
+                                nwarm,
+                                nsamp,
+                                **kwargs
+                            )
 
                 truths = {'A':Atrue, 'B':Btrue, 'sig':sig_true}
 
                 try:
-                    biases = roxy.mcmc.compute_bias(samples, truths)
+                    biases = roxy.mcmc.compute_bias(samples, truths, verbose=False)
                     all_bias[ngauss-1,0,i] = biases['A']
                     all_bias[ngauss-1,1,i] = biases['B']
                     all_bias[ngauss-1,2,i] = biases['sig']
@@ -123,20 +132,24 @@ for ipar, par in enumerate(all_param[:1]):
         if rank == 0:
             all_bias = np.concatenate(all_bias, axis=2)
             all_ic = np.concatenate(all_ic, axis=2)
-            np.savez(f'bias_res_{ipar}.npz', bias=all_bias, ic=all_ic)
+            for ngauss in range(1, max_ngauss+1):
+                np.savez(f'bias_res_{ipar}_{ngauss}.npz',
+                    bias=all_bias[ngauss-1,...],
+                    ic=all_ic[ngauss-1,...]
+                )
         
     comm.Barrier()
 
     if rank == 0:
-
-        all_bias = np.load(f'bias_res_{ipar}.npz')['bias']
         
         cm = plt.get_cmap('Set1')
         fig, axs = plt.subplots(1, max_ngauss, figsize=(10,4), sharex=True)
         for ngauss in range(1, max_ngauss+1):
+            bias = np.load(f'bias_res_{ipar}_{ngauss}.npz')['bias']
+            bic = np.load(f'bias_res_{ipar}_{ngauss}.npz')['ic'][1,:]
             for i, label in enumerate([r'$A$', r'$B$', r'$\sigma_{\rm int}$']):
                 axs[ngauss-1].hist(
-                        all_bias[ngauss-1,i,:],
+                        bias[i,:],
                         color=cm(i),
                         bins=10,
                         histtype='step',
@@ -151,4 +164,6 @@ for ipar, par in enumerate(all_param[:1]):
             axs[ngauss-1].set_title(title)
             
         fig.tight_layout()
-        plt.show()
+        fig.savefig(f'bias_res_{ipar}.png')
+        fig.clf()
+        plt.close(fig)

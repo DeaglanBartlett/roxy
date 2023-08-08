@@ -377,7 +377,7 @@ def samples_to_array(samples):
     return labels, all_samples
     
     
-def compute_bias(samples, truths):
+def compute_bias(samples, truths, verbose=True):
     """
     Computes the bias between MCMC samples and the true values of the parameters.
     For the intrinsic scatter, a truncated normal distribution is first fitted to
@@ -386,7 +386,8 @@ def compute_bias(samples, truths):
     Args:
         :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
         :truths (dict): The true values of the parameters. The keys should be a subset of the keys of samples
-    
+        :verbose (bool, default=True): Whether to print biases or not
+            
     Reurns:
         : biases (dict): The biases in each of the parameters (units=number of sigmas)
     """
@@ -412,7 +413,8 @@ def compute_bias(samples, truths):
             bounds = [(None, None), (0, None)]  # sigma must be >= 0
             res = scipy.optimize.minimize(negloglike, initial, bounds=bounds)
             mu, sig = res.x
-            print('Truncated normal fit for sig:', mu, sig)
+            if verbose:
+                print('Truncated normal fit for sig:', mu, sig)
 
         else:
             mu = float(np.mean(samples[k]))
@@ -420,9 +422,10 @@ def compute_bias(samples, truths):
             
         biases[k] = (mu - v) / sig
     
-    print('\nComputed biases (units=sigma):')
-    for k, b in biases.items():
-        print(f'{k}:\t{b}')
+    if verbose:
+        print('\nComputed biases (units=sigma):')
+        for k, b in biases.items():
+            print(f'{k}:\t{b}')
 
     return biases
     
