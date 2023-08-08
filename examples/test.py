@@ -34,7 +34,7 @@ elif run_name == 'quadratic':
     
     param_names = ['A', 'B', 'C']
     theta0 = [2, 0.5, -3]
-    param_prior = {'A':[0, 5], 'B':[-2, 2], 'C': [-10, 10], 'sig':[0, 3.0]}
+    param_prior = {'A':[None, None], 'B':[None, None], 'C': [None, None], 'sig':[None, None]}
 
 reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -69,7 +69,7 @@ reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr')
 #for method in ['unif', 'prof', 'mnr']:
 for method in ['mnr']:
     print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig, method=method))
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
+    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method, num_chains=2)
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior,) #savename='../docs/source/triangle.png')
     roxy.plotting.trace_plot(samples, to_plot='all',) #savename='../docs/source/trace.png')
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr) #, savename='../docs/source/posterior_predictive.png')

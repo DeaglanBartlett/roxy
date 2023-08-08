@@ -342,7 +342,7 @@ class RoxyRegressor():
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1, infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True):
+    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian likelihood,
@@ -358,6 +358,7 @@ class RoxyRegressor():
             :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more information.
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            :num_chains (int, default=1): The number of independent MCMC chains to run
             :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
             :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
@@ -510,7 +511,7 @@ class RoxyRegressor():
             kernel = numpyro.infer.NUTS(model, init_strategy=numpyro.infer.initialization.init_to_value(values=init))
             if verbose:
                 print('\nRunning MCMC')
-            sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
+            sampler = numpyro.infer.MCMC(kernel, num_chains=num_chains, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
             sampler.run(rng_key_)
         except:
             if verbose:
@@ -518,7 +519,7 @@ class RoxyRegressor():
             kernel = numpyro.infer.NUTS(model)
             if verbose:
                 print('\nRunning MCMC')
-            sampler = numpyro.infer.MCMC(kernel, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
+            sampler = numpyro.infer.MCMC(kernel, num_chains=num_chains, num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
             sampler.run(rng_key_)
 
         samples = sampler.get_samples()
