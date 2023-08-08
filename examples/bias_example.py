@@ -34,9 +34,9 @@ yerr_std = 0.2
 # MCMC params
 #nwarm, nsamp = 700, 500
 nwarm, nsamp = 700, 10000
-nrepeat = 4
-max_ngauss = 2
-repeat_fit = False
+nrepeat = 150
+max_ngauss = 4
+repeat_fit = True
 
 # Divide repeats among ranks
 rank_nrepeat = nrepeat // size
@@ -49,7 +49,7 @@ def my_fun(x, theta):
 param_names = ['A', 'B']
 param_prior = {'A':[None, None], 'B':[None, None], 'sig':[None, None]}
 
-for ipar, par in enumerate(all_param[:1]):
+for ipar, par in enumerate(all_param):
 
     if rank == 0:
         print(f'Parameter set {ipar+1} of {len(all_param)}', flush=True)
@@ -140,24 +140,30 @@ for ipar, par in enumerate(all_param[:1]):
         
     comm.Barrier()
 
+    """
+
     if rank == 0:
         
         cm = plt.get_cmap('Set1')
         fig, axs = plt.subplots(1, max_ngauss, figsize=(10,4), sharex=True)
         for ngauss in range(1, max_ngauss+1):
             bias = np.load(f'bias_res_{ipar}_{ngauss}.npz')['bias']
-            bic = np.load(f'bias_res_{ipar}_{ngauss}.npz')['ic'][1,:]
+            m = np.isfinite(bias)
+            m = np.prod(m, axis=0).astype(bool)
+            bias = bias[:,m]
+            bic = np.load(f'bias_res_{ipar}_{ngauss}.npz')['ic'][1,m]
             for i, label in enumerate([r'$A$', r'$B$', r'$\sigma_{\rm int}$']):
                 axs[ngauss-1].hist(
                         bias[i,:],
                         color=cm(i),
-                        bins=10,
+                        bins=np.linspace(-4, 4, 30),
                         histtype='step',
-                        density=True,
+                        density=False,
                         label=label,
                 )
             axs[ngauss-1].legend()
             axs[ngauss-1].set_xlabel('Bias')
+            axs[ngauss-1].get_yaxis().set_ticklabels([])
             title = f'{ngauss} Gaussian'
             if ngauss > 1:
                 title += 's'
@@ -167,3 +173,4 @@ for ipar, par in enumerate(all_param[:1]):
         fig.savefig(f'bias_res_{ipar}.png')
         fig.clf()
         plt.close(fig)
+    """
