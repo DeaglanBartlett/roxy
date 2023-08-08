@@ -333,7 +333,7 @@ class RoxyRegressor():
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1., infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234):
+    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1, infer_intrinsic=True, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian likelihood,
@@ -577,6 +577,36 @@ class RoxyRegressor():
 
         return samples
         
+    def mcmc_to_opt_index(self, labels, ngauss=1, gmm_prior='hierarchical', infer_intrinsic=True):
+        """
+        Find the indices which convert the output of the MCMC fit to the order
+        of parameters as expected by the optimisation routines
+        
+        Args:
+            :labels (list): The list of parameter names in the order outputted by the MCMC routine
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
+            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
+            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            
+        Returns:
+            :param_idx (list): The indices which convert the MCMC output to the order wanted for the optimiser
+            :param_names (list): The list of parameter names in the order wanted by optimiser
+        
+        """
+        
+        param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hierarchical') or k.startswith('hyper'))]
+        if infer_intrinsic:
+            param_idx = param_idx + [labels.index('sig')]
+        param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
+        param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
+        param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
+        if gmm_prior == 'hierarchical':
+            param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
+        param_names = [labels[i] for i in param_idx]
+        
+        return param_idx, param_names
+        
+        
     def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, gmm_prior='hierarchical', seed=1234):
         """
         Find the number of Gaussians to use in a Gaussian Mixture Model
@@ -630,15 +660,7 @@ class RoxyRegressor():
             labels = list(labels)
             
             # Now put in order expected by optimisers
-            param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hierarchical'))]
-            if infer_intrinsic:
-                param_idx = param_idx + [labels.index('sig')]
-            param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
-            param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
-            param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
-            if gmm_prior == 'hierarchical':
-                param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
-            param_names = [labels[i] for i in param_idx]
+            param_idx, param_names = self.mcmc_to_opt_index(labels, ngauss=ngauss, gmm_prior=gmm_prior, infer_intrinsic=infer_intrinsic)
             
             # Extract medians
             initial = jnp.median(samples[:,param_idx], axis=0)
@@ -663,7 +685,7 @@ class RoxyRegressor():
         else:
             raise NotImplementedError
         
-        ngauss = np.argmin(metric) + 1
+        ngauss = np.nanargmin(metric) + 1
         print(f'\nBest ngauss according to {best_metric}:', ngauss)
         metric -= np.amin(metric)
         for i, m in enumerate(metric):
