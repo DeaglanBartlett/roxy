@@ -90,3 +90,12 @@ plt.close(plt.gcf())
 max_ngauss = 3
 gmm_prior = 'hierarchical'
 reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior=gmm_prior)
+
+all_method = ['prof', 'unif', 'mnr']
+all_bic = [None] * len(all_method)
+all_nll = [None] * len(all_method)
+for i, method in enumerate(all_method):
+    all_nll[i], all_bic[i] = reg.compute_information_criterion('BIC', param_names, xobs, yobs, [xerr, yerr], nwarm=100, nsamp=100, method=method)
+for method, nll, bic in zip(all_method, all_nll, all_bic):
+    print(method, nll, bic)
+

@@ -577,44 +577,102 @@ class RoxyRegressor():
 
         return samples
         
-    def mcmc_to_opt_index(self, labels, ngauss=1, gmm_prior='hierarchical', infer_intrinsic=True):
+    def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs, errors, ngauss=1, infer_intrinsic=True, progress_bar=True, nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234):
         """
-        Find the indices which convert the output of the MCMC fit to the order
-        of parameters as expected by the optimisation routines
-        
-        Args:
-            :labels (list): The list of parameter names in the order outputted by the MCMC routine
-            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
-            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
-            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
-            
-        Returns:
-            :param_idx (list): The indices which convert the MCMC output to the order wanted for the optimiser
-            :param_names (list): The list of parameter names in the order wanted by optimiser
-        
-        """
-        
-        param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hierarchical') or k.startswith('hyper'))]
-        if infer_intrinsic:
-            param_idx = param_idx + [labels.index('sig')]
-        param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
-        param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
-        param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
-        if gmm_prior == 'hierarchical':
-            param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
-        param_names = [labels[i] for i in param_idx]
-        
-        return param_idx, param_names
-        
-        
-    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, nwarm=100, nsamp=100, gmm_prior='hierarchical', seed=1234):
-        """
-        Find the number of Gaussians to use in a Gaussian Mixture Model
-        hyper-prior on the true x values, accoridng to some metric.
+        Compute an information criterion for a given setup
         We first run a MCMC to get an initial guess for the maximum likelihood
         point, and we then an optimsier from this point to get a better
         estimate for this. Since we do not need good MCMC convergence for this,
         small values of nwarm and nsamp can be used.
+        
+        Args:
+            :criterion (str): Which information criterion to use (supported: AIC and BIC)
+            :params_to_opt (list): The names of the parameters we wish to optimise
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving the error on the observed x and y values. Otherwise, this is the covariance matrix in the order (x, y)
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
+            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
+            :nwarm (int, default=100): The number of warmup steps to use in the MCMC
+            :nsamp (int, default=100): The number of samples to obtain in the MCMC
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more information.
+            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
+            :seed (int, default=1234): The seed to use when initialising the sampler
+            
+        Returns:
+            :negloglike (float): The optimum negative log-likelihood value
+            :metric (float): The value of the information criterion
+        
+        """
+        
+        # First run a MCMC to get a guess at the peak, catching the low neff warning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            samples = self.mcmc(params_to_opt,
+                        xobs,
+                        yobs,
+                        errors,
+                        nwarm,
+                        nsamp,
+                        method=method,
+                        ngauss=ngauss,
+                        infer_intrinsic=infer_intrinsic,
+                        progress_bar=progress_bar,
+                        gmm_prior=gmm_prior,
+                        seed=seed
+            )
+        labels, samples = roxy.mcmc.samples_to_array(samples)
+        labels = list(labels)
+        
+        # Now put in order expected by optimisers
+        param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hierarchical') or k.startswith('hyper'))]
+        if infer_intrinsic:
+            param_idx = param_idx + [labels.index('sig')]
+        if method == 'gmm':
+            param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
+            param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
+            param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
+            if gmm_prior == 'hierarchical':
+                param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
+        elif method == 'mnr':
+            param_idx = param_idx + [labels.index('mu_gauss'), labels.index('w_gauss')]
+        param_names = [labels[i] for i in param_idx]
+        
+        # Extract medians
+        initial = jnp.median(samples[:,param_idx], axis=0)
+        
+        # Run new optimiser
+        res, _ = self.optimise(params_to_opt,
+                    xobs,
+                    yobs,
+                    errors,
+                    method=method,
+                    infer_intrinsic=infer_intrinsic,
+                    initial=initial,
+                    ngauss=ngauss,
+                    gmm_prior=gmm_prior
+        )
+        
+        # Count number of parameters and get max-likelihood
+        npar = len(initial)
+        negloglike = res.fun
+        
+        # Compute criterion
+        if criterion == 'AIC':
+            metric = 2 * negloglike + 2 * npar
+        elif criterion == 'BIC':
+            metric = 2 * negloglike + npar * jnp.log(len(xobs))
+        else:
+            raise NotImplementedError
+        
+        return negloglike, metric
+        
+        
+    def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', infer_intrinsic=True, progress_bar=True, nwarm=100, nsamp=100, gmm_prior='hierarchical', seed=1234):
+        """
+        Find the number of Gaussians to use in a Gaussian Mixture Model
+        hyper-prior on the true x values, accoridng to some metric.
         
         Args:
             :params_to_opt (list): The names of the parameters we wish to optimise
@@ -625,6 +683,7 @@ class RoxyRegressor():
             :max_ngauss (int): The maximum number of Gaussians to consider
             :best_metric (str): Metric to use to compare fits (supported: AIC and BIC)
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
             :nwarm (int, default=100): The number of warmup steps to use in the MCMC
             :nsamp (int, default=100): The number of samples to obtain in the MCMC
             :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
@@ -635,55 +694,23 @@ class RoxyRegressor():
         
         """
     
-        npar = np.empty(max_ngauss)
-        negloglike = np.empty(max_ngauss)
+        metric = np.empty(max_ngauss)
     
         for ngauss in range(1, max_ngauss+1):
-            
-            # First run a MCMC to get a guess at the peak, catching the low neff warning
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                samples = self.mcmc(params_to_opt,
-                            xobs,
-                            yobs,
-                            [xerr, yerr],
-                            nwarm,
-                            nsamp,
-                            method='gmm',
-                            ngauss=ngauss,
-                            infer_intrinsic=infer_intrinsic,
-                            progress_bar=True,
-                            gmm_prior=gmm_prior,
-                            seed=seed
-                )
-            labels, samples = roxy.mcmc.samples_to_array(samples)
-            labels = list(labels)
-            
-            # Now put in order expected by optimisers
-            param_idx, param_names = self.mcmc_to_opt_index(labels, ngauss=ngauss, gmm_prior=gmm_prior, infer_intrinsic=infer_intrinsic)
-            
-            # Extract medians
-            initial = jnp.median(samples[:,param_idx], axis=0)
-            # Run new optimiser
-            res, _ = self.optimise(params_to_opt,
-                        xobs,
-                        yobs,
-                        [xerr, yerr],
-                        method='gmm',
-                        infer_intrinsic=infer_intrinsic,
-                        initial=initial,
-                        ngauss=ngauss,
-                        gmm_prior=gmm_prior
-            )
-            npar[ngauss-1] = len(initial)
-            negloglike[ngauss-1] = res.fun
-
-        if best_metric == 'AIC':
-            metric = 2 * negloglike + 2 * npar
-        elif best_metric == 'BIC':
-            metric = 2 * negloglike + npar * jnp.log(len(xobs))
-        else:
-            raise NotImplementedError
+            _, metric[ngauss-1] = self.compute_information_criterion(
+                                            best_metric,
+                                            params_to_opt,
+                                            xobs,
+                                            yobs,
+                                            [xerr,yerr],
+                                            ngauss=ngauss,
+                                            infer_intrinsic=infer_intrinsic,
+                                            progress_bar=progress_bar,
+                                            nwarm=nwarm,
+                                            nsamp=nsamp,
+                                            method='gmm',
+                                            gmm_prior=gmm_prior,
+                                            seed=seed)
         
         ngauss = np.nanargmin(metric) + 1
         print(f'\nBest ngauss according to {best_metric}:', ngauss)

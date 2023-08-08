@@ -32,11 +32,11 @@ yerr_mean = 2
 yerr_std = 0.2
 
 # MCMC params
-nwarm, nsamp = 700, 500
-#nwarm, nsamp = 700, 10000
-nrepeat = 10
+#nwarm, nsamp = 700, 500
+nwarm, nsamp = 700, 10000
+nrepeat = 4
 max_ngauss = 2
-repeat_fit = False
+repeat_fit = True
 
 # Divide repeats among ranks
 rank_nrepeat = nrepeat // size
@@ -62,6 +62,7 @@ for ipar, par in enumerate(all_param[:1]):
         reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
         
         all_bias = np.empty((max_ngauss, 3, rank_nrepeat))
+        all_ic = np.empty((max_ngauss, 2, rank_nrepeat))  # (nll, BIC)
         
         np.random.seed(rank)
         
@@ -97,22 +98,38 @@ for ipar, par in enumerate(all_param[:1]):
                         )
 
                 truths = {'A':Atrue, 'B':Btrue, 'sig':sig_true}
-                biases = roxy.mcmc.compute_bias(samples, truths)
 
-                all_bias[ngauss-1,0,i] = biases['A']
-                all_bias[ngauss-1,1,i] = biases['B']
-                all_bias[ngauss-1,2,i] = biases['sig']
+                try:
+                    biases = roxy.mcmc.compute_bias(samples, truths)
+                    all_bias[ngauss-1,0,i] = biases['A']
+                    all_bias[ngauss-1,1,i] = biases['B']
+                    all_bias[ngauss-1,2,i] = biases['sig']
+                except:
+                    all_bias[ngauss-1,:,i]
+                
+                all_ic[ngauss-1,:,i] = reg.compute_information_criterion(
+                        'BIC',
+                        param_names,
+                        xobs,
+                        yobs,
+                        [xerr,yerr],
+                        nwarm=100,
+                        nsamp=100,
+                        **kwargs
+                        )
         
         all_bias = comm.gather(all_bias, root=0)
+        all_ic = comm.gather(all_ic, root=0)
         if rank == 0:
             all_bias = np.concatenate(all_bias, axis=2)
-            np.save(f'bias_res_{ipar}.npy', all_bias)
+            all_ic = np.concatenate(all_ic, axis=2)
+            np.savez(f'bias_res_{ipar}.npz', bias=all_bias, ic=all_ic)
         
     comm.Barrier()
 
     if rank == 0:
 
-        all_bias = np.load(f'bias_res_{ipar}.npy')
+        all_bias = np.load(f'bias_res_{ipar}.npz')['bias']
         
         cm = plt.get_cmap('Set1')
         fig, axs = plt.subplots(1, max_ngauss, figsize=(10,4), sharex=True)
