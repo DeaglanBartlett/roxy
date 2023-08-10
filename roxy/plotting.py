@@ -93,7 +93,7 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
     plt.gcf().align_labels()
     
     if savename is not None:
-        plt.savefig(savename, transparent=True)
+        plt.savefig(savename, transparent=False)
     if show:
         plt.show()
     plt.clf()
@@ -139,7 +139,7 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
     plt.tight_layout()
     
     if savename is not None:
-        plt.savefig(savename, transparent=True)
+        plt.savefig(savename, transparent=False)
     if show:
         plt.show()
     plt.clf()
@@ -195,7 +195,7 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
     fig.tight_layout()
     
     if savename is not None:
-        plt.savefig(savename, transparent=True)
+        plt.savefig(savename, transparent=False)
     if show:
         plt.show()
 

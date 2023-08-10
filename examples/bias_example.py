@@ -6,6 +6,7 @@ from roxy.regressor import RoxyRegressor
 import roxy.plotting
 import roxy.mcmc
 import scipy.stats
+import os
 
 plt.rc('text', usetex=False)
 
@@ -36,15 +37,17 @@ if which_run == 'old':
         [2, 1000, 5, 2.3, 8],
         [2, 1000, 5, 20, 8],
     ]
+    fig5_idx = 0
 elif which_run == 'new':
     all_param = [
         [5.0, 4000, -30.0, 20.0, 15.0],
         [15.0, 4000, 30.0, 20.0, 15.0],
         [15.0, 4000, 30.0, 20.0, 15.0],
         [0.0, 4000, -15.0, 20.0, 15.0],
-        [10.0, 10, -30.0, 20.0, 15.0],
+        [10.0, 10, -30.0, 20.0, 15.0], # Figure 5
         [10.0, 45, 0.0, 20.0, 15.0],
     ]
+    fig5_idx = 4
 
 # Fixed parameters
 Btrue = 1.
@@ -158,7 +161,7 @@ for ipar, par in enumerate(all_param):
 
     if rank == 0:
 
-        if not os.path.isdir('figs')
+        if not os.path.isdir('figs'):
             os.mkdir('figs')
         
         cm = plt.get_cmap('Set1')
@@ -195,4 +198,59 @@ for ipar, par in enumerate(all_param):
         fig.savefig(f'figs/bias_res_{ipar}.png')
         fig.clf()
         plt.close(fig)
+
+
+
+if rank == 0:
+
+    nwarm, nsamp = 5000, 10000
+
+    np.random.seed(rank)
+
+    par = all_param[fig5_idx]
+
+    if which_run == 'old':
+        Atrue, sig_true, Npoints, xerr_mean, exp_scale = par
+    elif which_run == 'new':
+        sig_true, Npoints, Atrue, xerr_mean, exp_scale = par
+    theta0 = [Atrue, Btrue]
+    xerr_std = xerr_mean / 5
+
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+
+    # Make data
+    xtrue = np.random.exponential(exp_scale, Npoints)
+    ytrue = reg.value(xtrue, theta0)
+    xerr = np.random.normal(xerr_mean, xerr_std, Npoints)
+    xerr[xerr<0.]=0.
+    yerr = np.random.normal(yerr_mean, yerr_std, Npoints)
+    yerr[yerr<0.]=0.
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig_true ** 2)
+
+    samples = reg.mcmc(
+                    param_names,
+                    xobs,
+                    yobs,
+                    [xerr, yerr],
+                    nwarm,
+                    nsamp,
+                    method='mnr',
+                    seed=1234,
+                    progress_bar=True,
+                    verbose=True
+                )
+    roxy.plotting.triangle_plot(samples, 
+            to_plot='all', 
+            module='getdist', 
+            param_prior=param_prior, 
+            show=False,
+            savename='maxbias_corner.png',
+    )
+    roxy.plotting.trace_plot(
+            samples, 
+            to_plot='all',
+            show=False,
+            savename='maxbias_trace.png',
+    )
 
