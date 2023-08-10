@@ -245,12 +245,12 @@ if rank == 0:
             module='getdist', 
             param_prior=param_prior, 
             show=False,
-            savename='maxbias_corner.png',
+            savename='figs/maxbias_corner.png',
     )
     roxy.plotting.trace_plot(
             samples, 
             to_plot='all',
             show=False,
-            savename='maxbias_trace.png',
+            savename='figs/maxbias_trace.png',
     )
 
