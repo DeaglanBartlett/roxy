@@ -162,3 +162,4 @@ cython_debug/
 *.npz
 examples/bias_res_*
 *.bashrc
+examples/figs/
