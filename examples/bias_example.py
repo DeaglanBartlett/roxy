@@ -17,7 +17,7 @@ size = comm.Get_size()
 np.random.seed(4)
 
 which_run = 'new'
-repeat_fit = True
+repeat_fit = False
 #nwarm, nsamp = 5000, 10000
 nwarm, nsamp = 700, 5000
 nrepeat = 150
@@ -69,7 +69,7 @@ param_prior = {'A':[None, None], 'B':[None, None], 'sig':[None, None]}
 for ipar, par in enumerate(all_param):
 
     if rank == 0:
-        print(f'Parameter set {ipar+1} of {len(all_param)}', flush=True)
+        print(f'\nParameter set {ipar+1} of {len(all_param)}', flush=True)
 
     if repeat_fit:
         if which_run == 'old':
@@ -177,7 +177,6 @@ for ipar, par in enumerate(all_param):
                 )
         
     comm.Barrier()
-    continue
 
     if rank == 0:
 
@@ -185,14 +184,20 @@ for ipar, par in enumerate(all_param):
             os.mkdir('figs')
         
         cm = plt.get_cmap('Set1')
-        fig, axs = plt.subplots(1, max_ngauss, figsize=(15,4), sharex=True)
+        fig, axs = plt.subplots(1, max_ngauss+1, figsize=(15,4), sharex=True)
+        all_bias = np.empty((max_ngauss,3,nrepeat))
+        all_bic = np.empty((max_ngauss,2,nrepeat))
         for ngauss in range(1, max_ngauss+1):
             bias = np.load(f'bias_res_{ipar}_{ngauss}.npz')['bias']
+            all_bias[ngauss-1,...] = bias.copy()
             m = np.isfinite(bias)
             m = np.prod(m, axis=0).astype(bool)
             bias = bias[:,m]
-            bic = np.load(f'bias_res_{ipar}_{ngauss}.npz')['ic'][1,m]
-            sigmax = 10
+            bic = np.load(f'bias_res_{ipar}_{ngauss}.npz')['ic']
+            all_bic[ngauss-1,...] = bic.copy()
+            all_bic[ngauss-1,:,~m] = np.nan
+            bic = bic[1,m]
+            sigmax = 5
             xx = np.linspace(-sigmax, sigmax, 200)
             for i, label in enumerate([r'$A$', r'$B$', r'$\sigma_{\rm int}$']):
                 m = (bias[i,:] >= -sigmax) & (bias[i,:] <= sigmax)
@@ -213,14 +218,37 @@ for ipar, par in enumerate(all_param):
             if ngauss > 1:
                 title += 's'
             axs[ngauss-1].set_title(title)
-            
+
+        # Now pick min BIC case
+        bic = all_bic[:,1,:]
+        m = np.any(np.isfinite(all_bic[:,1,:]), axis=0)
+        all_bic = all_bic[:,:,m]
+        all_bias = all_bias[:,:,m]
+        idx = np.nanargmin(all_bic[:,1,:], axis=0)
+        print('\nMin BIC:')
+        for i in range(1,max_ngauss+1):
+            print(f'ngauss {i}: {(idx==i-1).sum()}')
+        bias = np.array([all_bias[j,:,i] for i,j in enumerate(idx)]).T
+        for i, label in enumerate([r'$A$', r'$B$', r'$\sigma_{\rm int}$']):
+            m = (bias[i,:] >= -sigmax) & (bias[i,:] <= sigmax)
+            kde = scipy.stats.gaussian_kde(bias[i,m])
+            kde = kde(xx)
+            if i >= 2:
+                c = cm(i)
+            else:
+                c = cm(1-i)
+            axs[-1].plot(xx, kde, color=c, label=label)
+        axs[-1].axvline(x=0, color='k')
+        axs[-1].legend()
+        axs[-1].set_xlabel('Bias')
+        ylim = axs[-1].get_ylim()
+        axs[-1].set_ylim(0, None)
+        axs[-1].set_title('Minimum BIC')
+        
         fig.tight_layout()
         fig.savefig(f'figs/bias_res_{ipar}.png')
         fig.clf()
         plt.close(fig)
-
-quit()
-
 
 if rank == 0:
 
