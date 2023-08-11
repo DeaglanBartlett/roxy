@@ -342,7 +342,7 @@ class RoxyRegressor():
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True):
+    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr', ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True, covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True, init=None):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian likelihood,
@@ -364,6 +364,7 @@ class RoxyRegressor():
             :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
             :verbose (bool, default=True): Whether to print progress or not
+            :init (dict, default=None): A dictionary of values of initialise the MCMC at
             
         Returns:
             :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
@@ -482,32 +483,33 @@ class RoxyRegressor():
         rng_key, rng_key_ = jax.random.split(rng_key)
         
         try:
-            vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior, verbose=verbose)
-            vals = vals.x
-            init = {k:v for k,v in zip(param_names, vals)}
-            if 'mu_gauss_0' in param_names:
-                init_mu = [0.] * ngauss
-                init_w = [0.] * ngauss
-                init_weight = [0.] * ngauss
-                for i in range(ngauss):
-                    init_mu[i] = init[f'mu_gauss_{i}']
-                    init_w[i] = init[f'w_gauss_{i}']
-                    init.pop(f'mu_gauss_{i}')
-                    init.pop(f'w_gauss_{i}')
-                for i in range(ngauss - 1):
-                    init_weight[i] = init[f'weight_gauss_{i}']
-                    init.pop(f'weight_gauss_{i}')
-                init_weight[-1] = 1. - sum(init_weight)
-                init['mu_gauss'] = jnp.array(init_mu)
-                if gmm_prior == 'uniform':
-                    init['w_gauss'] = jnp.array(init_w)
-                elif gmm_prior == 'hierarchical':
-                    init['w_gauss'] = jnp.array(init_w) ** 2
-                init['weight_gauss'] = jnp.array(init_weight)
-                idx = jnp.argsort(init['mu_gauss'])
-                init['mu_gauss'] = init['mu_gauss'][idx]
-                init['w_gauss'] = init['w_gauss'][idx]
-                init['weight_gauss'] = init['weight_gauss'][idx]
+            if init is None:
+                vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior, verbose=verbose)
+                vals = vals.x
+                init = {k:v for k,v in zip(param_names, vals)}
+                if 'mu_gauss_0' in param_names:
+                    init_mu = [0.] * ngauss
+                    init_w = [0.] * ngauss
+                    init_weight = [0.] * ngauss
+                    for i in range(ngauss):
+                        init_mu[i] = init[f'mu_gauss_{i}']
+                        init_w[i] = init[f'w_gauss_{i}']
+                        init.pop(f'mu_gauss_{i}')
+                        init.pop(f'w_gauss_{i}')
+                    for i in range(ngauss - 1):
+                        init_weight[i] = init[f'weight_gauss_{i}']
+                        init.pop(f'weight_gauss_{i}')
+                    init_weight[-1] = 1. - sum(init_weight)
+                    init['mu_gauss'] = jnp.array(init_mu)
+                    if gmm_prior == 'uniform':
+                        init['w_gauss'] = jnp.array(init_w)
+                    elif gmm_prior == 'hierarchical':
+                        init['w_gauss'] = jnp.array(init_w) ** 2
+                    init['weight_gauss'] = jnp.array(init_weight)
+                    idx = jnp.argsort(init['mu_gauss'])
+                    init['mu_gauss'] = init['mu_gauss'][idx]
+                    init['w_gauss'] = init['w_gauss'][idx]
+                    init['weight_gauss'] = init['weight_gauss'][idx]
             kernel = numpyro.infer.NUTS(model, init_strategy=numpyro.infer.initialization.init_to_value(values=init))
             if verbose:
                 print('\nRunning MCMC')
@@ -591,11 +593,47 @@ class RoxyRegressor():
                 warnings.warn(f'Second derivative large for {nbad} data points', category=Warning, stacklevel=2)
 
         return samples
+
+
+    def mcmc2opt_index(self, labels, ngauss=1, method='mnr', gmm_prior='hierarchical', infer_intrinsic=True):
+        """
+        Find the indices which convert the samples produced by the MCMC to the order required for the optimiser
+
+        Args:
+            :labels (list): List of label names in the order produced by the MCMC
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
+            :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more information.
+            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides what prior to put on the GMM componenents. If 'uniform', then the mean and widths have a uniform prior, and if 'hierarchical' mu and w^2 have a Normal and Inverse Gamma prior, respectively.
+            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+
+        Returns:
+            :param_idx (list): The indices which convert the order of parameters from the MCMC to that expected by the optimiser
+            :param_names (list): The names of the parameters in the order expected by the optimiser
+
+        """
+
+        # Now put in order expected by optimisers
+        param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hierarchical') or k.startswith('hyper'))]
+        if infer_intrinsic:
+            param_idx = param_idx + [labels.index('sig')]
+        if method == 'gmm':
+            param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
+            param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
+            param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
+            if gmm_prior == 'hierarchical':
+                param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
+        elif method == 'mnr':
+            param_idx = param_idx + [labels.index('mu_gauss'), labels.index('w_gauss')]
+        param_names = [labels[i] for i in param_idx]
+
+        return param_idx, param_names
+
         
-    def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs, errors, ngauss=1, infer_intrinsic=True, progress_bar=True, nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234, verbose=True):
+    def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs, errors, ngauss=1, infer_intrinsic=True, progress_bar=True, initial=None, nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234, verbose=True):
         """
         Compute an information criterion for a given setup
-        We first run a MCMC to get an initial guess for the maximum likelihood
+        If an initial guess is not given, we first run a MCMC
+        to get an initial guess for the maximum likelihood
         point, and we then an optimsier from this point to get a better
         estimate for this. Since we do not need good MCMC convergence for this,
         small values of nwarm and nsamp can be used.
@@ -608,6 +646,7 @@ class RoxyRegressor():
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving the error on the observed x and y values. Otherwise, this is the covariance matrix in the order (x, y)
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior. Only used if method='gmm'
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic scatter in the y direction
+            :initial (jnp.ndarray, default=None): The starting point for the optimised. If None, a MCMC is run.
             :progress_bar (bool, default=True): Whether to display a progress bar for the MCMC
             :nwarm (int, default=100): The number of warmup steps to use in the MCMC
             :nsamp (int, default=100): The number of samples to obtain in the MCMC
@@ -622,42 +661,28 @@ class RoxyRegressor():
         
         """
         
-        # First run a MCMC to get a guess at the peak, catching the low neff warning
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            samples = self.mcmc(params_to_opt,
-                        xobs,
-                        yobs,
-                        errors,
-                        nwarm,
-                        nsamp,
-                        method=method,
-                        ngauss=ngauss,
-                        infer_intrinsic=infer_intrinsic,
-                        progress_bar=progress_bar,
-                        gmm_prior=gmm_prior,
-                        seed=seed,
-                        verbose=verbose,
-            )
-        labels, samples = roxy.mcmc.samples_to_array(samples)
-        labels = list(labels)
-        
-        # Now put in order expected by optimisers
-        param_idx = [i for i, k in enumerate(labels) if not (k.startswith('weights') or k.startswith('mu_gauss') or k.startswith('w_gauss') or k.startswith('sig') or k.startswith('hierarchical') or k.startswith('hyper'))]
-        if infer_intrinsic:
-            param_idx = param_idx + [labels.index('sig')]
-        if method == 'gmm':
-            param_idx = param_idx + [labels.index(f'mu_gauss_{i}') for i in range(ngauss)]
-            param_idx = param_idx + [labels.index(f'w_gauss_{i}') for i in range(ngauss)]
-            param_idx = param_idx + [labels.index(f'weights_{i}') for i in range(ngauss-1)]
-            if gmm_prior == 'hierarchical':
-                param_idx = param_idx + [labels.index('hyper_mu'), labels.index('hyper_w2'), labels.index('hyper_u2')]
-        elif method == 'mnr':
-            param_idx = param_idx + [labels.index('mu_gauss'), labels.index('w_gauss')]
-        param_names = [labels[i] for i in param_idx]
-        
-        # Extract medians
-        initial = jnp.median(samples[:,param_idx], axis=0)
+        if initial is None:
+            # First run a MCMC to get a guess at the peak, catching the low neff warning
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                samples = self.mcmc(params_to_opt,
+                            xobs,
+                            yobs,
+                            errors,
+                            nwarm,
+                            nsamp,
+                            method=method,
+                            ngauss=ngauss,
+                            infer_intrinsic=infer_intrinsic,
+                            progress_bar=progress_bar,
+                            gmm_prior=gmm_prior,
+                            seed=seed,
+                            verbose=verbose,
+                )
+            labels, samples = roxy.mcmc.samples_to_array(samples)
+            labels = list(labels)
+            param_idx, param_names = self.mcmc2opt_index(labels, ngauss=ngauss, method=method, gmm_prior=gmm_prior, infer_intrinsic=infer_intrinsic)
+            initial = jnp.median(samples[:,param_idx], axis=0)
         
         # Run new optimiser
         res, _ = self.optimise(params_to_opt,

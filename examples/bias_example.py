@@ -17,8 +17,9 @@ size = comm.Get_size()
 np.random.seed(4)
 
 which_run = 'new'
-repeat_fit = False
-nwarm, nsamp = 700, 10000
+repeat_fit = True
+#nwarm, nsamp = 5000, 10000
+nwarm, nsamp = 700, 5000
 nrepeat = 150
 max_ngauss = 4
 
@@ -113,8 +114,13 @@ for ipar, par in enumerate(all_param):
                 kwargs['progress_bar'] = False
                 kwargs['verbose'] = False
 
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                init = {'A':Atrue, 'B':Btrue, 'sig':sig_true}
+
+                if rank == 0:
+                    print('\t\tRunning MCMC', flush=True)
+
+                try:
+                    warnings.filterwarnings("error")
                     samples = reg.mcmc(
                                 param_names,
                                 xobs,
@@ -122,27 +128,40 @@ for ipar, par in enumerate(all_param):
                                 [xerr, yerr],
                                 nwarm,
                                 nsamp,
+                                init=init,
                                 **kwargs
                             )
 
-                truths = {'A':Atrue, 'B':Btrue, 'sig':sig_true}
-
-                try:
+                    truths = {'A':Atrue, 'B':Btrue, 'sig':sig_true}
                     biases = roxy.mcmc.compute_bias(samples, truths, verbose=False)
                     all_bias[ngauss-1,0,i] = biases['A']
                     all_bias[ngauss-1,1,i] = biases['B']
                     all_bias[ngauss-1,2,i] = biases['sig']
                 except:
-                    all_bias[ngauss-1,:,i]
-                
-                all_ic[ngauss-1,:,i] = reg.compute_information_criterion(
+                    print(f"\t\t\tFailure on rank {rank}")
+                    all_bias[ngauss-1,:,i] = np.nan
+
+                if rank == 0:
+                    print('\t\tComputing information criterion')
+
+                if np.all(np.isnan(all_bias[ngauss-1,:,i])):
+                    all_ic[ngauss-1,:,i] = np.nan
+                else:
+                    labels, samples = roxy.mcmc.samples_to_array(samples)
+                    labels = list(labels)
+                    if ngauss == 1:
+                        gmm_prior = 'uniform'
+                    else:
+                        gmm_prior = kwargs['gmm_prior']
+                    param_idx, _ = reg.mcmc2opt_index(labels, ngauss=ngauss, method=kwargs['method'], gmm_prior=gmm_prior, infer_intrinsic=True)
+                    initial = np.median(samples[:,param_idx], axis=0)
+                    all_ic[ngauss-1,:,i] = reg.compute_information_criterion(
                         'BIC',
                         param_names,
                         xobs,
                         yobs,
                         [xerr,yerr],
-                        nwarm=100,
-                        nsamp=100,
+                        initial=initial,
                         **kwargs
                         )
         
@@ -158,6 +177,7 @@ for ipar, par in enumerate(all_param):
                 )
         
     comm.Barrier()
+    continue
 
     if rank == 0:
 
@@ -199,6 +219,7 @@ for ipar, par in enumerate(all_param):
         fig.clf()
         plt.close(fig)
 
+quit()
 
 
 if rank == 0:
