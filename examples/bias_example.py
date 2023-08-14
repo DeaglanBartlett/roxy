@@ -18,7 +18,7 @@ size = comm.Get_size()
 np.random.seed(4)
 
 which_run = 'new'
-repeat_fit = True
+repeat_fit = False
 #nwarm, nsamp = 5000, 10000
 nwarm, nsamp = 700, 5000
 nrepeat = 150
@@ -70,6 +70,8 @@ param_prior = {'A':[None, None], 'B':[None, None], 'sig':[None, None]}
 for ipar, par in enumerate(all_param):
 
     if rank == 0:
+        if not os.path.isdir('figs'):
+            os.mkdir('figs')
         print(f'\nParameter set {ipar+1} of {len(all_param)}', flush=True)
         if not os.path.isdir(f'figs/par_{ipar}//'):
             os.mkdir(f'figs/par_{ipar}/')
@@ -206,9 +208,6 @@ for ipar, par in enumerate(all_param):
 
     if rank == 0:
 
-        if not os.path.isdir('figs'):
-            os.mkdir('figs')
-        
         cm = plt.get_cmap('Set1')
         fig, axs = plt.subplots(1, max_ngauss+1, figsize=(15,4), sharex=True)
         all_bias = np.empty((max_ngauss,3,nrepeat))

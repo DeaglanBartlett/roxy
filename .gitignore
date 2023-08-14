@@ -163,3 +163,4 @@ cython_debug/
 examples/bias_res_*
 *.bashrc
 examples/figs/
+backup_res/

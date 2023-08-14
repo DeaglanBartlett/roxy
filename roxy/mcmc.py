@@ -411,7 +411,7 @@ def compute_bias(samples, truths, verbose=True):
                 return - np.sum(nll)
             initial = [np.mean(samples[k]), np.std(samples[k])]
             bounds = [(None, None), (0, None)]  # sigma must be >= 0
-            res = scipy.optimize.minimize(negloglike, initial, bounds=bounds)
+            res = scipy.optimize.minimize(negloglike, initial, bounds=bounds, method='nelder-mead')
             mu, sig = res.x
             if verbose:
                 print('Truncated normal fit for sig:', mu, sig)
