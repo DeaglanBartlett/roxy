@@ -7,6 +7,7 @@ import roxy.plotting
 import roxy.mcmc
 import scipy.stats
 import os
+import contextlib
 
 plt.rc('text', usetex=False)
 
@@ -17,7 +18,7 @@ size = comm.Get_size()
 np.random.seed(4)
 
 which_run = 'new'
-repeat_fit = False
+repeat_fit = True
 #nwarm, nsamp = 5000, 10000
 nwarm, nsamp = 700, 5000
 nrepeat = 150
@@ -70,6 +71,12 @@ for ipar, par in enumerate(all_param):
 
     if rank == 0:
         print(f'\nParameter set {ipar+1} of {len(all_param)}', flush=True)
+        if not os.path.isdir(f'figs/par_{ipar}//'):
+            os.mkdir(f'figs/par_{ipar}/')
+        for ngauss in range(1,max_ngauss+1):
+            if not os.path.isdir(f'figs/par_{ipar}/ngauss_{ngauss}/'):
+                os.mkdir(f'figs/par_{ipar}/ngauss_{ngauss}/')
+    comm.Barrier()
 
     if repeat_fit:
         if which_run == 'old':
@@ -137,6 +144,25 @@ for ipar, par in enumerate(all_param):
                     all_bias[ngauss-1,0,i] = biases['A']
                     all_bias[ngauss-1,1,i] = biases['B']
                     all_bias[ngauss-1,2,i] = biases['sig']
+
+                    warnings.filterwarnings('ignore')
+                    if rank == 0:
+                        print('\t\tMaking diagnosis plots')
+                    with contextlib.redirect_stdout(None):
+                        roxy.plotting.triangle_plot(samples,
+                            to_plot='all',
+                            module='getdist',
+                            param_prior=param_prior,
+                            show=False,
+                            savename=f'figs/par_{ipar}/ngauss_{ngauss}/triangle_{rank}_{i}.png'
+                        )
+                        roxy.plotting.trace_plot(
+                            samples,
+                            to_plot='all',
+                            show=False,
+                            savename=f'figs/par_{ipar}/ngauss_{ngauss}/trace_{rank}_{i}.png'
+                        )
+
                 except:
                     print(f"\t\t\tFailure on rank {rank}")
                     all_bias[ngauss-1,:,i] = np.nan
