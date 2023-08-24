@@ -161,6 +161,7 @@ cython_debug/
 
 *.npz
 examples/bias_res_*
+examples/backup_res*
 *.bashrc
 examples/figs/
 backup_res/

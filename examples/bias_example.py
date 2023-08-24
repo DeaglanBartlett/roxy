@@ -18,15 +18,20 @@ size = comm.Get_size()
 np.random.seed(4)
 
 which_run = 'new'
-repeat_fit = False
+#which_run = 'fiducial'
+
+repeat_fit = True
 #nwarm, nsamp = 5000, 10000
 nwarm, nsamp = 700, 5000
 nrepeat = 150
-max_ngauss = 4
+max_ngauss = 10
+
+#nrepeat = 5
+#max_ngauss = 2
 
 # Parameters which vary
 # old: [Atrue, sig_true, Npoints, xerr_mean, exp_scale]
-# new: [sig_true, Npoints, Atrue, xerr_mean, exp_scale]
+# new or fiducial: [sig_true, Npoints, Atrue, xerr_mean, exp_scale]
 if which_run == 'old':
     all_param = [
         [15.0, 0.0, 10, 20.0, 15.0],  # Figure 5
@@ -40,7 +45,7 @@ if which_run == 'old':
         [2, 1000, 5, 20, 8],
     ]
     fig5_idx = 0
-elif which_run == 'new':
+elif which_run == 'old2':
     all_param = [
         [5.0, 4000, -30.0, 20.0, 15.0],
         [15.0, 4000, 30.0, 20.0, 15.0],
@@ -50,6 +55,20 @@ elif which_run == 'new':
         [10.0, 45, 0.0, 20.0, 15.0],
     ]
     fig5_idx = 4
+elif which_run == 'new':
+    all_param = [
+        [10.0, 894, -15.0, 20.0, 15.0],
+        [0.0, 4000, 15.0, 15.0, 15.0],
+        [0.0, 4000, 15.0, 20.0, 15.0],
+        [5.0, 4000, -15.0, 20.0, 15.0],
+        [0.0, 10, 15.0, 20.0, 15.0],
+        [10.0, 4000, 15.0, 5.0, 15.0],
+    ]
+    fig5_idx = 4
+elif which_run == 'fiducial':
+    all_param = [
+        [2.0, 1000, 5.0, 1.0, 8.0]
+    ]
 
 # Fixed parameters
 Btrue = 1.
@@ -73,17 +92,24 @@ for ipar, par in enumerate(all_param):
         if not os.path.isdir('figs'):
             os.mkdir('figs')
         print(f'\nParameter set {ipar+1} of {len(all_param)}', flush=True)
-        if not os.path.isdir(f'figs/par_{ipar}//'):
-            os.mkdir(f'figs/par_{ipar}/')
-        for ngauss in range(1,max_ngauss+1):
-            if not os.path.isdir(f'figs/par_{ipar}/ngauss_{ngauss}/'):
-                os.mkdir(f'figs/par_{ipar}/ngauss_{ngauss}/')
+        if which_run == 'new':
+            if not os.path.isdir(f'figs/par_{ipar}//'):
+                os.mkdir(f'figs/par_{ipar}/')
+            for ngauss in range(1,max_ngauss+1):
+                if not os.path.isdir(f'figs/par_{ipar}/ngauss_{ngauss}/'):
+                    os.mkdir(f'figs/par_{ipar}/ngauss_{ngauss}/')
+        else:
+            if not os.path.isdir(f'figs/par_{which_run}_{ipar}//'):
+                os.mkdir(f'figs/par_{which_run}_{ipar}/')
+            for ngauss in range(1,max_ngauss+1):
+                if not os.path.isdir(f'figs/par_{which_run}_{ipar}/ngauss_{ngauss}/'):
+                    os.mkdir(f'figs/par_{which_run}_{ipar}/ngauss_{ngauss}/')
     comm.Barrier()
 
     if repeat_fit:
         if which_run == 'old':
             Atrue, sig_true, Npoints, xerr_mean, exp_scale = par
-        elif which_run == 'new':
+        else:
             sig_true, Npoints, Atrue, xerr_mean, exp_scale = par
         theta0 = [Atrue, Btrue]
         xerr_std = xerr_mean / 5
@@ -150,19 +176,27 @@ for ipar, par in enumerate(all_param):
                     warnings.filterwarnings('ignore')
                     if rank == 0:
                         print('\t\tMaking diagnosis plots')
+                    if which_run == 'new':
+                        savename = f'figs/par_{ipar}/ngauss_{ngauss}/triangle_{rank}_{i}.png'
+                    else:
+                        savename = f'figs/par_{which_run}_{ipar}/ngauss_{ngauss}/triangle_{rank}_{i}.png'
                     with contextlib.redirect_stdout(None):
                         roxy.plotting.triangle_plot(samples,
                             to_plot='all',
                             module='getdist',
                             param_prior=param_prior,
                             show=False,
-                            savename=f'figs/par_{ipar}/ngauss_{ngauss}/triangle_{rank}_{i}.png'
+                            savename=savename
                         )
+                        if which_run == 'new':
+                            savename = f'figs/par_{ipar}/ngauss_{ngauss}/trace_{rank}_{i}.png'
+                        else:
+                            savename = f'figs/par_{which_run}_{ipar}/ngauss_{ngauss}/trace_{rank}_{i}.png'
                         roxy.plotting.trace_plot(
                             samples,
                             to_plot='all',
                             show=False,
-                            savename=f'figs/par_{ipar}/ngauss_{ngauss}/trace_{rank}_{i}.png'
+                            savename=savename
                         )
 
                 except:
@@ -199,10 +233,16 @@ for ipar, par in enumerate(all_param):
             all_bias = np.concatenate(all_bias, axis=2)
             all_ic = np.concatenate(all_ic, axis=2)
             for ngauss in range(1, max_ngauss+1):
-                np.savez(f'bias_res_{ipar}_{ngauss}.npz',
-                    bias=all_bias[ngauss-1,...],
-                    ic=all_ic[ngauss-1,...]
-                )
+                if which_run == 'new':
+                    np.savez(f'bias_res_{ipar}_{ngauss}.npz',
+                        bias=all_bias[ngauss-1,...],
+                        ic=all_ic[ngauss-1,...]
+                    )
+                else:
+                    np.savez(f'bias_res_{which_run}_{ipar}_{ngauss}.npz',
+                        bias=all_bias[ngauss-1,...],
+                        ic=all_ic[ngauss-1,...]
+                    )
         
     comm.Barrier()
 
@@ -213,12 +253,18 @@ for ipar, par in enumerate(all_param):
         all_bias = np.empty((max_ngauss,3,nrepeat))
         all_bic = np.empty((max_ngauss,2,nrepeat))
         for ngauss in range(1, max_ngauss+1):
-            bias = np.load(f'bias_res_{ipar}_{ngauss}.npz')['bias']
+            if which_run == 'new':
+                bias = np.load(f'bias_res_{ipar}_{ngauss}.npz')['bias']
+            else:
+                bias = np.load(f'bias_res_{which_run}_{ipar}_{ngauss}.npz')['bias']
             all_bias[ngauss-1,...] = bias.copy()
             m = np.isfinite(bias)
             m = np.prod(m, axis=0).astype(bool)
             bias = bias[:,m]
-            bic = np.load(f'bias_res_{ipar}_{ngauss}.npz')['ic']
+            if which_run == 'new':
+                bic = np.load(f'bias_res_{ipar}_{ngauss}.npz')['ic']
+            else:
+                bic = np.load(f'bias_res_{which_run}_{ipar}_{ngauss}.npz')['ic']
             all_bic[ngauss-1,...] = bic.copy()
             all_bic[ngauss-1,:,~m] = np.nan
             bic = bic[1,m]
@@ -271,11 +317,14 @@ for ipar, par in enumerate(all_param):
         axs[-1].set_title('Minimum BIC')
         
         fig.tight_layout()
-        fig.savefig(f'figs/bias_res_{ipar}.png')
+        if which_run == 'new':
+            fig.savefig(f'figs/bias_res_{ipar}.png')
+        else:
+            fig.savefig(f'figs/bias_res_{which_run}_{ipar}.png')
         fig.clf()
         plt.close(fig)
 
-if rank == 0:
+if rank == 0 and which_run == 'new':
 
     nwarm, nsamp = 5000, 10000
 
