@@ -165,3 +165,4 @@ examples/backup_res*
 *.bashrc
 examples/figs/
 backup_res/
+examples/bias_results/

@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 from mpi4py import MPI
@@ -6,7 +7,6 @@ from roxy.regressor import RoxyRegressor
 import roxy.plotting
 import roxy.mcmc
 import scipy.stats
-import os
 import contextlib
 
 plt.rc('text', usetex=False)
@@ -17,8 +17,8 @@ size = comm.Get_size()
 
 np.random.seed(4)
 
-which_run = 'new'
-#which_run = 'fiducial'
+#which_run = 'new'
+which_run = 'fiducial'
 
 repeat_fit = True
 #nwarm, nsamp = 5000, 10000
@@ -81,12 +81,18 @@ remainder = nrepeat - size * rank_nrepeat
 if rank < remainder:
     rank_nrepeat += 1
 
+
 def my_fun(x, theta):
     return theta[0] * x + theta[1]
 param_names = ['A', 'B']
 param_prior = {'A':[None, None], 'B':[None, None], 'sig':[None, None]}
 
 for ipar, par in enumerate(all_param):
+#for ipar in [0, 1]:
+#for ipar in [2, 3]:
+#for ipar in [4, 5]:
+
+    par = all_param[ipar]
 
     if rank == 0:
         if not os.path.isdir('figs'):
