@@ -15,8 +15,8 @@ import numpy as np
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
 
-#run_name = 'linear'
-run_name = 'quadratic'
+run_name = 'linear'
+#run_name = 'quadratic'
 
 if run_name == 'linear':
 
@@ -62,12 +62,18 @@ plt.show()
 plt.clf()
 plt.close(plt.gcf())
 
-reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr')
+for method in ['unif', 'prof', 'mnr', 'gmm']:
+    print(method)
+    if method == 'gmm':
+        for p in ['uniform', 'hierarchical']:
+            print(p)
+            reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method, gmm_prior=p)
+    else:
+        reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)
 
 #theta0 = [2, 0.5, -3]
 
-#for method in ['unif', 'prof', 'mnr']:
-for method in ['mnr']:
+for method in ['unif', 'prof', 'mnr']:
     print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig, method=method))
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method, num_chains=2)
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior,) #savename='../docs/source/triangle.png')

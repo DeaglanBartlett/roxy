@@ -1,15 +1,39 @@
 import jax
 import jax.numpy as jnp
-from scipy.optimize import minimize
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
 import warnings
 from sklearn.mixture import GaussianMixture
 from operator import attrgetter
+from jaxopt import ScipyBoundedMinimize
 
 import roxy.likelihoods
 import roxy.mcmc
+
+class OptResult(object):
+    """
+    Class to make the output of a jaxopt optimisation appear like
+    a scipy.optimize._optimize.OptimizeResult
+    
+    Args:
+        :res (ScipyMinimizeInfo): The result of a jaxopt minimisation
+    """
+    
+    def __init__(self, res):
+        self.x = res.params
+        self.success = res.state.success
+        self.status = res.state.status
+        self.message = None
+        self.fun = float(res.state.fun_val)
+        self.jac = None
+        self.hess = None
+        self.hess_inv = res.state.hess_inv
+        self.nfev = None
+        self.njev = None
+        self.nhev = None
+        self.nit = res.state.iter_num
+        self.maxcv = None
 
 class RoxyRegressor():
     """
@@ -77,7 +101,7 @@ class RoxyRegressor():
         """
         return self.secondgradfun(x, theta)
         
-    def negloglike(self, theta, xobs, yobs, errors, sig=0., mu_gauss=0., w_gauss=1., weights_gauss=1., method='mnr', covmat=False):
+    def negloglike(self, theta, xobs, yobs, errors, sig=0., mu_gauss=0., w_gauss=1., weights_gauss=1., method='mnr', covmat=False, test_prior=True):
         """
         Computes the negative log-likelihood under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -94,6 +118,7 @@ class RoxyRegressor():
             :weights_gauss (float or jnp.ndarray, default=1.): The weights of the Gaussians in a GMM prior on the true x positions (only used if method='gmm').
             :method (str, default='mnr'): The name of the likelihood method to use ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more information
             :covmat (bool, default=False): This determines whether the errors argument is [xerr, yerr] (False) or a covariance matrix (True).
+            :test_prior (bool, default=True): Whether to test sigma >= 0 and Gaussians weights >= 0
         """
         f = self.value(xobs, theta)
         if covmat:
@@ -102,8 +127,9 @@ class RoxyRegressor():
             fprime = self.gradient(xobs, theta)
             xerr, yerr = errors
         
-        if sig < 0. or (method == 'mnr' and w_gauss < 0.):
-            return np.nan
+        if test_prior:
+            if sig < 0. or (method == 'mnr' and w_gauss < 0.):
+                return np.nan
         
         if method == 'mnr':
             if covmat:
@@ -173,30 +199,15 @@ class RoxyRegressor():
         
         Returns:
             :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
-            :param_names (list): List of parameter names in order of res.x
+            :param_names (list): List of parameter names in order of res.params
         """
     
         # Get indices of params to optimise
         pidx = self.get_param_index(params_to_opt)
         
         def fopt(theta):
-        
-            # Check prior
-            for i, p in enumerate(params_to_opt):
-                if (self.param_prior[p][0] is not None) and (self.param_prior[p][1] is not None):
-                    if theta[i] < self.param_prior[p][0] or theta[i] > self.param_prior[p][1]:
-                        return np.inf
-            if method == 'mnr':
-                if theta[-2] < xobs.min() or theta[-1] > xobs.max():
-                    return np.inf
-                if theta[-1] < 0 or theta[-1] > 5 * xobs.std():
-                    return np.inf
-            if infer_intrinsic:
-                if (self.param_prior['sig'][0] is not None) and (self.param_prior['sig'][1] is not None):
-                    if theta[len(pidx)] < self.param_prior['sig'][0] or theta[len(pidx)] > self.param_prior['sig'][1]:
-                        return np.inf
-                elif theta[len(pidx)] < 0:
-                    return np.inf
+
+            bad_run = False
                 
             # Parameters of function
             t = self.param_default
@@ -226,21 +237,16 @@ class RoxyRegressor():
                     imin += 1
                 mu_gauss = theta[imin:imin+ngauss]
                 w_gauss = theta[imin+ngauss:imin+2*ngauss]
-                weights_gauss = np.zeros(ngauss)
-                weights_gauss[:ngauss-1] = theta[imin+2*ngauss:imin+3*ngauss-1]
-                weights_gauss[-1] = 1 - sum(weights_gauss)
+                weights_gauss = jnp.zeros(ngauss)
+                weights_gauss = weights_gauss.at[:ngauss-1].set(theta[imin+2*ngauss:imin+3*ngauss-1])
+                weights_gauss = weights_gauss.at[-1].set(1 - jnp.sum(weights_gauss))
                 
-                if jnp.any(weights_gauss > 1) or jnp.any(weights_gauss < 0):
-                    return np.inf
-                if jnp.any(w_gauss < 0):
-                    return np.inf
+                bad_run = jnp.any(weights_gauss > 1) | jnp.any(weights_gauss < 0)
                     
                 if gmm_prior == 'uniform':
                     pass
                 elif gmm_prior == 'hierarchical':
                     hyper_mu, hyper_w2, hyper_u2 = theta[imin+3*ngauss-1:]
-                    if (hyper_w2 < 0) or (hyper_u2 < 0):
-                        return np.inf
                     nll = (
                         0.5 * (-jnp.log(hyper_w2) + 3 * jnp.log(hyper_u2) + hyper_w2 / hyper_u2)
                         + jnp.sum(
@@ -254,7 +260,10 @@ class RoxyRegressor():
             else:
                 mu_gauss, w_gauss, weights_gauss = None, None, None
 
-            return nll + self.negloglike(t, xobs, yobs, errors, sig=sig, mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss, method=method, covmat=covmat)
+            ll = nll + self.negloglike(t, xobs, yobs, errors, sig=sig, mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss, method=method, covmat=covmat, test_prior=False)
+            ll = jnp.where(bad_run, np.inf, ll)
+            
+            return ll
         
         # Get initial guess
         if initial is None:
@@ -295,7 +304,31 @@ class RoxyRegressor():
                 else:
                     raise NotImplementedError
             
-        res = minimize(fopt, initial, method="Nelder-Mead")
+        initial = jnp.array(initial)
+        lbfgsb = ScipyBoundedMinimize(fun=fopt, method="l-bfgs-b")
+        lower_bounds = jnp.ones_like(initial) * (-jnp.inf)
+        upper_bounds = jnp.ones_like(initial) * jnp.inf
+        for i, p in enumerate(params_to_opt):
+            if (self.param_prior[p][0] is not None) and (self.param_prior[p][1] is not None):
+                lower_bounds = lower_bounds.at[i].set(self.param_prior[p][0])
+                upper_bounds = upper_bounds.at[i].set(self.param_prior[p][1])
+        if infer_intrinsic:
+            if (self.param_prior['sig'][0] is not None) and (self.param_prior['sig'][1] is not None):
+                lower_bounds = lower_bounds.at[len(pidx)].set(self.param_prior['sig'][0])
+                upper_bounds = upper_bounds.at[len(pidx)].set(self.param_prior['sig'][1])
+            else:
+                lower_bounds = lower_bounds.at[len(pidx)].set(0)
+        if method == 'gmm':
+            imin = len(params_to_opt)
+            if infer_intrinsic:
+                imin += 1
+            # Weights
+            lower_bounds = lower_bounds.at[imin+ngauss:imin+2*ngauss].set(0.)
+            upper_bounds = upper_bounds.at[imin+ngauss:imin+2*ngauss].set(1.)
+            # Hierarchical params
+            lower_bounds = lower_bounds.at[imin+3*ngauss:].set(0.)
+        res = lbfgsb.run(initial, bounds=(lower_bounds, upper_bounds))
+        res = OptResult(res)
         
         # Print results
         if verbose:
