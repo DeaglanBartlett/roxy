@@ -198,7 +198,7 @@ class RoxyRegressor():
             :verbose (bool, default=True): Whether to print progress or not
         
         Returns:
-            :res (scipy.optimize._optimize.OptimizeResult): The result of the optimisation
+            :res (OptResult): The result of the optimisation
             :param_names (list): List of parameter names in order of res.params
         """
     
