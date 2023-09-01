@@ -116,7 +116,7 @@ for method, method_label in zip(all_method, all_method_label):
     alpha = samps['alpha']
     print('alpha: %.3f +/- %.3f %.3f'%(np.median(alpha), np.percentile(alpha, 84) - np.median(alpha), np.median(alpha) - np.percentile(alpha, 16)))
     mB = np.exp(samps['c'])
-    print('1 - B: %.3f +/- %.3f %.3f'%(np.median(mB), np.percentile(mB, 84) - np.median(mB), np.median(mB) - np.percentile(mB, 16)))
+    print('1 - b: %.3f +/- %.3f %.3f'%(np.median(mB), np.percentile(mB, 84) - np.median(mB), np.median(mB) - np.percentile(mB, 16)))
     all_gradient.append(np.median(alpha))
     all_intercept.append(np.median(samps['c']))
     
@@ -137,7 +137,7 @@ for method, method_label in zip(all_method, all_method_label):
             ranges=ranges,
             label=method_label
         ))
-    all_samps[-1].addDerived(np.exp(all_samps[-1]['c']), name='mB', label='1-B')
+    all_samps[-1].addDerived(np.exp(all_samps[-1]['c']), name='mB', label='1-b')
 
 cm = plt.get_cmap('Set1')
 g = plots.get_subplot_plotter(width_inch=5)
