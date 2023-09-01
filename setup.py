@@ -24,7 +24,8 @@ setup(
 	'myst-parser',
 	'sphinx-rtd-theme',
 	'scikit-learn',
-        'mpi4py'
+        'mpi4py',
+	'jaxopt',
         ],
     classifiers=[
         'Development Status :: 1 - Planning',
