@@ -80,6 +80,7 @@ Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2309.00948
         month = sep,
           eid = {arXiv:2309.00948},
         pages = {arXiv:2309.00948},
+	  doi = {10.48550/arXiv.2309.00948},
   archivePrefix = {arXiv},
        eprint = {2309.00948},
   primaryClass = {astro-ph.CO},
