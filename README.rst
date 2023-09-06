@@ -10,8 +10,8 @@ roxy
   :target: https://roxy.readthedocs.io/en/latest/?badge=latest
   :alt: Documentation Status
 
-.. image:: https://img.shields.io/badge/astro.CO-arXiv%32307.YYYYY-B31B1B.svg
-  :target: https://arxiv.org/abs/2307.YYYYY
+.. image:: https://img.shields.io/badge/astro.CO-arXiv%32309.00948-B31B1B.svg
+  :target: https://arxiv.org/abs/2309.00948
 
 
 About
@@ -67,7 +67,7 @@ If you are unable to clone the repo with the above, try the https version instea
 Licence and Citation
 ====================
 
-Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2307.YYYYY>`_, for which the following bibtex can be used
+Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_, for which the following bibtex can be used
 
 .. code:: bibtex
 
@@ -77,13 +77,13 @@ Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2307.YYYYY
       journal = {arXiv e-prints},
      keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics},
          year = 2023,
-        month = jul,
-          eid = {arXiv:2307.YYYYY},
-        pages = {arXiv:2307.YYYYY},
+        month = sep,
+          eid = {arXiv:2309.00948},
+        pages = {arXiv:2309.00948},
   archivePrefix = {arXiv},
-       eprint = {2307.YYYYY},
+       eprint = {2309.00948},
   primaryClass = {astro-ph.CO},
-          url = {https://arxiv.org/abs/2307.YYYYY},
+          url = {https://arxiv.org/abs/2309.00948},
   }
 
 and are encourgaed to cite the ``numpyro`` papers
