@@ -48,6 +48,36 @@ the relevant citations one must use if one uses these modules.
 Installation
 ============
 
+Requirements
+^^^^^^^^^^^^
+
+Since ``roxy`` is a python package, the user will need python3 installed.
+We have tested ``roxy`` using python3.11, so suggest that the user also uses
+this python version.
+
+To reproduce the results of the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_,
+one needs to run the example given in ``roxy.examples.bias_example.py``, which requires
+``mp4i4py``. Although this will be installed when you install ``roxy``, you will need
+mpi to be installed beforehand. This can be done by running the following
+
+MacOS:
+
+.. code:: bash
+
+	brew install open-mpi 
+
+Ubuntu:
+
+.. code:: bash
+
+	sudo apt-get install openmpi-bin libopenmpi-dev
+
+
+
+
+Installing
+^^^^^^^^^^
+
 To install roxy and its dependencies in a new virtual environment, run
 
 .. code:: bash
