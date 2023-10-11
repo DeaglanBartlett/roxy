@@ -322,9 +322,11 @@ class RoxyRegressor():
             imin = len(params_to_opt)
             if infer_intrinsic:
                 imin += 1
-            # Weights
+            # Widths
             lower_bounds = lower_bounds.at[imin+ngauss:imin+2*ngauss].set(0.)
-            upper_bounds = upper_bounds.at[imin+ngauss:imin+2*ngauss].set(1.)
+            # Weights
+            lower_bounds = lower_bounds.at[imin+2*ngauss:imin+3*ngauss-1].set(0.)
+            upper_bounds = upper_bounds.at[imin+2*ngauss:imin+3*ngauss-1].set(1.)
             # Hierarchical params
             lower_bounds = lower_bounds.at[imin+3*ngauss:].set(0.)
         res = lbfgsb.run(initial, bounds=(lower_bounds, upper_bounds))
@@ -774,6 +776,7 @@ class RoxyRegressor():
         metric = np.empty(max_ngauss)
     
         for ngauss in range(1, max_ngauss+1):
+            print('\n' + '*'*20, f'\nStarting ngauss={ngauss}', '\n' + '*'*20 + '\n')
             _, metric[ngauss-1] = self.compute_information_criterion(
                                             best_metric,
                                             params_to_opt,

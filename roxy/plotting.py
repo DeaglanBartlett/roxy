@@ -147,7 +147,7 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 
     return
     
-def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':1, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}, fgivenx_kwargs={}):
+def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':10, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}, fgivenx_kwargs={}):
     """
     Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
     of the function given the inferred parameters and plot the observed points on

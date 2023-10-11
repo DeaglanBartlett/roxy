@@ -43,7 +43,7 @@ If you wish to set improper uniform priors without edges on an parameter, simply
 	
 	param_names = ['A', 'B']
 	theta0 = [2, 0.5]
-	param_prior = {'A':[0, 5], 'B':[-1, 1], 'sig':[0, 3.0]}
+	param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
 
 	reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -112,7 +112,7 @@ We print the parameter mean and median values, their standard deviations, the 5%
 .. code-block:: python
 
 	nwarm, nsamp = 700, 5000
-	samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
+	samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr')
 
 .. code-block:: console
 
@@ -127,6 +127,8 @@ We print the parameter mean and median values, their standard deviations, the 5%
 	   w_gauss      1.63      0.28      1.59      1.20      2.09   3000.74      1.00
 
 	Number of divergences: 0
+
+In this example we chose to use ``method='mnr'``, but this can be any one of 'mnr', 'gmm', 'unif' or 'prof'. See ``roxy.likelihoods`` and the MNR paper for more details of the choice of likelihood.
 
 We now plot the results. The trace plot gives the sample value as a function of MCMC step, the triangle plot gives the one- and two-dimensional posterior distributions, and the posterior predictive plot gives the predicted function values at 1, 2 and 3 sigma confidence.
 These plots make use of the `arviz <https://www.arviz.org/en/latest/>`_, `getdist <https://getdist.readthedocs.io/en/latest/>`_ and `fgivenx <https://fgivenx.readthedocs.io/en/latest/?badge=latest>`_ modules, respectively. We also have functionality to produce triangle plots with the `corner <https://corner.readthedocs.io/en/latest/>`_ module (by replacing ``module='getdist'`` with ``module='corner'`` in ``roxy.plotting.triangle_plot``).
@@ -195,6 +197,8 @@ Plotting the distribution, we see this is highly non-Gaussian
 .. code-block:: python
 
 	import matplotlib.pyplot as plt
+	import matplotlib as mpl
+	mpl.rcParams['text.usetex'] = True
 
 	fig, ax = plt.subplots(1, 1, figsize=(10,4))
 	ax.hist(xtrue, bins=30, density=True, histtype='step', color='b')
@@ -275,30 +279,27 @@ yields
 .. code-block:: console
 
 	Optimisation Results:
-	A:	2.007291078567505
-	B:	0.5517559051513672
-	sig:	0.49039560556411743
-	mu_gauss_0:	0.048832207918167114
-	mu_gauss_1:	-7.254714488983154
-	w_gauss_0:	0.3939739465713501
-	w_gauss_1:	4.932014465332031
-	weight_gauss_0:	0.023076239973306656
-	3222.376708984375
-	
+	A:	2.0032894611358643
+	B:	0.5073251724243164
+	sig:	0.491148978471756
+	mu_gauss_0:	-9.9967679977417
+	mu_gauss_1:	-0.1831844449043274
+	w_gauss_0:	1.8608429431915283
+	w_gauss_1:	3.2111401557922363
+	weight_gauss_0:	0.6975019574165344
 
 	Running MCMC
-	sample: 100%|██████████████████| 5700/5700 [00:05<00:00, 1078.21it/s, 7 steps of size 3.14e-01. acc. prob=0.94]
+	sample: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5700/5700 [00:04<00:00, 1252.86it/s, 15 steps of size 3.79e-01. acc. prob=0.91]
 
 			 mean       std    median      2.5%     97.5%     n_eff     r_hat
-		  A      2.00      0.00      2.00      1.99      2.01   3763.48      1.00
-		  B      0.51      0.04      0.51      0.43      0.59   3444.97      1.00
-	mu_gauss[0]    -10.00      0.09    -10.01    -10.17     -9.83   3822.16      1.00
-	mu_gauss[1]     -0.22      0.27     -0.21     -0.76      0.29   3426.68      1.00
-		sig      0.49      0.02      0.49      0.44      0.54   4186.86      1.00
-	 w_gauss[0]      1.86      0.06      1.86      1.74      1.99   3359.74      1.00
-	 w_gauss[1]      3.26      0.21      3.25      2.88      3.68   3499.39      1.00
-	 weights[0]      0.70      0.02      0.70      0.66      0.73   3768.39      1.00
-	 weights[1]      0.30      0.02      0.30      0.27      0.34   3768.39      1.00
+		  A      2.00      0.00      2.00      1.99      2.01   3723.59      1.00
+		  B      0.51      0.04      0.51      0.43      0.59   3695.99      1.00
+	mu_gauss[0]    -10.00      0.08    -10.00    -10.18     -9.85   3417.18      1.00
+	mu_gauss[1]     -0.22      0.27     -0.20     -0.75      0.30   3179.26      1.00
+		sig      0.49      0.02      0.49      0.45      0.54   4669.69      1.00
+	 w_gauss[0]      1.86      0.06      1.86      1.74      1.99   3220.82      1.00
+	 w_gauss[1]      3.26      0.21      3.25      2.86      3.66   3162.07      1.00
+	 weights[0]      0.70      0.02      0.70      0.66      0.73   3530.11      1.00
 
 
 and
@@ -313,16 +314,17 @@ AIC or BIC. For example, with these data, we can check to see whether we should 
 .. code-block:: python
 
 	max_ngauss = 3
-	reg.find_best_gmm(param_names, xobs, yobs, [xerr, yerr], max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
+	np.random.seed(42)
+	reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
 
 which gives (alongside some other output)
 
 .. code-block:: console
 
 	Best ngauss according to BIC: 2
-	1 555.9282
+	1 555.93359375
 	2 0.0
-	3 18.67041
+	3 23.408203125
 
 so, indeed, 2 Gaussians are preferred.
 
