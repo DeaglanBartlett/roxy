@@ -10,11 +10,14 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
         :yobs (jnp.ndarray): The observed y values
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
-        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated
+            at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx
+            evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         :mu_gauss (float): The mean of the Gaussian prior on the true x positions
-        :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x
+            positions
         
     Returns:
         :neglogP (float): The negative log-likelihood
@@ -39,7 +42,8 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     return neglogP
     
     
-def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss, all_weights):
+def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss,
+    all_weights):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
     Gaussian likelihood with a GMM prior on the true x positions.
@@ -49,12 +53,17 @@ def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_g
         :yobs (jnp.ndarray): The observed y values
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
-        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated
+            at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx
+            evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
-        :all_mu_gauss (jnp.ndarray): The means of the Gaussians in the GMM prior on the true x positions
-        :all_w_gauss (jnp.ndarray): The standard deviations of the Gaussians in the GMM prior on the true x positions
-        :all_weights (jnp.ndarray): The weights of the Gaussians in the GMM prior on the true x positions
+        :all_mu_gauss (jnp.ndarray): The means of the Gaussians in the GMM prior on
+            the true x positions
+        :all_w_gauss (jnp.ndarray): The standard deviations of the Gaussians in the GMM
+            prior on the true x positions
+        :all_weights (jnp.ndarray): The weights of the Gaussians in the GMM prior on the
+            true x positions
         
     Returns:
         :neglogP (float): The negative log-likelihood
@@ -108,8 +117,10 @@ def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig):
         :yobs (jnp.ndarray): The observed y values
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
-        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at
+            xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx
+            evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         
     Returns:
@@ -125,7 +136,8 @@ def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig):
     neglogP = (
         N / 2 * jnp.log(2 * jnp.pi)
         + jnp.sum(jnp.log(sigy))
-        + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 / (Ai ** 2 * xerr ** 2 + sigy ** 2))
+        + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
+        (Ai ** 2 * xerr ** 2 + sigy ** 2))
     )
 
     return neglogP
@@ -142,8 +154,10 @@ def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
         :yobs (jnp.ndarray): The observed y values
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
-        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at
+            xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx
+            evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         
     Returns:
@@ -158,7 +172,8 @@ def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
     neglogP = (
         N / 2 * jnp.log(2 * jnp.pi)
         + 1/2 * jnp.sum(jnp.log(Ai ** 2 * xerr ** 2 + yerr ** 2 + sig ** 2))
-        + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 / (Ai ** 2 * xerr ** 2 + yerr ** 2 + sig ** 2))
+        + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
+        (Ai ** 2 * xerr ** 2 + yerr ** 2 + sig ** 2))
     )
 
     return neglogP
@@ -173,12 +188,16 @@ def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
     Args:
         :xobs (jnp.ndarray): The observed x values
         :yobs (jnp.ndarray): The observed y values
-        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed (x, y) values
-        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed
+            (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at
+            xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is
+            G_{ij} = df_i/dx_j evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         :mu_gauss (float): The mean of the Gaussian prior on the true x positions
-        :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x
+            positions
         
     Returns:
         :neglogP (float): The negative log-likelihood
@@ -192,7 +211,8 @@ def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
     # Covariance
     M = Sigma + jnp.concatenate([
                             jnp.concatenate([W, GW.T], axis=-1),
-                            jnp.concatenate([GW, jnp.matmul(GW, G.T) + jnp.identity(ny) * sig ** 2], axis=-1)
+                            jnp.concatenate([GW, jnp.matmul(GW, G.T)
+                            + jnp.identity(ny) * sig ** 2], axis=-1)
                             ])
     _, logdet2piM = jnp.linalg.slogdet(2 * jnp.pi * M)
     Minv = jnp.linalg.inv(M)
@@ -214,9 +234,12 @@ def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig):
     Args:
         :xobs (jnp.ndarray): The observed x values
         :yobs (jnp.ndarray): The observed y values
-        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed (x, y) values
-        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed
+            (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at
+            xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is
+            G_{ij} = df_i/dx_j evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         
     Returns:
@@ -250,9 +273,12 @@ def negloglike_unif_mv(xobs, yobs, Sigma, f, G, sig):
     Args:
         :xobs (jnp.ndarray): The observed x values
         :yobs (jnp.ndarray): The observed y values
-        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed (x, y) values
-        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
-        :G (jnp.ndarray): If we are fitting the function f(x), this is G_{ij} = df_i/dx_j evaluated at xobs
+        :Sigma (jnp.ndarray): The covariance matrix giving the errors on the observed
+            (x, y) values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated
+            at xobs
+        :G (jnp.ndarray): If we are fitting the function f(x), this is
+            G_{ij} = df_i/dx_j evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
         
     Returns:

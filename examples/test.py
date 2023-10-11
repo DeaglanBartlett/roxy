@@ -1,13 +1,14 @@
 # Copyright 2023 Deaglan J. Bartlett
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in the
+# Software without restriction, including without limitation the rights to use, copy,
+# modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the
+# following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all copies or
-# substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,7 +35,10 @@ elif run_name == 'quadratic':
     
     param_names = ['A', 'B', 'C']
     theta0 = [2, 0.5, -3]
-    param_prior = {'A':[None, None], 'B':[None, None], 'C': [None, None], 'sig':[None, None]}
+    param_prior = {'A':[None, None],
+                'B':[None, None],
+                'C': [None, None],
+                'sig':[None, None]}
 
 reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -67,7 +71,8 @@ for method in ['unif', 'prof', 'mnr', 'gmm']:
     if method == 'gmm':
         for p in ['uniform', 'hierarchical']:
             print(p)
-            reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method, gmm_prior=p)
+            reg.optimise(param_names, xobs, yobs, [xerr, yerr],
+                method=method, gmm_prior=p)
     else:
         reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)
 
@@ -75,10 +80,12 @@ for method in ['unif', 'prof', 'mnr', 'gmm']:
 
 for method in ['unif', 'prof', 'mnr']:
     print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig, method=method))
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method, num_chains=2)
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior,) #savename='../docs/source/triangle.png')
-    roxy.plotting.trace_plot(samples, to_plot='all',) #savename='../docs/source/trace.png')
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr) #, savename='../docs/source/posterior_predictive.png')
+    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
+        method=method, num_chains=2)
+    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
+        param_prior=param_prior,)
+    roxy.plotting.trace_plot(samples, to_plot='all',)
+    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr)
 
 
 #y = reg.value(all_x, theta0)

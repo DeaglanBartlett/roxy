@@ -1,3 +1,15 @@
+# Copyright 2023 Deaglan J. Bartlett
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in the
+# Software without restriction, including without limitation the rights to use, copy,
+# modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the
+# following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
+
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -140,7 +152,9 @@ for ipar, par in enumerate(all_param):
             yerr = np.random.normal(yerr_mean, yerr_std, Npoints)
             yerr[yerr<0.]=0.
             xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-            yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig_true ** 2)
+            yobs = (ytrue
+                + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig_true ** 2)
+                )
             
             for ngauss in range(1, max_ngauss+1):
             
@@ -150,7 +164,9 @@ for ipar, par in enumerate(all_param):
                 if ngauss == 1:
                     kwargs = {'method':'mnr'}
                 else:
-                    kwargs = {'method':'gmm', 'gmm_prior':'hierarchical', 'ngauss':ngauss}
+                    kwargs = {'method':'gmm',
+                            'gmm_prior':'hierarchical',
+                            'ngauss':ngauss}
                 kwargs['seed'] = 1234
                 kwargs['progress_bar'] = False
                 kwargs['verbose'] = False
@@ -183,9 +199,11 @@ for ipar, par in enumerate(all_param):
                     if rank == 0:
                         print('\t\tMaking diagnosis plots')
                     if which_run == 'new':
-                        savename = f'figs/par_{ipar}/ngauss_{ngauss}/triangle_{rank}_{i}.png'
+                        savename = (f"figs/par_{ipar}/ngauss_{ngauss}/"
+                                    + f"triangle_{rank}_{i}.png")
                     else:
-                        savename = f'figs/par_{which_run}_{ipar}/ngauss_{ngauss}/triangle_{rank}_{i}.png'
+                        savename = (f"figs/par_{which_run}_{ipar}/ngauss_{ngauss}/"
+                                    + f"triangle_{rank}_{i}.png")
                     with contextlib.redirect_stdout(None):
                         roxy.plotting.triangle_plot(samples,
                             to_plot='all',
@@ -195,9 +213,11 @@ for ipar, par in enumerate(all_param):
                             savename=savename
                         )
                         if which_run == 'new':
-                            savename = f'figs/par_{ipar}/ngauss_{ngauss}/trace_{rank}_{i}.png'
+                            savename = (f"figs/par_{ipar}/ngauss_{ngauss}/"
+                                        + f"trace_{rank}_{i}.png")
                         else:
-                            savename = f'figs/par_{which_run}_{ipar}/ngauss_{ngauss}/trace_{rank}_{i}.png'
+                            savename = (f"figs/par_{which_run}_{ipar}/ngauss_{ngauss}/"
+                                        + f"trace_{rank}_{i}.png")
                         roxy.plotting.trace_plot(
                             samples,
                             to_plot='all',
@@ -205,7 +225,7 @@ for ipar, par in enumerate(all_param):
                             savename=savename
                         )
 
-                except:
+                except Exception:
                     print(f"\t\t\tFailure on rank {rank}")
                     all_bias[ngauss-1,:,i] = np.nan
 
@@ -221,7 +241,9 @@ for ipar, par in enumerate(all_param):
                         gmm_prior = 'uniform'
                     else:
                         gmm_prior = kwargs['gmm_prior']
-                    param_idx, _ = reg.mcmc2opt_index(labels, ngauss=ngauss, method=kwargs['method'], gmm_prior=gmm_prior, infer_intrinsic=True)
+                    param_idx, _ = reg.mcmc2opt_index(labels, ngauss=ngauss,
+                                        method=kwargs['method'], gmm_prior=gmm_prior,
+                                        infer_intrinsic=True)
                     initial = np.median(samples[:,param_idx], axis=0)
                     all_ic[ngauss-1,:,i] = reg.compute_information_criterion(
                         'BIC',
@@ -355,7 +377,8 @@ if rank == 0 and which_run == 'new':
     yerr = np.random.normal(yerr_mean, yerr_std, Npoints)
     yerr[yerr<0.]=0.
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig_true ** 2)
+    yobs = (ytrue
+        + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig_true ** 2))
 
     samples = reg.mcmc(
                     param_names,

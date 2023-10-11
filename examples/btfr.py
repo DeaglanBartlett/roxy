@@ -1,13 +1,14 @@
 # Copyright 2023 Deaglan J. Bartlett
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in the
+# Software without restriction, including without limitation the rights to use, copy,
+# modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the
+# following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all copies or
-# substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
 
 import numpy as np
 import roxy.plotting
@@ -21,8 +22,8 @@ arr = np.genfromtxt("BTFR.dat", dtype=None, encoding=None)
 mask = arr['f5']!=0
 print("BTFR:", len(arr), len(arr[mask]))
 arr = arr[mask]
-yobs, yerr = arr['f1'], arr['f2']                                              # log(Mbar)
-xobs, xerr = np.log10(arr['f5']), arr['f6']/(arr['f5']*np.log(10.))            # log(Vflat)
+yobs, yerr = arr['f1'], arr['f2'] # log(Mbar)
+xobs, xerr = np.log10(arr['f5']), arr['f6']/(arr['f5']*np.log(10.)) # log(Vflat)
 
 print('Average x error:', np.mean(xerr), np.median(xerr))
 print('Average y error:', np.mean(yerr), np.median(yerr))
@@ -62,10 +63,11 @@ for method, method_label in zip(all_method, all_method_label):
     names, samps = roxy.mcmc.samples_to_array(samps)
     
     labs = list(names)
-    for p, l in zip(['mu_gauss', 'w_gauss', 'sig'], [r'\mu', r'w', r'\sigma_{\rm int}']):
+    for p, label in zip(['mu_gauss', 'w_gauss', 'sig'],
+        [r'\mu', r'w', r'\sigma_{\rm int}']):
         if (p in names):
             i = np.squeeze(np.where(names==p))
-            labs[i] = l
+            labs[i] = label
                 
     all_samps.append(MCSamples(
             samples=samps,
@@ -91,7 +93,8 @@ plt.close(plt.gcf())
 xlabel = r'$\log_{10} \left( \frac{V_{\rm flat}}{{\rm km \, s^{-1}}} \right)$'
 ylabel = r'$\log_{10} \left( \frac{M_{\rm bar}}{{\rm \, M_{\odot}}} \right)$'
 
-errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':-1, 'capsize':1, 'elinewidth':0.2, 'color':'k', 'alpha':1}
+errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':-1, 'capsize':1,
+            'elinewidth':0.2, 'color':'k', 'alpha':1}
 fgivenx_kwargs={'colors':plt.cm.Greys_r}
 fig = roxy.plotting.posterior_predictive_plot(
     reg,
@@ -109,7 +112,8 @@ fig = roxy.plotting.posterior_predictive_plot(
 )
 ax = fig.gca()
 x = np.array(ax.get_xlim())
-for i, (gradient, intercept, method_label) in enumerate(zip(all_gradient, all_intercept, all_method_label)):
+for i, (gradient, intercept, method_label) in enumerate(
+                zip(all_gradient, all_intercept, all_method_label)):
     ax.plot(x, gradient * x + intercept, label=method_label, color=cm(i))
 ax.legend()
 ax.set_xlim(x)

@@ -13,3 +13,4 @@ myst-parser
 sphinx-rtd-theme
 scikit-learn
 jaxopt
+prettytable
