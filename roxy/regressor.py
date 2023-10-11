@@ -322,6 +322,8 @@ class RoxyRegressor():
             imin = len(params_to_opt)
             if infer_intrinsic:
                 imin += 1
+            # Widths
+            lower_bounds = lower_bounds.at[imin+ngauss:imin+2*ngauss].set(0.)
             # Weights
             lower_bounds = lower_bounds.at[imin+2*ngauss:imin+3*ngauss-1].set(0.)
             upper_bounds = upper_bounds.at[imin+2*ngauss:imin+3*ngauss-1].set(1.)
