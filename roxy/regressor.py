@@ -213,10 +213,6 @@ class RoxyRegressor():
             t = self.param_default
             t = t.at[pidx].set(theta[:len(pidx)])
             
-            # f(x) and f'(x) for these params
-            f = self.value(xobs, t)
-            fprime = self.gradient(xobs, t)
-            
             # Intrinsic scatter
             if infer_intrinsic:
                 sig = theta[len(pidx)]
@@ -371,9 +367,9 @@ class RoxyRegressor():
                     print(f'hyper_mu:\t{res.x[imin+3*ngauss-1]}')
                     print(f'hyper_u2:\t{res.x[imin+3*ngauss]}')
                     print(f'hyper_w2:\t{res.x[imin+3*ngauss+1]}')
-                param_names.append(f'hyper_mu')
-                param_names.append(f'hyper_w2')
-                param_names.append(f'hyper_u2')
+                param_names.append('hyper_mu')
+                param_names.append('hyper_w2')
+                param_names.append('hyper_u2')
         
         return res, param_names
 

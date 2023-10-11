@@ -9,11 +9,9 @@
 # The above copyright notice and this permission notice shall be included in all copies or
 # substantial portions of the Software.
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from roxy.regressor import RoxyRegressor
-import roxy.plotting
 
 def my_fun(x, theta):
     return theta[0] * x + theta[1]

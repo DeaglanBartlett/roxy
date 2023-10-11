@@ -12,7 +12,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from roxy.regressor import RoxyRegressor
-import roxy.plotting
 
 def my_fun(x, theta):
     return theta[0] * x + theta[1]
