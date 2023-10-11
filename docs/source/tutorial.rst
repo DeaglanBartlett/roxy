@@ -197,6 +197,8 @@ Plotting the distribution, we see this is highly non-Gaussian
 .. code-block:: python
 
 	import matplotlib.pyplot as plt
+	import matplotlib as mpl
+	mpl.rcParams['text.usetex'] = True
 
 	fig, ax = plt.subplots(1, 1, figsize=(10,4))
 	ax.hist(xtrue, bins=30, density=True, histtype='step', color='b')
@@ -315,16 +317,17 @@ AIC or BIC. For example, with these data, we can check to see whether we should 
 .. code-block:: python
 
 	max_ngauss = 3
-	reg.find_best_gmm(param_names, xobs, yobs, [xerr, yerr], max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
+	np.random.seed(42)
+	reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
 
 which gives (alongside some other output)
 
 .. code-block:: console
 
 	Best ngauss according to BIC: 2
-	1 555.9282
+	1 555.94921875
 	2 0.0
-	3 18.67041
+	3 23.408203125
 
 so, indeed, 2 Gaussians are preferred.
 
