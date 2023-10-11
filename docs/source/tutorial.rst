@@ -43,7 +43,7 @@ If you wish to set improper uniform priors without edges on an parameter, simply
 	
 	param_names = ['A', 'B']
 	theta0 = [2, 0.5]
-	param_prior = {'A':[0, 5], 'B':[-1, 1], 'sig':[0, 3.0]}
+	param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
 
 	reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -112,7 +112,7 @@ We print the parameter mean and median values, their standard deviations, the 5%
 .. code-block:: python
 
 	nwarm, nsamp = 700, 5000
-	samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
+	samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr')
 
 .. code-block:: console
 
@@ -127,6 +127,8 @@ We print the parameter mean and median values, their standard deviations, the 5%
 	   w_gauss      1.63      0.28      1.59      1.20      2.09   3000.74      1.00
 
 	Number of divergences: 0
+
+In this example we chose to use ``method='mnr'``, but this can be any one of 'mnr', 'gmm', 'unif' or 'prof'. See ``roxy.likelihoods`` and the MNR paper for more details of the choice of likelihood.
 
 We now plot the results. The trace plot gives the sample value as a function of MCMC step, the triangle plot gives the one- and two-dimensional posterior distributions, and the posterior predictive plot gives the predicted function values at 1, 2 and 3 sigma confidence.
 These plots make use of the `arviz <https://www.arviz.org/en/latest/>`_, `getdist <https://getdist.readthedocs.io/en/latest/>`_ and `fgivenx <https://fgivenx.readthedocs.io/en/latest/?badge=latest>`_ modules, respectively. We also have functionality to produce triangle plots with the `corner <https://corner.readthedocs.io/en/latest/>`_ module (by replacing ``module='getdist'`` with ``module='corner'`` in ``roxy.plotting.triangle_plot``).
