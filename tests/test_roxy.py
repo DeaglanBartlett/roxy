@@ -80,6 +80,9 @@ def test_example_gmm():
                     method='gmm', ngauss=2, gmm_prior='uniform')
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
                     param_prior=param_prior, show=False, savename=None)
+    roxy.plotting.trace_plot(samples, to_plot='all', savename=None, show=False)
+    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
+        show=False, savename=None)
 
     max_ngauss = 3
     np.random.seed(42)
@@ -87,8 +90,59 @@ def test_example_gmm():
                 best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
                 
     return
+    
+    
+def test_different_likes():
+
+    def my_fun(x, theta):
+        return theta[0] * x + theta[1]
+
+    param_names = ['A', 'B']
+    theta0 = [2, 0.5]
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+
+    nx = 20
+    xerr = 0.1
+    yerr = 0.5
+    sig = 0.5
+    nwarm, nsamp = 700, 5000
+
+    np.random.seed(0)
+        
+    xtrue = np.linspace(0, 5, nx)
+    ytrue = reg.value(xtrue, theta0)
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+    
+    Sxx = np.identity(nx) * xerr ** 2
+    Sxy = np.zeros((nx,nx))
+    Syx = np.zeros((nx,nx))
+    Syy = np.identity(nx) * yerr ** 2
+    Sigma = np.concatenate(
+                [np.concatenate([Sxx, Sxy], axis=-1),
+                np.concatenate([Syx, Syy], axis=-1)]
+            )
+    
+    for method in ['unif', 'prof', 'mnr', 'gmm']:
+        print(method)
+        if method == 'gmm':
+            for p in ['uniform', 'hierarchical']:
+                print(p)
+                reg.optimise(param_names, xobs, yobs, [xerr, yerr],
+                    method=method, gmm_prior=p)
+        else:
+            reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)
+            reg.optimise(param_names, xobs, yobs, Sigma, method=method, covmat=True)
+            reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
+            reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
+                    covmat=True)
+        
+
+    return
 
 if __name__ == "__main__":
     test_example_standard()
     test_example_gmm()
-
+    test_different_likes()
