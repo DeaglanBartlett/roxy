@@ -1,13 +1,14 @@
 # Copyright 2023 Deaglan J. Bartlett
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in the
+# Software without restriction, including without limitation the rights to use, copy,
+# modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the
+# following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all copies or
-# substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
 
 import numpy as np
 import pandas as pd
@@ -28,18 +29,31 @@ print(data.keys())
 for s in ['sigma2001p5', 'sigma2001', 'Mdyn1p5', 'Mdyn1', 'MSZ']:
     m1 = (data[s] == '-')
     m2 = (data['err_' + s] == '-')
-    assert m1.sum() == m2.sum(), "Missing entries do not match with corresponding errors"
+    assert m1.sum() == m2.sum(), "Missing entries don't match with corresponding errors"
 
 # Replicate Table 1
 ptab = PrettyTable()
-ptab.field_names = ["Data set", "PSZ-North", "Others in PSZ2", "Beyond PSZ2", "1.5 x r200", "1 x r200"]
+ptab.field_names = ["Data set",
+                    "PSZ-North",
+                    "Others in PSZ2",
+                    "Beyond PSZ2",
+                    "1.5 x r200", "1 x r200"]
 t0, t1, t2, t3, t4 = 0, 0, 0, 0, 0
 for dset in ['LP15', 'ITP13', 'SDSS']:
-    m0 = (data['Dataset'] == dset) & (data['PSZ_other'] == 0) & (data['Beyond_PSZ2'] == 0)
-    m1 = (data['Dataset'] == dset) & (data['PSZ_other'] == 1) & (data['Beyond_PSZ2'] == 0)
-    m2 = (data['Dataset'] == dset) & (data['PSZ_other'] == 0) & (data['Beyond_PSZ2'] == 1)
-    m3 = (data['Dataset'] == dset)  & (data['Beyond_PSZ2'] == 0) & ((data['Flag'] == '2') | (data['Flag'] == '1'))
-    m4 = (data['Dataset'] == dset) & (data['Flag'] == '1') & (data['Beyond_PSZ2'] == 0)
+    m0 = ((data['Dataset'] == dset)
+            & (data['PSZ_other'] == 0)
+            & (data['Beyond_PSZ2'] == 0))
+    m1 = ((data['Dataset'] == dset)
+            & (data['PSZ_other'] == 1)
+            & (data['Beyond_PSZ2'] == 0))
+    m2 = ((data['Dataset'] == dset)
+            & (data['PSZ_other'] == 0)
+            & (data['Beyond_PSZ2'] == 1))
+    m3 = ((data['Dataset'] == dset)  & (data['Beyond_PSZ2'] == 0)
+            & ((data['Flag'] == '2') | (data['Flag'] == '1')))
+    m4 = ((data['Dataset'] == dset)
+            & (data['Flag'] == '1')
+            & (data['Beyond_PSZ2'] == 0))
     print(m3.sum(), m4.sum())
     t0 += m0.sum()
     t1 += m1.sum()
@@ -114,19 +128,24 @@ for method, method_label in zip(all_method, all_method_label):
         mnr_samps = samps.copy()
     
     alpha = samps['alpha']
-    print('alpha: %.3f +/- %.3f %.3f'%(np.median(alpha), np.percentile(alpha, 84) - np.median(alpha), np.median(alpha) - np.percentile(alpha, 16)))
+    print('alpha: %.3f +/- %.3f %.3f'%(np.median(alpha),
+                                    np.percentile(alpha, 84) - np.median(alpha),
+                                    np.median(alpha) - np.percentile(alpha, 16)))
     mB = np.exp(samps['c'])
-    print('1 - b: %.3f +/- %.3f %.3f'%(np.median(mB), np.percentile(mB, 84) - np.median(mB), np.median(mB) - np.percentile(mB, 16)))
+    print('1 - b: %.3f +/- %.3f %.3f'%(np.median(mB),
+        np.percentile(mB, 84) - np.median(mB),
+        np.median(mB) - np.percentile(mB, 16)))
     all_gradient.append(np.median(alpha))
     all_intercept.append(np.median(samps['c']))
     
     names, samps = roxy.mcmc.samples_to_array(samps)
     
     labs = list(names)
-    for p, l in zip(['mu_gauss', 'w_gauss', 'sig'], [r'\mu', r'w', r'\sigma_{\rm int}']):
+    for p, label in zip(['mu_gauss', 'w_gauss', 'sig'],
+        [r'\mu', r'w', r'\sigma_{\rm int}']):
         if (p in names):
             i = np.squeeze(np.where(names==p))
-            labs[i] = l
+            labs[i] = label
     i = np.squeeze(np.where(names=='alpha'))
     labs[i] = r'$\alpha$'
                 
@@ -152,25 +171,29 @@ plt.savefig('cluster_corner.pdf')
 plt.clf()
 plt.close(plt.gcf())
 
-errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':-1, 'capsize':1, 'elinewidth':0.2, 'color':'k', 'alpha':1}
+errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':-1, 'capsize':1, 'elinewidth':0.2,
+                'color':'k', 'alpha':1}
 fgivenx_kwargs={'colors':plt.cm.Greys_r}
+xlabel=r'$\log\left(\frac{M_{500}^{\rm dyn}}{6\times 10^{14}{\rm \, M_{\odot}}}\right)$'
+ylabel=r'$\log\left(\frac{M_{500}^{\rm SZ}}{6\times 10^{14} {\rm \, M_{\odot}}}\right)$'
 fig = roxy.plotting.posterior_predictive_plot(
-        reg,
-        mnr_samps,
-        xobs,
-        yobs,
-        xerr,
-        yerr,
-        savename=None,
-        show=False,
-        xlabel=r'$\log \left( \frac{M_{500}^{\rm dyn}}{6 \times 10^{14} {\rm \, M_{\odot}}} \right)$',
-        ylabel=r'$\log \left( \frac{M_{500}^{\rm SZ}}{6 \times 10^{14} {\rm \, M_{\odot}}} \right)$',
-        errorbar_kwargs=errorbar_kwargs,
-        fgivenx_kwargs=fgivenx_kwargs,
+    reg,
+    mnr_samps,
+    xobs,
+    yobs,
+    xerr,
+    yerr,
+    savename=None,
+    show=False,
+    xlabel=xlabel,
+    ylabel=ylabel,
+    errorbar_kwargs=errorbar_kwargs,
+    fgivenx_kwargs=fgivenx_kwargs,
 )
 ax = fig.gca()
 x = np.array(ax.get_xlim())
-for i, (gradient, intercept, method_label) in enumerate(zip(all_gradient, all_intercept, all_method_label)):
+for i, (gradient, intercept, method_label) in enumerate(zip(all_gradient,
+                                                all_intercept, all_method_label)):
     ax.plot(x, gradient * x + intercept, label=method_label, color=cm(i))
 ax.legend()
 ax.set_xlim(x)

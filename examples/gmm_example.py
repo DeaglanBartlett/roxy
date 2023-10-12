@@ -1,18 +1,18 @@
 # Copyright 2023 Deaglan J. Bartlett
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in the
+# Software without restriction, including without limitation the rights to use, copy,
+# modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the
+# following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all copies or
-# substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
 
 import numpy as np
 import matplotlib.pyplot as plt
 from roxy.regressor import RoxyRegressor
-import roxy.plotting
 
 def my_fun(x, theta):
     return theta[0] * x + theta[1]
@@ -76,26 +76,17 @@ plt.savefig('../docs/source/gmm_data.png', transparent=True)
 plt.clf()
 plt.close(plt.gcf())
 
-#reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='gmm', ngauss=2, gmm_prior='hierarchical')
-
-#for gmm_prior in ['uniform']:
-#for gmm_prior in ['hierarchical', 'uniform']:
-##    for i in range(1,3):
-#    for i in [1]:
-#        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2, gmm_prior=gmm_prior, seed=i)
-#    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
-#    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, savename=None, show=True)
-#    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None)
-
 max_ngauss = 3
 gmm_prior = 'hierarchical'
-reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC', nwarm=100, nsamp=100, gmm_prior=gmm_prior)
+reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC',
+    nwarm=100, nsamp=100, gmm_prior=gmm_prior)
 
 all_method = ['prof', 'unif', 'mnr']
 all_bic = [None] * len(all_method)
 all_nll = [None] * len(all_method)
 for i, method in enumerate(all_method):
-    all_nll[i], all_bic[i] = reg.compute_information_criterion('BIC', param_names, xobs, yobs, [xerr, yerr], nwarm=100, nsamp=100, method=method)
+    all_nll[i], all_bic[i] = reg.compute_information_criterion('BIC', param_names,
+        xobs, yobs, [xerr, yerr], nwarm=100, nsamp=100, method=method)
 for method, nll, bic in zip(all_method, all_nll, all_bic):
     print(method, nll, bic)
 

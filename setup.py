@@ -3,7 +3,8 @@ from setuptools import setup
 setup(
     name='roxy',
     version='0.1.0',
-    description='A Python package to perform Regression and Optimisation with X and Y errors',
+    description='A Python package to perform Regression and Optimisation with X and Y '
+            'errors',
     url='https://github.com/DeaglanBartlett/roxy',
     author='Deaglan Bartlett and Harry Desmond',
     author_email='deaglan.bartlett@physics.ox.ac.uk',
@@ -26,6 +27,7 @@ setup(
 	'scikit-learn',
         'mpi4py',
 	'jaxopt',
+	'prettytable',
         ],
     classifiers=[
         'Development Status :: 1 - Planning',

@@ -10,17 +10,24 @@ from fgivenx import plot_contours
 rcParams['text.usetex'] = True
 rcParams.update({'font.size': 14})
 
-def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_prior=None, savename=None, show=True):
+def triangle_plot(samples, labels=None, to_plot='all', module='corner',
+    param_prior=None, savename=None, show=True):
     """
     Plot the 1D and 2D posterior distributions of the parameters in a triangle plot.
     
     Args:
-        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
-        :labels (list, default=None): List of parameter labels ot use in the plot. If None, then use the names given as keys in samples.
-        :to_plot (list, default='all'): If 'all', then use all parameters. If a list, then only use the parameters given in that list
-        :module (str, default='corner'): Which module to use to make the triangle plot ('corner' or 'getdist' currently available)
-        :param_prior (dict, default=None): If not None and using 'getdist', use this to specify the range of the varibales to prevent undesirable smoothing effects.
-        :savename (str, default=None): If not None, save the figure to the file given by this argument.
+        :samples (dict): The MCMC samples, where the keys are the parameter names and
+            values are ndarrays of the samples
+        :labels (list, default=None): List of parameter labels ot use in the plot. If
+            None, then use the names given as keys in samples.
+        :to_plot (list, default='all'): If 'all', then use all parameters. If a list,
+            then only use the parameters given in that list
+        :module (str, default='corner'): Which module to use to make the triangle plot
+            ('corner' or 'getdist' currently available)
+        :param_prior (dict, default=None): If not None and using 'getdist', use this to
+            specify the range of the varibales to prevent undesirable smoothing effects.
+        :savename (str, default=None): If not None, save the figure to the file given
+            by this argument.
         :show (bool, default=True): If True, display the figure with plt.show()
     """
     names, all_samples = roxy.mcmc.samples_to_array(samples)
@@ -32,31 +39,34 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
     
     if labels is None:
         labs = list(names)
-        for p, l in zip(['mu_gauss', 'w_gauss', 'sig'], [r'\mu_{\rm gauss}', r'w_{\rm gauss}', r'\sigma_{\rm int}']):
+        for p, label in zip(['mu_gauss', 'w_gauss', 'sig'], [r'\mu_{\rm gauss}',
+            r'w_{\rm gauss}', r'\sigma_{\rm int}']):
             if (p in names) and ((p in to_plot) or (to_plot == 'all')):
                 i = np.squeeze(np.where(names==p))
-                labs[i] = l
+                labs[i] = label
                 
         # GMM parameters
         if 'weights_0' in names:
             # Extract number of Gaussians
             ngauss = len([n for n in names if n.startswith('weights')])
             for i in range(ngauss):
-                for p, l in zip([f'mu_gauss_{i}', f'w_gauss_{i}', f'weights_{i}'], [r'\mu_{%i}'%i, r'w_{%i}'%i, r'\nu_{%i}'%i]):
+                for p, label in zip([f'mu_gauss_{i}', f'w_gauss_{i}', f'weights_{i}'],
+                    [r'\mu_{%i}'%i, r'w_{%i}'%i, r'\nu_{%i}'%i]):
                     j = np.squeeze(np.where(names==p))
-                    labs[j] = l
+                    labs[j] = label
         
         # Kelly prior parameters
         if 'hyper_mu' in names:
-            for p, l in zip(['hyper_mu', 'hyper_w2', 'hyper_u2'], [r'\mu_\star', r'w_\star^2', r'u_\star^2']):
+            for p, label in zip(['hyper_mu', 'hyper_w2', 'hyper_u2'],
+                [r'\mu_\star', r'w_\star^2', r'u_\star^2']):
                 j = np.squeeze(np.where(names==p))
-                labs[j] = l
+                labs[j] = label
         
     else:
         labs = [labels[n] for n in names]
         
     if module == 'corner':
-        labs = ['$'+l+'$' for l in labs]
+        labs = ['$'+label+'$' for label in labs]
         fig, _ = plt.subplots(len(labs), len(labs), figsize=(8,8))
         corner.corner(all_samples, labels=labs, fig=fig)
     elif module == 'getdist':
@@ -66,7 +76,8 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner', param_pr
         else:
             ranges = param_prior
         ranges['w_gauss'] = [0, None]
-        if 'sig' in ranges and ((param_prior['sig'][0] is None) or (param_prior['sig'][1] is None)):
+        if ('sig' in ranges and
+            ((param_prior['sig'][0] is None) or (param_prior['sig'][1] is None))):
             ranges['sig'] = [0, param_prior['sig'][1]]
         
         if 'weights_0' in names:
@@ -107,10 +118,14 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
     Plot the trace of the parameter values as a function of MCMC step
     
     Args:
-        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
-        :labels (list, default=None): List of parameter labels ot use in the plot. If None, then use the names given as keys in samples.
-        :to_plot (list, default='all'): If 'all', then use all parameters. If a list, then only use the parameters given in that list
-        :savename (str, default=None): If not None, save the figure to the file given by this argument.
+        :samples (dict): The MCMC samples, where the keys are the parameter names and
+            values are ndarrays of the samples
+        :labels (list, default=None): List of parameter labels ot use in the plot. If
+            None, then use the names given as keys in samples.
+        :to_plot (list, default='all'): If 'all', then use all parameters. If a list,
+            then only use the parameters given in that list
+        :savename (str, default=None): If not None, save the figure to the file given by
+            this argument.
         :show (bool, default=True): If True, display the figure with plt.show()
     """
 
@@ -147,7 +162,10 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 
     return
     
-def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':10, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1}, fgivenx_kwargs={}):
+def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None,
+    show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1,
+    'zorder':10, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1},
+    fgivenx_kwargs={}):
     """
     Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
     of the function given the inferred parameters and plot the observed points on
@@ -155,12 +173,14 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
     
     Args:
         :reg (roxy.regressor.RoxyRegressor): The regressor object used for the inference
-        :samples (dict): The MCMC samples, where the keys are the parameter names and values are ndarrays of the samples
+        :samples (dict): The MCMC samples, where the keys are the parameter names and
+            values are ndarrays of the samples
         :xobs (jnp.ndarray): The observed x values
         :yobs (jnp.ndarray): The observed y values
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
-        :savename (str, default=None): If not None, save the figure to the file given by this argument.
+        :savename (str, default=None): If not None, save the figure to the file given
+            by this argument.
         :show (bool, default=True): If True, display the figure with plt.show()
         :xlabel (str, default='$x$'): The label to use for the x axis
         :ylabel (str, default='$x$'): The label to use for the y axis
@@ -168,7 +188,8 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
         :fgivenx_kwargs (dict): Dictionary of kwargs to pass to fgivenx.plot_contours
     
     Returns:
-        :fig (matplotlib.figure.Figure): The figure containing the posterior predictive plot
+        :fig (matplotlib.figure.Figure): The figure containing the posterior predictive
+            plot
     """
 
     names, all_samples = roxy.mcmc.samples_to_array(samples)
