@@ -24,8 +24,8 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """
     N = len(xobs)
     Ai = fprime
-    if len(Ai) == 1:
-        Ai = jnp.full(N, Ai[0])
+    if (not hasattr(Ai, "__len__")) or len(Ai) == 1:
+        Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
     Bi = f - Ai * xobs
     
     s2 = yerr ** 2 + sig ** 2
@@ -80,8 +80,8 @@ def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_g
         weight = all_weights[i]
     
         Ai = fprime
-        if len(Ai) == 1:
-            Ai = jnp.full(N, Ai[0])
+        if (not hasattr(Ai, "__len__")) or len(Ai) == 1:
+            Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
         Bi = f - Ai * xobs
         
         s2 = yerr ** 2 + sig ** 2
@@ -165,8 +165,8 @@ def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
     """
     N = len(xobs)
     Ai = jnp.atleast_1d(fprime)
-    if len(Ai) == 1:
-        Ai = jnp.full(N, Ai[0])
+    if (not hasattr(Ai, "__len__")) or len(Ai) == 1:
+        Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
     Bi = f - Ai * xobs
 
     neglogP = (

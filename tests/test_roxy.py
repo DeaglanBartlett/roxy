@@ -4,6 +4,7 @@ import roxy.plotting
 import roxy.mcmc
 import jax.random
 import jax.numpy as jnp
+import roxy.likelihoods
 
 def test_example_standard():
 
@@ -30,8 +31,6 @@ def test_example_standard():
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
-    reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif')
-
     nwarm, nsamp = 70, 500
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
                 nwarm, nsamp, method='mnr')
@@ -44,7 +43,14 @@ def test_example_standard():
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
         param_prior=param_prior, savename=None, show=False)
     roxy.plotting.trace_plot(samples, to_plot=['A', 'B'], savename=None, show=False)
-        
+    
+    # Param prior checks
+    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
+        param_prior=None, savename=None, show=False)
+    param_prior['sig'] = [0, None]
+    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
+        param_prior=param_prior, savename=None, show=False)
+            
     # Check labels
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
         param_prior=param_prior, savename=None, show=False, labels={'A':'A', 'B':'B'})
@@ -53,10 +59,42 @@ def test_example_standard():
         roxy.plotting.triangle_plot(samples, to_plot='all', module=mod,
         param_prior=param_prior, savename=None, show=False)
         
+    try:
+        roxy.plotting.triangle_plot(samples, to_plot='all', module='badmodule',
+            param_prior=param_prior, savename=None, show=False)
+    except NotImplementedError:
+        pass
+        
     # Test biases
     roxy.mcmc.compute_bias(samples, truths, verbose=True)
-    samples['sig'] *= -1
-    roxy.mcmc.compute_bias(samples, truths, verbose=True)
+    
+    # A few likelihood checks
+    for Ai in [theta0[0], [theta0[0]]]:
+        roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, yerr, ytrue,
+            Ai, sig, 2.5, 1.0)
+        roxy.likelihoods.negloglike_gmm(xobs, yobs, xerr, yerr, ytrue,
+            Ai, sig, [2.5], [1.0], [1.0])
+        roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, ytrue,
+            Ai, sig)
+            
+    # Test regressor
+    reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
+                mu_gauss=2.5, w_gauss=1.0, test_prior=False)
+    try:
+        reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
+                mu_gauss=2.5, w_gauss=1.0, method='gmm', covmat=True)
+    except NotImplementedError:
+        pass
+    try:
+        reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
+                mu_gauss=2.5, w_gauss=1.0, method='unknown')
+    except NotImplementedError:
+        pass
+    reg.get_param_index(['A'])
+    reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif',
+            infer_intrinsic=True)
+    reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif',
+            infer_intrinsic=False)
         
     return
     
@@ -109,8 +147,18 @@ def test_example_gmm():
 
     max_ngauss = 3
     np.random.seed(42)
-    reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss,
+    ngauss = reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss,
                 best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
+    assert ngauss == 2, "Did not find 2 Gaussians for case which clearly needs 2"
+                
+    for criterion in ['AIC', 'BIC']:
+        reg.compute_information_criterion(criterion, param_names, xobs, yobs,
+            [xerr, yerr], ngauss=1)
+    try:
+        reg.compute_information_criterion('DIC', param_names, xobs, yobs,
+            [xerr, yerr], ngauss=1)
+    except NotImplementedError:
+        pass
                 
     return
     
@@ -155,6 +203,12 @@ def test_different_likes():
                 print(p)
                 reg.optimise(param_names, xobs, yobs, [xerr, yerr],
                     method=method, gmm_prior=p)
+            p = 'unknown'
+            try:
+                reg.optimise(param_names, xobs, yobs, [xerr, yerr],
+                    method=method, gmm_prior=p)
+            except NotImplementedError:
+                pass
         else:
             reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)
             reg.optimise(param_names, xobs, yobs, Sigma, method=method, covmat=True)
@@ -183,7 +237,6 @@ def test_mcmc_classes():
     xerr = 0.1
     yerr = 0.5
     sig = 0.5
-    nwarm, nsamp = 70, 50
     np.random.seed(0)
     xtrue = np.linspace(0, 5, nx)
     ytrue = theta0[0] * xtrue + theta0[1]
@@ -203,7 +256,7 @@ def test_mcmc_classes():
                 roxy.mcmc.Likelihood_prof(*data[:-2]),
                 roxy.mcmc.Likelihood_unif(*data[:-2]),
                 ]
-    data = [xobs, yobs, Sxx, Syy, Sxy, f, fprime, sig, mu_gauss, w_gauss]
+    data = [xobs, yobs, Sxx, Syy, Sxy, f, G, sig, mu_gauss, w_gauss]
     all_obj += [roxy.mcmc.Likelihood_MNR_MV(*data),
                 roxy.mcmc.Likelihood_prof_MV(*data[:-2]),
                 roxy.mcmc.Likelihood_unif_MV(*data[:-2]),
