@@ -2,7 +2,7 @@ import numpy as np
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
 
-def example_standard():
+def test_example_standard():
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
@@ -39,7 +39,7 @@ def example_standard():
     return
     
     
-def example_gmm():
+def test_example_gmm():
     
     np.random.seed(0)
 
@@ -89,6 +89,6 @@ def example_gmm():
     return
 
 if __name__ == "__main__":
-    example_standard()
-    example_gmm()
+    test_example_standard()
+    test_example_gmm()
 
