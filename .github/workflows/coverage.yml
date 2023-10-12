@@ -29,7 +29,7 @@ jobs:
         uses: zauguin/install-texlive@v2
         with:
           packages: >
-            l3build latex latex-bin luatex latex-bin-dev
+            l3build latex latex-bin luatex latex-bin-dev texlive-latex-extra texlive-fonts-recommended dvipng
       - name: Test with pytest
         run: |
           cd tests
