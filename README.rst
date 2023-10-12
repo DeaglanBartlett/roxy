@@ -17,6 +17,9 @@ roxy
   :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml
   :alt: Build Status
 
+.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/coverage.yml/badge.svg
+  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/coverage.yml
+  :alt: Unit tests
 
 About
 =====
