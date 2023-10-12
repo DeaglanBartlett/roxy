@@ -87,7 +87,8 @@ def example_gmm():
                 best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
                 
     return
-    
-example_standard()
-example_gmm()
+
+if __name__ == "__main__":
+    example_standard()
+    example_gmm()
 
