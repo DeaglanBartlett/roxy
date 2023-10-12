@@ -18,8 +18,8 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner',
     Args:
         :samples (dict): The MCMC samples, where the keys are the parameter names and
             values are ndarrays of the samples
-        :labels (list, default=None): List of parameter labels ot use in the plot. If
-            None, then use the names given as keys in samples.
+        :labels (dict, default=None): Dictionary of parameter labels ot use in the plot.
+            If None, then use the names given as keys in samples.
         :to_plot (list, default='all'): If 'all', then use all parameters. If a list,
             then only use the parameters given in that list
         :module (str, default='corner'): Which module to use to make the triangle plot

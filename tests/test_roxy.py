@@ -1,6 +1,9 @@
 import numpy as np
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
+import roxy.mcmc
+import jax.random
+import jax.numpy as jnp
 
 def test_example_standard():
 
@@ -17,6 +20,9 @@ def test_example_standard():
     xerr = 0.1
     yerr = 0.5
     sig = 0.5
+    
+    truths = {p:v for p,v in zip(param_names, theta0)}
+    truths['sig'] = sig
 
     np.random.seed(0)
     xtrue = np.linspace(0, 5, nx)
@@ -26,15 +32,31 @@ def test_example_standard():
 
     reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif')
 
-    nwarm, nsamp = 700, 5000
+    nwarm, nsamp = 70, 500
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
                 nwarm, nsamp, method='mnr')
 
     roxy.plotting.trace_plot(samples, to_plot='all', savename=None, show=False)
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-        param_prior=param_prior, savename=None, show=False)
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
         show=False, savename=None)
+        
+    # Just plot some variables
+    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
+        param_prior=param_prior, savename=None, show=False)
+    roxy.plotting.trace_plot(samples, to_plot=['A', 'B'], savename=None, show=False)
+        
+    # Check labels
+    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
+        param_prior=param_prior, savename=None, show=False, labels={'A':'A', 'B':'B'})
+        
+    for mod in ['getdist', 'corner']:
+        roxy.plotting.triangle_plot(samples, to_plot='all', module=mod,
+        param_prior=param_prior, savename=None, show=False)
+        
+    # Test biases
+    roxy.mcmc.compute_bias(samples, truths, verbose=True)
+    samples['sig'] *= -1
+    roxy.mcmc.compute_bias(samples, truths, verbose=True)
         
     return
     
@@ -75,14 +97,15 @@ def test_example_gmm():
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
-    nwarm, nsamp = 700, 5000
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
-                    method='gmm', ngauss=2, gmm_prior='uniform')
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-                    param_prior=param_prior, show=False, savename=None)
-    roxy.plotting.trace_plot(samples, to_plot='all', savename=None, show=False)
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-        show=False, savename=None)
+    nwarm, nsamp = 70, 500
+    for gmm_prior in ['uniform', 'hierarchical']:
+        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
+                        method='gmm', ngauss=2, gmm_prior=gmm_prior)
+        roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
+                        param_prior=param_prior, show=False, savename=None)
+        roxy.plotting.trace_plot(samples, to_plot='all', savename=None, show=False)
+        roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
+            show=False, savename=None)
 
     max_ngauss = 3
     np.random.seed(42)
@@ -107,7 +130,7 @@ def test_different_likes():
     xerr = 0.1
     yerr = 0.5
     sig = 0.5
-    nwarm, nsamp = 700, 5000
+    nwarm, nsamp = 70, 500
 
     np.random.seed(0)
         
@@ -138,7 +161,61 @@ def test_different_likes():
             reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
             reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
                     covmat=True)
-        
+
+    return
+    
+    
+def test_mcmc_classes():
+
+    obj = roxy.mcmc.OrderedNormal()
+    rng_key = jax.random.PRNGKey(np.random.randint(1))
+    obj.sample(rng_key, sample_shape=(5,))
+    obj.log_prob(1)
+    obj.cdf(1)
+    obj.log_cdf(1)
+    obj.icdf(0.5)
+    obj.mean
+    obj.variance
+    
+    # Make data for likelihood tests
+    theta0 = [2, 0.5]
+    nx = 20
+    xerr = 0.1
+    yerr = 0.5
+    sig = 0.5
+    nwarm, nsamp = 70, 50
+    np.random.seed(0)
+    xtrue = np.linspace(0, 5, nx)
+    ytrue = theta0[0] * xtrue + theta0[1]
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+    f = ytrue
+    fprime = jnp.ones(f.shape) * theta0[0]
+    mu_gauss = 2.5
+    w_gauss = 1.0
+    Sxx = np.identity(nx) * xerr ** 2
+    Sxy = np.zeros((nx,nx))
+    Syy = np.identity(nx) * yerr ** 2
+    G = np.identity(nx) * theta0[0]
+    
+    data = [xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss]
+    all_obj = [roxy.mcmc.Likelihood_MNR(*data),
+                roxy.mcmc.Likelihood_prof(*data[:-2]),
+                roxy.mcmc.Likelihood_unif(*data[:-2]),
+                ]
+    data = [xobs, yobs, Sxx, Syy, Sxy, f, fprime, sig, mu_gauss, w_gauss]
+    all_obj += [roxy.mcmc.Likelihood_MNR_MV(*data),
+                roxy.mcmc.Likelihood_prof_MV(*data[:-2]),
+                roxy.mcmc.Likelihood_unif_MV(*data[:-2]),
+                ]
+    data = [xobs, yobs, xerr, yerr, f, fprime, sig,
+            [-10, 0.0], [1.0, 3.0], [0.7, 0.3]]
+    all_obj += [roxy.mcmc.Likelihood_GMM(*data)]
+    for obj in all_obj:
+        try:
+            obj.sample(rng_key, sample_shape=(5,))
+        except NotImplementedError:
+            pass
 
     return
 
@@ -146,3 +223,4 @@ if __name__ == "__main__":
     test_example_standard()
     test_example_gmm()
     test_different_likes()
+    test_mcmc_classes()
