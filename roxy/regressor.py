@@ -298,9 +298,6 @@ class RoxyRegressor():
                             + hyper_w2 / (2 * w_gauss ** 2)
                         )
                     )
-                    
-                else:
-                    raise NotImplementedError
             else:
                 mu_gauss, w_gauss, weights_gauss = None, None, None
 

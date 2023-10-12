@@ -166,3 +166,4 @@ examples/backup_res*
 examples/figs/
 backup_res/
 examples/bias_results/
+tests/*.png

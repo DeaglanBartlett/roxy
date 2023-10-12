@@ -35,9 +35,13 @@ def test_example_standard():
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
                 nwarm, nsamp, method='mnr')
 
-    roxy.plotting.trace_plot(samples, to_plot='all', savename=None, show=False)
+    # Default plotting
+    roxy.plotting.trace_plot(samples, to_plot='all', savename='tests/trace.png',
+        show=False)
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-        show=False, savename=None)
+        show=False, savename='tests/predictive.png')
+    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
+        param_prior=param_prior, savename='tests/corner.png', show=False)
         
     # Just plot some variables
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
@@ -47,16 +51,19 @@ def test_example_standard():
     # Param prior checks
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
         param_prior=None, savename=None, show=False)
+    param_prior['A'] = [None, None]
     param_prior['sig'] = [0, None]
+    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
+                nwarm, nsamp, method='mnr')
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
         param_prior=param_prior, savename=None, show=False)
             
     # Check labels
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
         param_prior=param_prior, savename=None, show=False, labels={'A':'A', 'B':'B'})
-        
-    for mod in ['getdist', 'corner']:
-        roxy.plotting.triangle_plot(samples, to_plot='all', module=mod,
+      
+    # Check corner also works
+    roxy.plotting.triangle_plot(samples, to_plot='all', module='corner',
         param_prior=param_prior, savename=None, show=False)
         
     try:
@@ -144,6 +151,12 @@ def test_example_gmm():
         roxy.plotting.trace_plot(samples, to_plot='all', savename=None, show=False)
         roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
             show=False, savename=None)
+            
+    try:
+        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
+                        method='gmm', ngauss=2, gmm_prior='unknown')
+    except NotImplementedError:
+        pass
 
     max_ngauss = 3
     np.random.seed(42)
