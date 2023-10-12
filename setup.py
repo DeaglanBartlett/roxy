@@ -25,10 +25,10 @@ setup(
 	'myst-parser',
 	'sphinx-rtd-theme',
 	'scikit-learn',
-        'mpi4py',
 	'jaxopt',
 	'prettytable',
         ],
+    extras_require = {'all':['mpi4py']},
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Science/Research',

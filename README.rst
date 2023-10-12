@@ -59,9 +59,10 @@ Since ``roxy`` is a python package, the user will need python3 installed.
 We have tested ``roxy`` using python3.11, so suggest that the user also uses
 this python version.
 
-To reproduce the results of the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_,
+If one wants to reproduce the results of the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_,
 one needs to run the example given in ``roxy.examples.bias_example.py``, which requires
-``mp4i4py``. Although this will be installed when you install ``roxy``, you will need
+``mp4i4py``. 
+This is not installed by default (see below), but if you do want to install it, you will need
 mpi to be installed beforehand. This can be done by running the following
 
 MacOS:
@@ -96,6 +97,14 @@ If you are unable to clone the repo with the above, try the https version instea
 .. code:: bash
 
         git clone https://github.com/DeaglanBartlett/roxy.git
+
+To run the script ``roxy.examples.bias_example.py``, you will need to install ``mpi4py``
+which can be done alongside installing ``roxy`` by, instead of using the ``pip install``
+instruction above,  running
+
+.. code:: bash
+
+	pip install -e "roxy[all]"
 
 
 Licence and Citation
