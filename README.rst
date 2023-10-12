@@ -21,6 +21,10 @@ roxy
   :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/coverage.yml
   :alt: Unit tests
 
+.. image:: https://img.shields.io/codecov/c/github/DeaglanBartlett/roxy
+  :target: https://app.codecov.io/gh/DeaglanBartlett/roxy
+  :alt: Coverage
+
 About
 =====
 
