@@ -13,6 +13,10 @@ roxy
 .. image:: https://img.shields.io/badge/astro.CO-arXiv%32309.00948-B31B1B.svg
   :target: https://arxiv.org/abs/2309.00948
 
+.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml/badge.svg
+  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml
+  :alt: Build Status
+
 
 About
 =====
