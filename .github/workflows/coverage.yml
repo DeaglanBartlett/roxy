@@ -25,7 +25,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           pip install -e .
-
+      - name: Install TeX Live
+        uses: zauguin/install-texlive@v2
+        with:
+          packages: >
+            l3build latex latex-bin luatex latex-bin-dev
       - name: Test with pytest
         run: |
           cd tests
