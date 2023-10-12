@@ -1,8 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
-
 
 def example_standard():
 
@@ -26,7 +24,7 @@ def example_standard():
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
-    res = reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif')
+    reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif')
 
     nwarm, nsamp = 700, 5000
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
