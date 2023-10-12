@@ -29,9 +29,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install texlive texlive-publishers texlive-science latexmk cm-super
       - name: Test with pytest
         run: |
-          cd tests
           pip install pytest pytest-cov
-          pytest tests.py --doctest-modules --junitxml=junit/test-results.xml --cov=roxy --cov-report=xml --cov-report=html
+	  pytest --cov-report=xml --cov=roxy tests/
           cat coverage.xml
         shell: bash
 

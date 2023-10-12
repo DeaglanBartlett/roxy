@@ -61,7 +61,7 @@ this python version.
 
 If one wants to reproduce the results of the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_,
 one needs to run the example given in ``roxy.examples.bias_example.py``, which requires
-``mp4i4py``. 
+``mpi4py``. 
 This is not installed by default (see below), but if you do want to install it, you will need
 mpi to be installed beforehand. This can be done by running the following
 
