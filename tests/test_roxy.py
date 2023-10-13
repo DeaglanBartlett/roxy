@@ -5,8 +5,11 @@ import roxy.mcmc
 import jax.random
 import jax.numpy as jnp
 import roxy.likelihoods
+import matplotlib.pyplot as plt
 
-def test_example_standard():
+def test_example_standard(monkeypatch):
+
+    monkeypatch.setattr(plt, 'show', lambda: None)
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
@@ -37,11 +40,11 @@ def test_example_standard():
 
     # Default plotting
     roxy.plotting.trace_plot(samples, to_plot='all', savename='tests/trace.png',
-        show=False)
+        show=True)
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-        show=False, savename='tests/predictive.png')
+        show=True, savename='tests/predictive.png')
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-        param_prior=param_prior, savename='tests/corner.png', show=False)
+        param_prior=param_prior, savename='tests/corner.png', show=True)
         
     # Just plot some variables
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
@@ -356,10 +359,4 @@ def test_mcmc_classes():
             pass
 
     return
-
-if __name__ == "__main__":
-    test_example_standard()
-    test_example_gmm()
-    test_example_exp()
-    test_different_likes()
-    test_mcmc_classes()
+    
