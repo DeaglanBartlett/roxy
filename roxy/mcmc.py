@@ -460,8 +460,6 @@ def compute_bias(samples, truths, verbose=True):
             # Fit these samples to a truncated Gaussian
             def negloglike(pars):
                 mu, sig = pars
-                if sig <= 0:
-                    return np.inf
                 nll = (
                     np.log(2) - 0.5 * np.log(2 * np.pi * sig ** 2)
                     - np.log(1 + scipy.special.erf(mu / np.sqrt(2) / sig))

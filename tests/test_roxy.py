@@ -57,6 +57,12 @@ def test_example_standard():
                 nwarm, nsamp, method='mnr')
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
         param_prior=param_prior, savename=None, show=False)
+        
+    # Check warnings when prior too narrow
+    param_prior['A'] = [0.0, 1.0]
+    param_prior['sig'] = [0.0, 3.0]
+    reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr')
+    param_prior['A'] = [0.0, 5.0]
             
     # Check labels
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
@@ -75,6 +81,10 @@ def test_example_standard():
     # Test biases
     roxy.mcmc.compute_bias(samples, truths, verbose=True)
     
+    # Check MCMC without intrinsic scatter
+    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
+                nwarm, nsamp, method='mnr', infer_intrinsic=False)
+    
     # A few likelihood checks
     for Ai in [theta0[0], [theta0[0]]]:
         roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, yerr, ytrue,
@@ -84,7 +94,7 @@ def test_example_standard():
         roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, ytrue,
             Ai, sig)
             
-    # Test regressor
+    # Test regressor negloglike
     reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
                 mu_gauss=2.5, w_gauss=1.0, test_prior=False)
     try:
@@ -97,6 +107,10 @@ def test_example_standard():
                 mu_gauss=2.5, w_gauss=1.0, method='unknown')
     except NotImplementedError:
         pass
+    assert np.isnan(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=-1)), \
+            "Negative sigma should give nan loglike"
+        
+    # Test regressor optimise
     reg.get_param_index(['A'])
     reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif',
             infer_intrinsic=True)
@@ -151,7 +165,8 @@ def test_example_gmm():
         roxy.plotting.trace_plot(samples, to_plot='all', savename=None, show=False)
         roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
             show=False, savename=None)
-            
+     
+    # Check unknown priors raise exceptions
     try:
         reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
                         method='gmm', ngauss=2, gmm_prior='unknown')
@@ -163,7 +178,8 @@ def test_example_gmm():
     ngauss = reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss,
                 best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
     assert ngauss == 2, "Did not find 2 Gaussians for case which clearly needs 2"
-                
+         
+    # Check different criteria work as expected
     for criterion in ['AIC', 'BIC']:
         reg.compute_information_criterion(criterion, param_names, xobs, yobs,
             [xerr, yerr], ngauss=1)
@@ -172,6 +188,56 @@ def test_example_gmm():
             [xerr, yerr], ngauss=1)
     except NotImplementedError:
         pass
+        
+    # Check information criterion for hierarchical prior
+    reg.compute_information_criterion('BIC', param_names, xobs, yobs,
+            [xerr, yerr], ngauss=1, method='gmm', gmm_prior='hierarchical')
+            
+    # Check GMM with covmat raises exception
+    Sxx = np.identity(nx) * xerr ** 2
+    Sxy = np.zeros((nx,nx))
+    Syx = np.zeros((nx,nx))
+    Syy = np.identity(nx) * yerr ** 2
+    Sigma = np.concatenate(
+                [np.concatenate([Sxx, Sxy], axis=-1),
+                np.concatenate([Syx, Syy], axis=-1)]
+            )
+    try:
+        reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp,
+                        method='gmm', ngauss=2, covmat=True)
+    except NotImplementedError:
+        pass
+                
+    return
+    
+    
+def test_example_exp():
+
+    def my_fun(x, theta):
+        return jnp.exp(theta[0] * x)
+    
+    # Choose parameters so second derivative large to raise warning
+    param_names = ['A']
+    theta0 = [1.5]
+    param_prior = {'A':[1.0, 3.0], 'sig':[0, 1]}
+                
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+
+    nx = 100
+    xerr = 1.5
+    yerr = 0.5
+    sig = 0.5
+    nwarm, nsamp = 70, 500
+
+    np.random.seed(0)
+        
+    xtrue = np.linspace(0, 1, nx)
+    ytrue = reg.value(xtrue, theta0)
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+
+    nwarm, nsamp = 70, 500
+    reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr')
                 
     return
     
@@ -228,6 +294,12 @@ def test_different_likes():
             reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
             reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
                     covmat=True)
+    
+    # Test unknown method raises exception in MCMC
+    try:
+        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='unknown')
+    except NotImplementedError:
+        pass
 
     return
     
@@ -288,5 +360,6 @@ def test_mcmc_classes():
 if __name__ == "__main__":
     test_example_standard()
     test_example_gmm()
+    test_example_exp()
     test_different_likes()
     test_mcmc_classes()
