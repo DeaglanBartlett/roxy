@@ -99,6 +99,25 @@ To install roxy and its dependencies in a new virtual environment, run
         git clone git@github.com:DeaglanBartlett/roxy.git
         pip install -e roxy
 
+These dependencies are:
+
+- numpy
+- jax
+- jaxlib
+- scipy
+- numpyro
+- matplotlib
+- corner
+- getdist
+- arviz
+- fgivenx
+- sphinx>=5.0
+- myst-parser
+- sphinx-rtd-theme
+- scikit-learn
+- jaxopt
+- prettytable
+
 If you are unable to clone the repo with the above, try the https version instead
 
 .. code:: bash
