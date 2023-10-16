@@ -10,6 +10,7 @@ mpl.rcParams['text.usetex'] = True
 def test_example1(monkeypatch):
 
     monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'tight_layout', lambda: None)
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
@@ -47,7 +48,7 @@ def test_example1(monkeypatch):
             nwarm, nsamp, method='mnr')
 
     roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
+    roxy.plotting.triangle_plot(samples, to_plot='all', module='corner',
                 param_prior=param_prior, savename=None)
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs,
                 xerr, yerr, savename=None)
@@ -58,6 +59,7 @@ def test_example1(monkeypatch):
 def test_example2(monkeypatch):
 
     monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'tight_layout', lambda: None)
 
     np.random.seed(0)
 
@@ -117,7 +119,7 @@ def test_example2(monkeypatch):
     nwarm, nsamp = 700, 5000
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
             method='gmm', ngauss=2, gmm_prior='uniform')
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
+    roxy.plotting.triangle_plot(samples, to_plot='all', module='corner',
             param_prior=param_prior, show=False, savename='gmm_corner.png')
 
     max_ngauss = 3
