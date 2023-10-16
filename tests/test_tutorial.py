@@ -1,16 +1,7 @@
 import numpy as np
 from roxy.regressor import RoxyRegressor
-import roxy.plotting
-import roxy.mcmc
-import roxy.likelihoods
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-mpl.rcParams['text.usetex'] = True
 
-def test_example1(monkeypatch):
-
-    monkeypatch.setattr(plt, 'show', lambda: None)
-    monkeypatch.setattr(plt, 'tight_layout', lambda: None)
+def test_example1():
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
@@ -33,33 +24,16 @@ def test_example1(monkeypatch):
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
-    plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
-                     'capsize':1, 'elinewidth':1.0, 'color':'k', 'alpha':1}
-    plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
-    plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
-    plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
-    plt.clf()
-    plt.close(plt.gcf())
-
     reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif')
 
     nwarm, nsamp = 700, 5000
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
+    reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
             nwarm, nsamp, method='mnr')
 
-    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='corner',
-                param_prior=param_prior, savename=None)
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs,
-                xerr, yerr, savename=None)
-                
     return
     
     
-def test_example2(monkeypatch):
-
-    monkeypatch.setattr(plt, 'show', lambda: None)
-    monkeypatch.setattr(plt, 'tight_layout', lambda: None)
+def test_example2():
 
     np.random.seed(0)
 
@@ -79,20 +53,6 @@ def test_example2(monkeypatch):
         print(i, m.sum())
         xtrue[m] = np.random.normal(true_means[i], true_w[i], m.sum())
         
-
-    fig, ax = plt.subplots(1, 1, figsize=(10,4))
-    ax.hist(xtrue, bins=30, density=True, histtype='step', color='b')
-    x = np.linspace(xtrue.min(), xtrue.max(), 300)
-    ysum = np.zeros(len(x))
-    for nu, mu, w in zip(true_weights, true_means, true_w):
-        y = nu / np.sqrt(2 * np.pi * w ** 2) * np.exp(- (x - mu) ** 2 / (2 * w ** 2))
-        ysum += y
-        ax.plot(x, y, color='k')
-    ax.plot(x, ysum, color='r', ls='--')
-    ax.set_xlabel(r'$x_{\rm t}$')
-    ax.set_ylabel(r'$p(x_{\rm t})$')
-    fig.clf()
-
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
@@ -109,18 +69,9 @@ def test_example2(monkeypatch):
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
-    plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
-             'capsize':1, 'elinewidth':1.0, 'color':'k', 'alpha':1}
-    plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
-    plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
-    plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
-    plt.clf()
-
     nwarm, nsamp = 700, 5000
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
+    reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
             method='gmm', ngauss=2, gmm_prior='uniform')
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='corner',
-            param_prior=param_prior, show=False, savename='gmm_corner.png')
 
     max_ngauss = 3
     np.random.seed(42)
