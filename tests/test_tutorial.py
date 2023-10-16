@@ -37,7 +37,6 @@ def test_example1(monkeypatch):
     plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
     plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
     plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
-    plt.tight_layout()
     plt.clf()
     plt.close(plt.gcf())
 
@@ -90,7 +89,6 @@ def test_example2(monkeypatch):
     ax.plot(x, ysum, color='r', ls='--')
     ax.set_xlabel(r'$x_{\rm t}$')
     ax.set_ylabel(r'$p(x_{\rm t})$')
-    fig.tight_layout()
     fig.savefig('gmm_distribution.png', transparent=False)
     fig.clf()
 
@@ -115,7 +113,6 @@ def test_example2(monkeypatch):
     plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
     plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
     plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
-    plt.tight_layout()
     plt.savefig('gmm_data.png', transparent=False)
     plt.clf()
 
