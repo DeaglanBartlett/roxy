@@ -32,7 +32,7 @@ jobs:
         run: brew install --cask mactex-no-gui
       - name: Test with pytest
         run: |
-          pytest --cov-report=xml tests/test_tutorial.py
+          pytest tests/test_tutorial.py
           cat coverage.xml
         shell: bash
       - name: Lint with Ruff
