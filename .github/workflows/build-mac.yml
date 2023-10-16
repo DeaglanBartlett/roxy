@@ -26,9 +26,6 @@ jobs:
       - name: Setup TeX Live
         run: |
           brew install --cask basictex
-          brew install texlive-publishers
-          brew install texlive-science
-          brew install latexmk
           brew install cm-super
           brew install dvipng
       - name: Install dependencies
