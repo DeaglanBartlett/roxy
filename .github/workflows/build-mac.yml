@@ -30,6 +30,7 @@ jobs:
             scheme-basic
             dvipng
             cm-super
+            latexmk
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
