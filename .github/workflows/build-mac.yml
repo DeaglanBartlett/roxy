@@ -35,6 +35,8 @@ jobs:
             scheme-basic
             cm-super
             dvipng
+            texlive-latex-extra 
+            texlive-fonts-recommended
       - name: Test with pytest
         run: |
           pytest tests/test_tutorial.py
