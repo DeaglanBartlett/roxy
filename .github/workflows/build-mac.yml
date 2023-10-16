@@ -28,8 +28,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           pip install -e .
-      - name: Install TeXlive
-        run: brew install --cask mactex-no-gui
+      - name: Setup TeX Live
+        uses: teatimeguest/setup-texlive-action@v2
+        with:
+          packages: scheme-basic
       - name: Test with pytest
         run: |
           pytest tests/test_tutorial.py
