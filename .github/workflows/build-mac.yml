@@ -25,7 +25,7 @@ jobs:
           python-version: "3.11"
       - name: Setup TeX Live
         run: |
-          brew install --cask basictex
+          brew install --cask mactex-no-gui
           sudo tlmgr update --self --all
           sudo tlmgr install texlive-publishers texlive-science latexmk cm-super dvipng
       - name: Install dependencies
