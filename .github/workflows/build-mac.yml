@@ -28,12 +28,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           pip install -e .
+          sudo tlmgr install cm-super
       - name: Setup TeX Live
         uses: teatimeguest/setup-texlive-action@v2
         with:
           packages: >-
             scheme-basic
-            cm-super
             dvipng
       - name: Test with pytest
         run: |
