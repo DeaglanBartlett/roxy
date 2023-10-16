@@ -46,11 +46,11 @@ def test_example1(monkeypatch):
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
             nwarm, nsamp, method='mnr')
 
-    roxy.plotting.trace_plot(samples, to_plot='all', savename='trace.png')
+    roxy.plotting.trace_plot(samples, to_plot='all', savename=None)
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-                param_prior=param_prior, savename='triangle.png')
+                param_prior=param_prior, savename=None)
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs,
-                xerr, yerr, savename='posterior_predictive.png')
+                xerr, yerr, savename=None)
                 
     return
     
@@ -89,7 +89,6 @@ def test_example2(monkeypatch):
     ax.plot(x, ysum, color='r', ls='--')
     ax.set_xlabel(r'$x_{\rm t}$')
     ax.set_ylabel(r'$p(x_{\rm t})$')
-    fig.savefig('gmm_distribution.png', transparent=False)
     fig.clf()
 
     def my_fun(x, theta):
@@ -113,7 +112,6 @@ def test_example2(monkeypatch):
     plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
     plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
     plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
-    plt.savefig('gmm_data.png', transparent=False)
     plt.clf()
 
     nwarm, nsamp = 700, 5000
