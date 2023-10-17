@@ -23,8 +23,8 @@ roxy
 
 \
 
-.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml/badge.svg
-  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml
+.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/build-linux.yml/badge.svg
+  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/build-linux.yml
   :alt: Build Status
 
 .. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/build-mac.yml/badge.svg
