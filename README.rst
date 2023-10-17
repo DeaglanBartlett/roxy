@@ -13,10 +13,6 @@ roxy
 .. image:: https://img.shields.io/badge/astro.CO-arXiv%32309.00948-B31B1B.svg
   :target: https://arxiv.org/abs/2309.00948
 
-.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml/badge.svg
-  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml
-  :alt: Build Status
-
 .. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/coverage.yml/badge.svg
   :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/coverage.yml
   :alt: Unit tests
@@ -24,6 +20,20 @@ roxy
 .. image:: https://img.shields.io/codecov/c/github/DeaglanBartlett/roxy
   :target: https://app.codecov.io/gh/DeaglanBartlett/roxy
   :alt: Coverage
+
+\
+
+.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml/badge.svg
+  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/python-app.yml
+  :alt: Build Status
+
+.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/build-mac.yml/badge.svg
+  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/build-mac.yml
+  :alt: Build Status MacOS
+
+.. image:: https://github.com/DeaglanBartlett/roxy/actions/workflows/build-windows.yml/badge.svg
+  :target: https://github.com/DeaglanBartlett/roxy/actions/workflows/build-windows.yml
+  :alt: Build Status Windows
 
 About
 =====
@@ -65,6 +75,17 @@ Requirements
 Since ``roxy`` is a python package, the user will need python3 installed.
 We have tested ``roxy`` using python3.11, so suggest that the user also uses
 this python version.
+
+The plotting functions supplied with ``roxy`` require LaTeX to be installed, due to the
+requirements of ``matplotlib``. If this is not already installed, check out the 
+`matplotlib documentation <https://matplotlib.org/stable/users/explain/text/usetex.html>`_
+for more information. For Ubuntu, one simply needs to run 
+
+.. code:: bash
+
+	sudo apt-get update && sudo apt-get install texlive texlive-publishers texlive-science latexmk cm-super dvipng
+
+to obtain the required dependencies.
 
 If one wants to reproduce the results of the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_,
 one needs to run the example given in ``roxy.examples.bias_example.py``, which requires
