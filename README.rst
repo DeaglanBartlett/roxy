@@ -38,8 +38,9 @@ roxy
 About
 =====
 
-``roxy`` (Regression and Optimisation with X and Y errors) is a python package for performing
-MCMC where the data have both x and y errors. The common approach for this problem is to use a
+``roxy`` (Regression and Optimisation with X and Y errors) is a python package for 
+fitting a function to data (regression) where the data have both x and y errors, using Markov Chain Monte Carlo (MCMC).
+The common approach for this problem is to use a
 Gaussian likelihood with a mean given by :math:`f(x_{\rm obs}, \theta)` and a variance
 :math:`\sigma_y^2 + f^\prime(x_{\rm obs}, \theta)^2 \sigma_x^2`, but this ignores the underlying
 distribution of true x values and thus gives biased results. Instead, this package allows

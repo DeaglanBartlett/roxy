@@ -9,7 +9,8 @@ MCMC using the ``roxy`` module. We then plot our results.
 To start with, we call functions with the argument ``method='mnr'`` 
 as this is the simplest recommended likelihood for data with x and y errors, however this can be replaced with ``method='unif'`` 
 for an infinite uniform prior on the true x values, or ``method='prof'`` to use the profile likelihood. 
-It is important to choose mnr over the prof or unif methods when one needs to infer the intrinsic scatter in a relation.
+In the presence of x-errors, the profile method is accurate in the absence of intrinsic scatter and the 
+unif method able to recover intrinsic scatter, however MNR is the only method that is approximately unbiased in all the regression parameters.
 
 Next, we show how to extend the MNR method to a sum of Gaussians using the argument
 ``method='gmm'``.
@@ -18,7 +19,7 @@ going through this section and applying these methods to your dataset. We leave 
 tutorial, however, so that you can get used to ``roxy``'s features before worrying about the choice
 of likelihood.
 
-Please see the MNR paper for more details on these likelihoods and their advantages/disadvantages.
+Please see the `MNR paper <https://arxiv.org/abs/2309.00948>`_ for more details on these likelihoods and their advantages/disadvantages.
 
 We provide a note about the reproducibility of the tutorial results at the end of the tutorial.
 
@@ -52,7 +53,7 @@ If you wish to set improper uniform priors without edges on an parameter, simply
 Mock data generation
 --------------------
 
-Let us make some mock data for this function
+Let us make some mock data from this function
 
 .. code-block:: python
 
@@ -99,7 +100,7 @@ Note that ``res`` here is a ``scipy.optimize._optimize.OptimizeResult`` object, 
 In this example, we optimised all the parameters. If, instead, we just wished to only find the gradient,
 we could have used ``['A']`` instead of ``param_names``, and then the intercept would be fixed to the default value in
 ``theta0`` which we gave when initialising the regressor object (so in this case 0.5). We can also choose
-to not infer the intrinsic scatter by using the argument ``infer_intrinsic=False`` when calling ``reg.optimise``.
+to assume no intrinsic scatter by using the argument ``infer_intrinsic=False`` when calling ``reg.optimise``.
 
 
 Markov chain Monte Carlo
@@ -152,14 +153,17 @@ These plots make use of the `arviz <https://www.arviz.org/en/latest/>`_, `getdis
 Again, in this case we sampled all the parameters. If, instead, we just wished to just sample the gradient,
 we could have passed ``['A']`` for ``param_names``, and then the intercept would be fixed to the default value in
 ``theta0`` which we gave when initialising the regressor object (so in this case 0.5). We can also choose
-to not infer the intrinsic scatter by using the argument ``infer_intrinsic=False`` when calling ``reg.mcmc``.
+to assume no intrinsic scatter by using the argument ``infer_intrinsic=False`` when calling ``reg.mcmc``.
 
 
 Gaussian Mixture Models
 ------------------------
 
 We now consider a case where a single Gaussian is not sufficient to characterise the distribution of the true x values,
-and so we resort to a Gaussian mixture model. In this case we must fit the distribution
+and so we resort to a Gaussian mixture model. 
+In the `MNR paper <https://arxiv.org/abs/2309.00948>`_ we study the effect of using multiple Gaussians and find that
+it can sometimes reduce biases.
+In this case we must fit the distribution
 
 .. math::
 
