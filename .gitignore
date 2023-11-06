@@ -167,3 +167,5 @@ examples/figs/
 backup_res/
 examples/bias_results/
 tests/*.png
+
+*.DS_Store
