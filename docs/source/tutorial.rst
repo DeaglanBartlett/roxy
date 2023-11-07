@@ -348,6 +348,8 @@ This method has been shown to be highly reliable
 `(Mooij et al. 2014) <https://arxiv.org/abs/1412.3773>`_.
 From these coefficients it makes a recommendation as to which variable to treat as independent and which dependent 
 (which may require renaming the input arrays before performing the regression).
+We normalise the residuals by the square root of the sum of squares of the independent variable's error and the intrinsic scatter, 
+so that the results are not dominated by points with large uncertainties.
 
 For example, let us create some mock data in the case where we know that :math:`y` is the dependendent variable.
 
