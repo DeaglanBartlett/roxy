@@ -395,6 +395,18 @@ def test_causality(monkeypatch):
     roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
         param_names, theta0, param_prior, method='mnr', savename='tests/causality.png',
         show=True)
-
+        
+    # Now with covariance matrix
+    Sxx = np.identity(nx) * xerr ** 2
+    Sxy = np.zeros((nx,nx))
+    Syx = np.zeros((nx,nx))
+    Syy = np.identity(nx) * yerr ** 2
+    Sigma = np.concatenate(
+                [np.concatenate([Sxx, Sxy], axis=-1),
+                np.concatenate([Syx, Syy], axis=-1)]
+            )
+    roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, Sigma,
+        param_names, theta0, param_prior, method='mnr', savename='tests/causality.png',
+        show=True, covmat=True)
+        
     return
-    

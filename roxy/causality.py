@@ -66,10 +66,17 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     # x vs y
     print('\nFitting x vs y')
     if not covmat:
-        res_xy, names_xy = reg.optimise(param_names, yobs, xobs, [errors[1], errors[0]],
-                    method=method, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior)
+        new_errors = [errors[1], errors[0]]
     else:
-        raise NotImplementedError
+        new_errors = np.empty(errors.shape)
+        nx = len(xobs)
+        ny = len(yobs)
+        new_errors[:ny,:ny] = errors[nx:,nx:]
+        new_errors[:ny,ny:] = errors[nx:,:nx]
+        new_errors[ny:,:ny] = errors[:nx,nx:]
+        new_errors[ny:,ny:] = errors[:nx,:nx]
+    res_xy, names_xy = reg.optimise(param_names, yobs, xobs, new_errors,
+                    method=method, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior)
     theta_xy = [None] * len(param_names)
     for i, t in enumerate(param_names):
         j = names_xy.index(t)
