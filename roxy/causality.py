@@ -1,20 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.optimize
+import scipy.stats
 from scipy.stats import spearmanr,pearsonr
 from roxy.regressor import RoxyRegressor
 
 def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_default,
-    param_prior, method='mnr', ngauss=1, covmat=False, gmm_prior='hierarchical',
-    savename=None, show=True):
+    param_prior, method='mnr', criterion='hsic', ngauss=1, covmat=False,
+    gmm_prior='hierarchical', savename=None, show=True):
     """
     Due to the asymmetry between x and y, this function assesses whether one
     should fit y(x) or x(y) with the intrinsic scatter in the dependent variable.
     The code runs both forward fits, i.e. y(x) and x(y), and the reverse fits,
     where one uses the parameters obtained from the forward fit and uses the
-    inverse function. The Spearman and Pearson correlation coefficients of the
-    residuals (normalised by the square root of the sum of the squares of the vertical
-    errors and the intrindic scatter) is then found, and the method which minimsies the
-    mean of these is recommended as the best option. Plots of the fits and the residuals
+    inverse function. The correlation coefficient of the residuals
+    (normalised by the square root of the sum of the squares of the vertical
+    errors and the intrindic scatter) is then found, and the method which minimsies this
+    recommended as the best option. Plots of the fits and the residuals
     are produced, since these can be more informative for some functions. The
     recommended setup is indicated by a star in the plots.
     
@@ -40,6 +42,8 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
         :method (str, default='mnr'): The name of the likelihood method to use
             ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more
             information
+        :criterion (str, default='hsic'): The method used to determine the weakest
+            correlation of the residuals. One of 'hsic', 'spearman' or 'pearson'.
         :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior.
             Only used if method='gmm'
         :covmat (bool, default=False): This determines whether the errors argument
@@ -109,22 +113,35 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     results = np.ones(len(items)) * np.inf
     
     for i, (name, resid, data) in enumerate(items):
-        spear = spearmanr(data, resid)[0]
-        pears = pearsonr(data, resid)[0]
-        results[i] = (spear + pears) / 2
-        print(f"\n{name} Spearman:", round(spear,3))
-        print(f"{name} Pearson:", round(pears,3))
+        if criterion == 'spearman':
+            results[i] = spearmanr(data, resid)[0]
+            print(f"\n{name} Spearman:", round(results[i],3))
+        elif criterion == 'pearson':
+            results[i] = pearsonr(data, resid)[0]
+            print(f"{name} Pearson:", round(results[i],3))
+        elif criterion == 'hsic':
+            stat, results[i] = compute_hsic(np.expand_dims(data, axis=1),
+                        np.expand_dims(resid, axis=1),
+                        alph=0.05)
+            print(f"{name} HSIC: {round(stat,3)}, (conf={round(results[i],3)})")
+            results[i] = 1 - results[i]
+        else:
+            raise NotImplementedError
         
-    ibest = np.nanargmin(np.abs(results))
-    print("\nRecommended direction:", items[ibest][0])
     
+    labels = ['Forward', 'Inverse', 'Forward', 'Inverse']
+    
+    if not np.all(np.isnan(results)):
+        ibest = np.nanargmin(np.abs(results))
+        print("\nRecommended direction:", items[ibest][0])
+        labels[ibest] += '*'
+        
     # Plot
     fig, axs = plt.subplots(2, 2, figsize=(10,6))
         
     cmap = plt.get_cmap("Set1")
     
-    labels = ['Forward', 'Inverse', 'Forward', 'Inverse']
-    labels[ibest] += '*'
+    
     axs[0,0].plot(xobs, fun(xobs, theta_yx), label=labels[0], color=cmap(0))
     axs[0,0].plot(xobs, fun_inv(xobs, theta_xy), label=labels[1], color=cmap(1))
     axs[0,1].plot(yobs, fun(yobs, theta_xy), label=labels[2], color=cmap(0))
@@ -165,3 +182,104 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     plt.close(plt.gcf())
     
     return
+
+
+def compute_hsic(X, Y, alph = 0.05):
+    """
+    Python implementation of Hilbert Schmidt Independence Criterion
+    using a Gamma approximation. This code is largely taken from
+    https://github.com/amber0309/HSIC/tree/master (Shoubo (shoubo.sub AT gmail.com)
+    09/11/2016), with the new addition of the computation of the significance level.
+
+    Gretton, A., Fukumizu, K., Teo, C. H., Song, L., Scholkopf, B.,
+    & Smola, A. J. (2007). A kernel statistical test of independence.
+    In Advances in neural information processing systems (pp. 585-592).
+    
+    Args:
+        :X (np.ndarray): Numpy vector of dependent variable. The row gives the sample
+            and the column is the dimension.
+        :Y (np.ndarry): Numpy vector of independent variable. The row gives the sample
+            and the column is the dimension.
+        :alph (float): Worst significance level to consider. If the correlation is
+            stronger than this, then we don't compute the correlation coefficient.
+    
+    Returns:
+        :testStat (float): The test statistic
+        :best_alph (float): The significance of this result (if calculated)
+    """
+    
+    def rbf_dot(pattern1, pattern2, deg):
+        size1 = pattern1.shape
+        size2 = pattern2.shape
+        G = np.sum(pattern1*pattern1, 1).reshape(size1[0],1)
+        H = np.sum(pattern2*pattern2, 1).reshape(size2[0],1)
+        Q = np.tile(G, (1, size2[0]))
+        R = np.tile(H.T, (size1[0], 1))
+        H = Q + R - 2* np.dot(pattern1, pattern2.T)
+        H = np.exp(-H/2/(deg**2))
+        return H
+
+    n = X.shape[0]
+
+    # width of X
+    Xmed = X
+    G = np.sum(Xmed*Xmed, 1).reshape(n,1)
+    Q = np.tile(G, (1, n) )
+    R = np.tile(G.T, (n, 1) )
+    dists = Q + R - 2* np.dot(Xmed, Xmed.T)
+    dists = dists - np.tril(dists)
+    dists = dists.reshape(n**2, 1)
+    width_x = np.sqrt( 0.5 * np.median(dists[dists>0]) )
+
+
+    # width of Y
+    Ymed = Y
+    G = np.sum(Ymed*Ymed, 1).reshape(n,1)
+    Q = np.tile(G, (1, n) )
+    R = np.tile(G.T, (n, 1) )
+    dists = Q + R - 2* np.dot(Ymed, Ymed.T)
+    dists = dists - np.tril(dists)
+    dists = dists.reshape(n**2, 1)
+    width_y = np.sqrt( 0.5 * np.median(dists[dists>0]) )
+
+    bone = np.ones((n, 1), dtype = float)
+    H = np.identity(n) - np.ones((n,n), dtype = float) / n
+
+    K = rbf_dot(X, X, width_x)
+    L = rbf_dot(Y, Y, width_y)
+
+    Kc = np.dot(np.dot(H, K), H)
+    Lc = np.dot(np.dot(H, L), H)
+
+    testStat = np.sum(Kc.T * Lc) / n
+
+    varHSIC = (Kc * Lc / 6)**2
+
+    varHSIC = ( np.sum(varHSIC) - np.trace(varHSIC) ) / n / (n-1)
+
+    varHSIC = varHSIC * 72 * (n-4) * (n-5) / n / (n-1) / (n-2) / (n-3)
+
+    K = K - np.diag(np.diag(K))
+    L = L - np.diag(np.diag(L))
+
+    muX = np.dot(np.dot(bone.T, K), bone) / n / (n-1)
+    muY = np.dot(np.dot(bone.T, L), bone) / n / (n-1)
+
+    mHSIC = (1 + muX * muY - muX - muY) / n
+
+    al = mHSIC**2 / varHSIC
+    bet = varHSIC*n / mHSIC
+
+    thresh = scipy.stats.gamma.ppf(1-alph, al, scale=bet)[0][0]
+    
+    # Find threshold of significance for sufficiently weak correlation
+    if testStat < thresh:
+        def to_zero(a):
+            r = scipy.stats.gamma.ppf(a, al, scale=bet)[0][0] - testStat
+            return r
+        res = scipy.optimize.root_scalar(to_zero, x0=1-alph)
+        best_alph = 1 - res.root
+    else:
+        best_alph = np.nan
+
+    return testStat, best_alph

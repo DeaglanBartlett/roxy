@@ -340,7 +340,7 @@ In this case, the independent variable may be identified as the one that has lea
 
 The ``roxy`` function ``roxy.causality.assess_causality`` fits both the forward and inverse relations to the dataset, 
 produces plots of the data in both directions with both regression models overlaid and the corresponding normalised 
-residuals plotted against the independent variable, and calculates the Spearman and Pearson correlation coefficients.
+residuals plotted against the independent variable, and calculates a correlation coefficient (Spearman, Pearson or HSIC).
 From these coefficients it makes a recommendation as to which variable to treat as independent and which dependent 
 (which may require renaming the input arrays before performing the regression).
 
@@ -388,7 +388,8 @@ We now call the function ``roxy.causality.assess_causality``
 
 	import roxy.causality
 	roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr], 
-					param_names, theta0, param_prior, method='mnr')
+					param_names, theta0, param_prior, method='mnr',
+					criterion='spearman')
 
 
 which gives the output
@@ -399,32 +400,28 @@ which gives the output
 	Fitting y vs x
 
 	Optimisation Results:
-	A:	0.3797428011894226
-	B:	0.6758734583854675
-	sig:	2.847846746444702
-	mu_gauss:	14.349525451660156
-	w_gauss:	8.63336181640625
+	A:	0.38387027382850647
+	B:	0.6155025959014893
+	sig:	2.8722164630889893
+	mu_gauss:	14.387789726257324
+	w_gauss:	8.647834777832031
 
 	Fitting x vs y
 
 	Optimisation Results:
-	A:	1.9982717037200928
+	A:	1.9797508716583252
 	B:	2.0
 	sig:	3.0
-	mu_gauss:	6.156284332275391
-	w_gauss:	3.949016809463501
+	mu_gauss:	6.214934349060059
+	w_gauss:	4.035924434661865
 
-	y vs x forward Spearman: -0.023
-	y vs x forward Pearson: -0.011
+	y vs x forward Spearman: -0.029
 
-	y vs x inverse Spearman: -0.294
-	y vs x inverse Pearson: -0.297
+	y vs x inverse Spearman: -0.305
 
-	x vs y forward Spearman: -0.451
-	x vs y forward Pearson: -0.503
+	x vs y forward Spearman: -0.435
 
-	x vs y inverse Spearman: -0.686
-	x vs y inverse Pearson: -0.728
+	x vs y inverse Spearman: -0.676
 
 	Recommended direction: y vs x forward
 

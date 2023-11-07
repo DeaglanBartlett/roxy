@@ -392,9 +392,18 @@ def test_causality(monkeypatch):
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
 
-    roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
-        param_names, theta0, param_prior, method='mnr', savename='tests/causality.png',
-        show=True)
+    for criterion in ['spearman', 'pearson', 'hsic']:
+        roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
+            param_names, theta0, param_prior, method='mnr',
+            criterion=criterion, savename='tests/causality.png', show=True)
+    
+    # Check for unknown criterion we get an error
+    try:
+        roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
+            param_names, theta0, param_prior, method='mnr',
+            criterion='unknown_criterion', savename='tests/causality.png', show=True)
+    except NotImplementedError:
+        pass
         
     # Now with covariance matrix
     Sxx = np.identity(nx) * xerr ** 2
