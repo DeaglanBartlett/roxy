@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr,pearsonr
-
 from roxy.regressor import RoxyRegressor
-
 
 def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_default,
     param_prior, method='mnr', ngauss=1, covmat=False, gmm_prior='hierarchical',
