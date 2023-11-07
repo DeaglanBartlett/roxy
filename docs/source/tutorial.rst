@@ -341,6 +341,11 @@ In this case, the independent variable may be identified as the one that has lea
 The ``roxy`` function ``roxy.causality.assess_causality`` fits both the forward and inverse relations to the dataset, 
 produces plots of the data in both directions with both regression models overlaid and the corresponding normalised 
 residuals plotted against the independent variable, and calculates a correlation coefficient (Spearman, Pearson or HSIC).
+The default choice is HSIC because this was used in the original paper 
+`(Hoyer et al. 2008) <https://papers.nips.cc/paper_files/paper/2008/hash/f7664060cc52bc6f3d620bcedc94a4b6-Abstract.html>`_
+introducing the additive noise model.
+This method has been shown to be highly reliable 
+`(Mooij et al. 2014) <https://arxiv.org/abs/1412.3773>`_.
 From these coefficients it makes a recommendation as to which variable to treat as independent and which dependent 
 (which may require renaming the input arrays before performing the regression).
 
@@ -435,6 +440,8 @@ direction is the best option, and thus in the plot this option is starred (and i
 We caution however that the correlations may be non-monotonic and/or nonlinear, and therefore 
 recommend picking the regression direction that visually produces the lowest correlation in the residuals, 
 only resorting to the quantitative correlation coefficients in close cases.
+We also caution that the test is more accurate the larger :math:`\sigma_{\rm int}^2 + \sigma_y^2` is relative to `\sigma_x^2`,
+and may be unreliable in the opposite regime.
 
 
 Reproducibility
