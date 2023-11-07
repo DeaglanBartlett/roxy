@@ -405,6 +405,11 @@ def test_causality(monkeypatch):
     except NotImplementedError:
         pass
         
+    # Check it works the other way around x <-> y
+    roxy.causality.assess_causality(my_fun, fun_inv, yobs, xobs, [yerr, xerr],
+            param_names, theta0, param_prior, method='mnr',
+            criterion='hsic', savename='tests/causality.png', show=True)
+    
     # Now with covariance matrix
     Sxx = np.identity(nx) * xerr ** 2
     Sxy = np.zeros((nx,nx))
