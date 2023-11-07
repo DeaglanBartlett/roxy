@@ -389,7 +389,7 @@ We now call the function ``roxy.causality.assess_causality``
 	import roxy.causality
 	roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr], 
 					param_names, theta0, param_prior, method='mnr',
-					criterion='spearman')
+					criterion='hsic')
 
 
 which gives the output
@@ -400,30 +400,30 @@ which gives the output
 	Fitting y vs x
 
 	Optimisation Results:
-	A:	0.38387027382850647
-	B:	0.6155025959014893
-	sig:	2.8722164630889893
-	mu_gauss:	14.387789726257324
-	w_gauss:	8.647834777832031
+	A:	0.38329729437828064
+	B:	0.6116797924041748
+	sig:	2.8931143283843994
+	mu_gauss:	14.385257720947266
+	w_gauss:	8.616861343383789
 
 	Fitting x vs y
 
 	Optimisation Results:
-	A:	1.9797508716583252
+	A:	1.9811209440231323
 	B:	2.0
 	sig:	3.0
-	mu_gauss:	6.214934349060059
-	w_gauss:	4.035924434661865
+	mu_gauss:	6.214134216308594
+	w_gauss:	4.011857032775879
 
-	y vs x forward Spearman: -0.029
+	y(x) forward HSIC: 0.159, (p=0.898)
 
-	y vs x inverse Spearman: -0.305
+	y(x) inverse HSIC: 0.655, (p=0.03)
 
-	x vs y forward Spearman: -0.435
+	x(y) forward HSIC: 0.772, (p=0.005)
 
-	x vs y inverse Spearman: -0.676
+	x(y) inverse HSIC: 2.342, (p<0.001)
 
-	Recommended direction: y vs x forward
+	Recommended direction: y(x)
 
 and the figure
 

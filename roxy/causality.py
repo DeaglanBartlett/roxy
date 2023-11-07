@@ -105,25 +105,29 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     resid_yx_inverse = (yobs - fun_inv(xobs, theta_xy)) / yscale
     resid_xy_forward = (xobs - fun(yobs, theta_xy)) / xscale
     resid_xy_inverse = (xobs - fun_inv(yobs, theta_yx)) / xscale
-    items = [('y vs x forward', resid_yx_forward, xobs),
-             ('y vs x inverse', resid_yx_inverse, xobs),
-             ('x vs y forward', resid_xy_forward, yobs),
-             ('x vs y inverse', resid_xy_inverse, yobs)]
+    items = [('y(x) forward', resid_yx_forward, xobs),
+             ('y(x) inverse', resid_yx_inverse, xobs),
+             ('x(y) forward', resid_xy_forward, yobs),
+             ('x(y) inverse', resid_xy_inverse, yobs)]
     
     results = np.ones(len(items)) * np.inf
     
     for i, (name, resid, data) in enumerate(items):
         if criterion == 'spearman':
-            results[i] = spearmanr(data, resid)[0]
-            print(f"\n{name} Spearman:", round(results[i],3))
+            results[i], pval = spearmanr(data, resid)
+            print(f"\n{name} Spearman: {round(results[i],3)}, (p={round(pval,3)})")
         elif criterion == 'pearson':
-            results[i] = pearsonr(data, resid)[0]
-            print(f"{name} Pearson:", round(results[i],3))
+            results[i], pval = pearsonr(data, resid)
+            print(f"\n{name} Pearson: {round(results[i],3)}, (p={round(pval,3)})")
         elif criterion == 'hsic':
             stat, results[i] = compute_hsic(np.expand_dims(data, axis=1),
                         np.expand_dims(resid, axis=1),
-                        alph=0.05)
-            print(f"{name} HSIC: {round(stat,3)}, (conf={round(results[i],3)})")
+                        alph=0.001)
+            if np.isnan(results[i]):
+                print(f"\n{name} HSIC: {round(stat,3)}, (p<0.001)")
+                results[i] = 0.
+            else:
+                print(f"\n{name} HSIC: {round(stat,3)}, (p={round(results[i],3)})")
             results[i] = 1 - results[i]
         else:
             raise NotImplementedError
@@ -133,14 +137,16 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     
     if not np.all(np.isnan(results)):
         ibest = np.nanargmin(np.abs(results))
-        print("\nRecommended direction:", items[ibest][0])
+        if ibest in [0, 3]:
+            print("\nRecommended direction: y(x)")
+        else:
+            print("\nRecommended direction: x(y)")
         labels[ibest] += '*'
         
     # Plot
     fig, axs = plt.subplots(2, 2, figsize=(10,6))
         
     cmap = plt.get_cmap("Set1")
-    
     
     axs[0,0].plot(xobs, fun(xobs, theta_yx), label=labels[0], color=cmap(0))
     axs[0,0].plot(xobs, fun_inv(xobs, theta_xy), label=labels[1], color=cmap(1))
