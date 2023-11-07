@@ -12,9 +12,10 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     The code runs both forward fits, i.e. y(x) and x(y), and the reverse fits,
     where one uses the parameters obtained from the forward fit and uses the
     inverse function. The Spearman and Pearson correlation coefficients of the
-    residuals is then found and the method which minimsies the means of these
-    is recommended as the best option. Plots of the fits and the residuals are
-    produced, since these can be more informative for some functions.
+    residuals (normalised by the square root of the sum of the squares of the vertical
+    errors and the intrindic scatter) is then found, and the method which minimsies the
+    mean of these is recommended as the best option. Plots of the fits and the residuals
+    are produced, since these can be more informative for some functions.
     
     Args:
         :fun (callable): The function, f, to be considered, y = f(x, theta).
@@ -62,12 +63,12 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
         j = names_yx.index(t)
         theta_yx[j] = res_yx.x[i]
     theta_yx = np.array(theta_yx)
+    sig_yx = res_yx.x[names_yx.index('sig')]
+    print(sig_yx)
     
     # x vs y
     print('\nFitting x vs y')
-    if not covmat:
-        new_errors = [errors[1], errors[0]]
-    else:
+    if covmat:
         new_errors = np.empty(errors.shape)
         nx = len(xobs)
         ny = len(yobs)
@@ -75,6 +76,8 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
         new_errors[:ny,ny:] = errors[nx:,:nx]
         new_errors[ny:,:ny] = errors[:nx,nx:]
         new_errors[ny:,ny:] = errors[:nx,:nx]
+    else:
+        new_errors = [errors[1], errors[0]]
     res_xy, names_xy = reg.optimise(param_names, yobs, xobs, new_errors,
                     method=method, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior)
     theta_xy = [None] * len(param_names)
@@ -82,12 +85,23 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
         j = names_xy.index(t)
         theta_xy[j] = res_xy.x[i]
     theta_xy = np.array(theta_xy)
+    sig_xy = res_xy.x[names_xy.index('sig')]
+    print(sig_xy)
+    
+    # Get normalisation for residuals
+    if covmat:
+        nx = len(xobs)
+        xscale = np.sqrt(np.diag(errors)[:nx] + sig_xy ** 2)
+        yscale = np.sqrt(np.diag(errors)[nx:] + sig_yx ** 2)
+    else:
+        xscale = np.sqrt(errors[0] ** 2 + sig_xy ** 2)
+        yscale = np.sqrt(errors[1] ** 2 + sig_yx ** 2)
     
     # Residuals
-    resid_yx_forward = yobs - fun(xobs, theta_yx)
-    resid_yx_inverse = yobs - fun_inv(xobs, theta_xy)
-    resid_xy_forward = xobs - fun(yobs, theta_xy)
-    resid_xy_inverse = xobs - fun_inv(yobs, theta_yx)
+    resid_yx_forward = (yobs - fun(xobs, theta_yx)) / yscale
+    resid_yx_inverse = (yobs - fun_inv(xobs, theta_xy)) / yscale
+    resid_xy_forward = (xobs - fun(yobs, theta_xy)) / xscale
+    resid_xy_inverse = (xobs - fun_inv(yobs, theta_yx)) / xscale
     items = [('y vs x forward', resid_yx_forward, xobs),
              ('y vs x inverse', resid_yx_inverse, xobs),
              ('x vs y forward', resid_xy_forward, yobs),
@@ -137,9 +151,9 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     axs[0,1].set_ylabel(r'$x_{\rm pred}$')
         
     axs[1,0].set_xlabel(r'$x_{\rm obs}$')
-    axs[1,0].set_ylabel(r'$y$ Residuals')
+    axs[1,0].set_ylabel(r'Normalised $y$ residuals')
     axs[1,1].set_xlabel(r'$y_{\rm obs}$')
-    axs[1,1].set_ylabel(r'$x$ Residuals')
+    axs[1,1].set_ylabel(r'Normalised $x$ residuals')
         
     fig.align_labels()
     fig.tight_layout()
