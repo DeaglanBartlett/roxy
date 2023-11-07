@@ -38,3 +38,12 @@ plotting
    :members:
    :undoc-members:
    :show-inheritance:
+
+
+causality
+~~~~~~~~~
+
+.. automodule:: causality
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -2,6 +2,7 @@ import numpy as np
 from roxy.regressor import RoxyRegressor
 import roxy.plotting
 import roxy.mcmc
+import roxy.causality
 import jax.random
 import jax.numpy as jnp
 import roxy.likelihoods
@@ -360,3 +361,61 @@ def test_mcmc_classes():
 
     return
     
+    
+def test_causality(monkeypatch):
+
+    monkeypatch.setattr(plt, 'show', lambda: None)
+
+    def my_fun(x, theta):
+        return theta[0] * x + theta[1]
+
+    def fun_inv(y, theta):
+        return y / theta[0] - theta[1] / theta[0]
+    
+    param_names = ['A', 'B']
+    theta0 = [0.4, 1.0]
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+
+    nx = 100
+    xerr = np.random.normal(1, 0.2, nx)
+    yerr = np.random.normal(2, 0.2, nx)
+    xerr[xerr<0]=0
+    yerr[yerr<0]=0
+    sig = 3.0
+
+    np.random.seed(0)
+
+    xtrue = np.random.uniform(0, 30, nx)
+    ytrue = reg.value(xtrue, theta0)
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+
+    for criterion in ['spearman', 'pearson', 'hsic']:
+        roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
+            param_names, theta0, param_prior, method='mnr',
+            criterion=criterion, savename='tests/causality.png', show=True)
+    
+    # Check for unknown criterion we get an error
+    try:
+        roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
+            param_names, theta0, param_prior, method='mnr',
+            criterion='unknown_criterion', savename='tests/causality.png', show=True)
+    except NotImplementedError:
+        pass
+        
+    # Now with covariance matrix
+    Sxx = np.identity(nx) * xerr ** 2
+    Sxy = np.zeros((nx,nx))
+    Syx = np.zeros((nx,nx))
+    Syy = np.identity(nx) * yerr ** 2
+    Sigma = np.concatenate(
+                [np.concatenate([Sxx, Sxy], axis=-1),
+                np.concatenate([Syx, Syy], axis=-1)]
+            )
+    roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, Sigma,
+        param_names, theta0, param_prior, method='mnr', savename='tests/causality.png',
+        show=True, covmat=True)
+        
+    return

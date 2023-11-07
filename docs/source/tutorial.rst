@@ -329,10 +329,125 @@ to give us a better initial starting point to run our optimiser. These values ca
 care about sampling the distribution well, but only getting a good initial guess.
 
 
+Direction of causality
+----------------------
+
+A property of the likelihoods used in ``roxy`` is asymmetry with respect to :math:`x` and :math:`y`, 
+so that the regression results depend on which variable is considered independent. 
+The result is most reliable when the direction of regression matches the direction of causality in system under investigation.
+This may be assessed by treating the scatter of the points around the best-fit line as an additive noise model.
+In this case, the independent variable may be identified as the one that has least correlation with the residuals of the fit.
+
+The ``roxy`` function ``roxy.causality.assess_causality`` fits both the forward and inverse relations to the dataset, 
+produces plots of the data in both directions with both regression models overlaid and the corresponding normalised 
+residuals plotted against the independent variable, and calculates a correlation coefficient (Spearman, Pearson or HSIC).
+The default choice is HSIC because this was used in the original paper 
+`(Hoyer et al. 2008) <https://papers.nips.cc/paper_files/paper/2008/hash/f7664060cc52bc6f3d620bcedc94a4b6-Abstract.html>`_
+introducing the additive noise model.
+This method has been shown to be highly reliable 
+`(Mooij et al. 2014) <https://arxiv.org/abs/1412.3773>`_.
+From these coefficients it makes a recommendation as to which variable to treat as independent and which dependent 
+(which may require renaming the input arrays before performing the regression).
+
+For example, let us create some mock data in the case where we know that :math:`y` is the dependendent variable.
+
+.. code-block:: python
+
+	import numpy as np
+	from roxy.regressor import RoxyRegressor
+
+	def my_fun(x, theta):
+	    return theta[0] * x + theta[1]
+
+	param_names = ['A', 'B']
+	theta0 = [0.4, 1.0]
+	param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+	reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+
+	nx = 100
+	xerr = np.random.normal(1, 0.2, nx)
+	yerr = np.random.normal(2, 0.2, nx)
+	xerr[xerr<0]=0
+	yerr[yerr<0]=0
+	sig = 3.0
+
+	np.random.seed(0)
+
+	xtrue = np.random.uniform(0, 30, nx)
+	ytrue = reg.value(xtrue, theta0)
+	xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+	yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+
+To do the inverse fits, we need to define the inverse function. I.e. if ``my_fun`` above gives
+:math:`y = f(x, \theta)`, then we need the function :math:`x = g(y, \theta)`, which for this case is
+
+.. code-block:: python
+
+	def fun_inv(y, theta):
+	    return y / theta[0] - theta[1] / theta[0]
+
+We now call the function ``roxy.causality.assess_causality``
+
+.. code-block:: python
+
+	import roxy.causality
+	roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr], 
+					param_names, theta0, param_prior, method='mnr',
+					criterion='hsic')
+
+
+which gives the output
+
+
+.. code-block:: console
+
+	Fitting y vs x
+
+	Optimisation Results:
+	A:	0.38329729437828064
+	B:	0.6116797924041748
+	sig:	2.8931143283843994
+	mu_gauss:	14.385257720947266
+	w_gauss:	8.616861343383789
+
+	Fitting x vs y
+
+	Optimisation Results:
+	A:	1.9811209440231323
+	B:	2.0
+	sig:	3.0
+	mu_gauss:	6.214134216308594
+	w_gauss:	4.011857032775879
+
+	y(x) forward HSIC: 0.159, (p=0.898)
+
+	y(x) inverse HSIC: 0.655, (p=0.03)
+
+	x(y) forward HSIC: 0.772, (p=0.005)
+
+	x(y) inverse HSIC: 2.342, (p<0.001)
+
+	Recommended direction: y(x)
+
+and the figure
+
+.. image:: causality.png
+        :width: 700px
+
+From the correlation coefficients, we see that fitting :math:`y(x)` in the forward
+direction is the best option, and thus in the plot this option is starred (and is correct).
+We caution however that the correlations may be non-monotonic and/or nonlinear, and therefore 
+recommend picking the regression direction that visually produces the lowest correlation in the residuals, 
+only resorting to the quantitative correlation coefficients in close cases.
+We also caution that the test is more accurate the larger :math:`\sigma_{\rm int}^2 + \sigma_y^2` is relative to `\sigma_x^2`,
+and may be unreliable in the opposite regime.
+
+
 Reproducibility
 ---------------
 
-This tutorial was run using MacOS Ventura 13.4 with a M2 chip. We have found that the results reported can
+This tutorial was run using MacOS with a M2 chip. We have found that the results reported can
 marginally vary between architectures or between package versions of the dependenices of ``roxy``.
 Such changes are small, e.g. the fourth decimal place of an optimisation result may differ,
 so if there are minor differences between the above results and what you find, there is no reason
