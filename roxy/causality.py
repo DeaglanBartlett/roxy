@@ -15,7 +15,8 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     residuals (normalised by the square root of the sum of the squares of the vertical
     errors and the intrindic scatter) is then found, and the method which minimsies the
     mean of these is recommended as the best option. Plots of the fits and the residuals
-    are produced, since these can be more informative for some functions.
+    are produced, since these can be more informative for some functions. The
+    recommended setup is indicated by a star in the plots.
     
     Args:
         :fun (callable): The function, f, to be considered, y = f(x, theta).
@@ -64,7 +65,6 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
         theta_yx[j] = res_yx.x[i]
     theta_yx = np.array(theta_yx)
     sig_yx = res_yx.x[names_yx.index('sig')]
-    print(sig_yx)
     
     # x vs y
     print('\nFitting x vs y')
@@ -86,7 +86,6 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
         theta_xy[j] = res_xy.x[i]
     theta_xy = np.array(theta_xy)
     sig_xy = res_xy.x[names_xy.index('sig')]
-    print(sig_xy)
     
     # Get normalisation for residuals
     if covmat:
