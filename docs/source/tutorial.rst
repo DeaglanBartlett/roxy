@@ -334,14 +334,14 @@ Direction of causality
 
 A property of the likelihoods used in ``roxy`` is asymmetry with respect to :math:`x` and :math:`y`, 
 so that the regression results depend on which variable is considered independent. 
-The result is most reliable when the direction of regression matches the direction of causality in system under investigation.
+The result is most reliable when the direction of regression matches the direction of causality in the system under investigation.
 This may be assessed by treating the scatter of the points around the best-fit line as an additive noise model.
 In this case, the independent variable may be identified as the one that has least correlation with the residuals of the fit.
 
 The ``roxy`` function ``roxy.causality.assess_causality`` fits both the forward and inverse relations to the dataset, 
 produces plots of the data in both directions with both regression models overlaid and the corresponding normalised 
 residuals plotted against the independent variable, and calculates a correlation coefficient (Spearman, Pearson or HSIC).
-The default choice is HSIC because this was used in the original paper 
+The default choice is HSIC (Hilbert-Schmidt Independence Criterion) because this was used in the original paper 
 `(Hoyer et al. 2008) <https://papers.nips.cc/paper_files/paper/2008/hash/f7664060cc52bc6f3d620bcedc94a4b6-Abstract.html>`_
 introducing the additive noise model.
 This method has been shown to be highly reliable 
