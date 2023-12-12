@@ -633,6 +633,9 @@ class RoxyRegressor():
                     init['mu_gauss'] = init['mu_gauss'][idx]
                     init['w_gauss'] = init['w_gauss'][idx]
                     init['weight_gauss'] = init['weight_gauss'][idx]
+                if 'sig' in init.keys() and init['sig'] <= 0:
+                    warnings.warn('Setting initial sigma to positive value')
+                    init['sig'] = 1.e-5
             kernel = numpyro.infer.NUTS(model,
                 init_strategy=numpyro.infer.initialization.init_to_value(values=init))
             if verbose:
