@@ -142,9 +142,11 @@ class Likelihood_prof(dist.Distribution):
         :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx
             evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :include_logdet (bool, default=True): Whether to include the normalisation term
+            in the likelihood proportional to log(det(S))
     """
         
-    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
+    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, include_logdet=True):
         self.xobs, self.yobs, self.xerr, self.yerr, \
         self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr,
         f, fprime, sig)
@@ -157,6 +159,7 @@ class Likelihood_prof(dist.Distribution):
             jnp.shape(fprime),
             jnp.shape(sig),
         )
+        self.include_logdet = include_logdet
         super(Likelihood_prof, self).__init__(batch_shape = batch_shape)
         
     def sample(self, key, sample_shape=()):
@@ -164,7 +167,8 @@ class Likelihood_prof(dist.Distribution):
         
     def log_prob(self, value):
         return - roxy.likelihoods.negloglike_prof(self.xobs, self.yobs, self.xerr,
-            self.yerr, self.f, self.fprime, self.sig)
+            self.yerr, self.f, self.fprime, self.sig,
+            include_logdet=self.include_logdet)
         
         
 class Likelihood_prof_MV(dist.Distribution):
@@ -188,9 +192,12 @@ class Likelihood_prof_MV(dist.Distribution):
         :G (jnp.ndarray): If we are fitting the function f(x), this is
             G_{ij} = df_i/dx_j evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :include_logdet (bool, default=True): Whether to include the normalisation term
+            in the likelihood proportional to log(det(S))
     """
    
-    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig):
+    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig,
+        include_logdet = True):
         xobs_p = xobs[..., jnp.newaxis]
         yobs_p = yobs[..., jnp.newaxis]
         f_p = f[..., jnp.newaxis]
@@ -215,6 +222,7 @@ class Likelihood_prof_MV(dist.Distribution):
                     )
         self.f = f_p[...,0]
         self.sig = sig[...,0]
+        self.include_logdet = include_logdet
         super(Likelihood_prof_MV, self).__init__(
             batch_shape = batch_shape,
             event_shape = event_shape
@@ -225,7 +233,7 @@ class Likelihood_prof_MV(dist.Distribution):
         
     def log_prob(self, value):
         return - roxy.likelihoods.negloglike_prof_mv(self.xobs, self.yobs, self.Sigma,
-            self.f, self.G, self.sig)
+            self.f, self.G, self.sig, include_logdet=self.include_logdet)
     
         
 

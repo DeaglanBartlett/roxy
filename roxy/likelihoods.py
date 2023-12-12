@@ -106,7 +106,7 @@ def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_g
     return neglogP
     
     
-def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig):
+def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig, include_logdet=True):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
     Gaussian likelihood, evaluated at the maximum likelihood values of xtrue
@@ -122,6 +122,8 @@ def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig):
         :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx
             evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :include_logdet (bool, default=True): Whether to include the normalisation term
+            in the likelihood proportional to log(det(S))
         
     Returns:
         :neglogP (float): The negative log-likelihood
@@ -133,12 +135,18 @@ def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig):
     if len(sigy) == 1:
         sigy = jnp.full(N, sigy[0])
     
-    neglogP = (
-        N / 2 * jnp.log(2 * jnp.pi)
-        + jnp.sum(jnp.log(sigy))
-        + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
-        (Ai ** 2 * xerr ** 2 + sigy ** 2))
-    )
+    if include_logdet:
+        neglogP = (
+            N / 2 * jnp.log(2 * jnp.pi)
+            + jnp.sum(jnp.log(sigy))
+            + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
+            (Ai ** 2 * xerr ** 2 + sigy ** 2))
+        )
+    else:
+        neglogP = (
+            1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
+            (Ai ** 2 * xerr ** 2 + sigy ** 2))
+        )
 
     return neglogP
 
@@ -225,7 +233,7 @@ def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
     return neglogP
     
     
-def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig):
+def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig, include_logdet=True):
     """
     Computes the negative log-likelihood under the assumption of a correlated
     Gaussian likelihood (i.e. arbitrary covariance matrix), evaluated at the
@@ -241,6 +249,8 @@ def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig):
         :G (jnp.ndarray): If we are fitting the function f(x), this is
             G_{ij} = df_i/dx_j evaluated at xobs
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :include_logdet (bool, default=True): Whether to include the normalisation term
+            in the likelihood proportional to log(det(S))
         
     Returns:
         :neglogP (float): The negative log-likelihood
@@ -259,7 +269,10 @@ def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig):
     Dinv = jnp.linalg.inv(D)
     
     z = f - yobs
-    neglogP = 1/2 * logdet2piS + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
+    if include_logdet:
+        neglogP = 1/2 * logdet2piS + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
+    else:
+        neglogP = 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
         
     return neglogP
 

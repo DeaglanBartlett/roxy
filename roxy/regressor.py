@@ -111,7 +111,8 @@ class RoxyRegressor():
         return self.secondgradfun(x, theta)
         
     def negloglike(self, theta, xobs, yobs, errors, sig=0., mu_gauss=0., w_gauss=1.,
-        weights_gauss=1., method='mnr', covmat=False, test_prior=True):
+        weights_gauss=1., method='mnr', covmat=False, test_prior=True,
+        include_logdet=True):
         """
         Computes the negative log-likelihood under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -141,6 +142,9 @@ class RoxyRegressor():
                 is [xerr, yerr] (False) or a covariance matrix (True).
             :test_prior (bool, default=True): Whether to test sigma >= 0 and Gaussians
                 weights >= 0
+            :include_logdet (bool, default=True): For the method 'prof', whether to
+                include the normalisation term in the likelihood proportional
+                to log(det(S))
         """
         f = self.value(xobs, theta)
         if covmat:
@@ -179,10 +183,10 @@ class RoxyRegressor():
         elif method == 'prof':
             if covmat:
                 return roxy.likelihoods.negloglike_prof_mv(xobs, yobs, errors, f, G,
-                        sig)
+                        sig, include_logdet=include_logdet)
             else:
                 return roxy.likelihoods.negloglike_prof(xobs, yobs, xerr, yerr, f,
-                        fprime, sig)
+                        fprime, sig, include_logdet=include_logdet)
         else:
             raise NotImplementedError
             
@@ -211,7 +215,7 @@ class RoxyRegressor():
             
     def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr',
             infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
-            gmm_prior='hierarchical', verbose=True):
+            gmm_prior='hierarchical', include_logdet=True, verbose=True):
         """
         Optimise the parameters of the function given some data, under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -239,7 +243,11 @@ class RoxyRegressor():
                 what prior to put on the GMM componenents. If 'uniform', then the mean
                 and widths have a uniform prior, and if 'hierarchical' mu and w^2 have
                 a Normal and Inverse Gamma prior, respectively.
+            :include_logdet (bool, default=True): For the method 'prof', whether to
+                include the normalisation term in the likelihood proportional
+                to log(det(S))
             :verbose (bool, default=True): Whether to print progress or not
+            
         
         Returns:
             :res (OptResult): The result of the optimisation
@@ -303,7 +311,8 @@ class RoxyRegressor():
 
             ll = nll + self.negloglike(t, xobs, yobs, errors, sig=sig,
                 mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss,
-                method=method, covmat=covmat, test_prior=False)
+                method=method, covmat=covmat, test_prior=False,
+                include_logdet=include_logdet)
             ll = jnp.where(bad_run, np.inf, ll)
             
             return ll
@@ -429,7 +438,8 @@ class RoxyRegressor():
 
     def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr',
             ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True,
-            covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True, init=None):
+            covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True, init=None,
+            include_logdet=True):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian
@@ -463,7 +473,9 @@ class RoxyRegressor():
             :seed (int, default=1234): The seed to use when initialising the sampler
             :verbose (bool, default=True): Whether to print progress or not
             :init (dict, default=None): A dictionary of values of initialise the MCMC at
-            
+            :include_logdet (bool, default=True): For the method 'prof', whether to
+                include the normalisation term in the likelihood proportional
+                to log(det(S))
         Returns:
             :samples (dict): The MCMC samples, where the keys are the parameter names
                 and values are ndarrays of the samples
@@ -577,14 +589,14 @@ class RoxyRegressor():
                     numpyro.sample(
                         'obs',
                         roxy.mcmc.Likelihood_prof_MV(xobs, yobs, Sxx, Syy, Sxy, f, G,
-                            sig),
+                            sig, include_logdet=include_logdet),
                         obs=yobs,
                     )
                 else:
                     numpyro.sample(
                         'obs',
                         roxy.mcmc.Likelihood_prof(xobs, yobs, xerr, yerr, f, fprime,
-                            sig),
+                            sig, include_logdet=include_logdet),
                         obs=yobs,
                     )
             elif method == 'gmm':
@@ -607,7 +619,8 @@ class RoxyRegressor():
             if init is None:
                 vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors,
                     method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss,
-                    covmat=covmat, gmm_prior=gmm_prior, verbose=verbose)
+                    covmat=covmat, gmm_prior=gmm_prior, verbose=verbose,
+                    include_logdet=include_logdet)
                 vals = vals.x
                 init = {k:v for k,v in zip(param_names, vals)}
                 if 'mu_gauss_0' in param_names:
@@ -784,7 +797,7 @@ class RoxyRegressor():
     def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs,
             errors, ngauss=1, infer_intrinsic=True, progress_bar=True, initial=None,
             nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234,
-            verbose=True):
+            verbose=True, include_logdet=True):
         """
         Compute an information criterion for a given setup
         If an initial guess is not given, we first run a MCMC
@@ -821,6 +834,9 @@ class RoxyRegressor():
                 a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
             :verbose (bool, default=True): Whether to print progress or not
+            :include_logdet (bool, default=True): For the method 'prof', whether to
+                include the normalisation term in the likelihood proportional
+                to log(det(S))
             
         Returns:
             :negloglike (float): The optimum negative log-likelihood value
@@ -845,6 +861,7 @@ class RoxyRegressor():
                             gmm_prior=gmm_prior,
                             seed=seed,
                             verbose=verbose,
+                            include_logdet=include_logdet,
                 )
             labels, samples = roxy.mcmc.samples_to_array(samples)
             labels = list(labels)
@@ -863,6 +880,7 @@ class RoxyRegressor():
                     ngauss=ngauss,
                     gmm_prior=gmm_prior,
                     verbose=verbose,
+                    include_logdet=include_logdet,
         )
         
         # Count number of parameters and get max-likelihood
@@ -882,7 +900,8 @@ class RoxyRegressor():
         
     def find_best_gmm(self, params_to_opt, xobs, yobs, xerr, yerr, max_ngauss,
             best_metric='BIC', infer_intrinsic=True, progress_bar=True, nwarm=100,
-            nsamp=100, gmm_prior='hierarchical', seed=1234, verbose=True):
+            nsamp=100, gmm_prior='hierarchical', seed=1234, verbose=True,
+            include_logdet=True):
         """
         Find the number of Gaussians to use in a Gaussian Mixture Model
         hyper-prior on the true x values, accoridng to some metric.
@@ -907,6 +926,9 @@ class RoxyRegressor():
                 a Normal and Inverse Gamma prior, respectively.
             :seed (int, default=1234): The seed to use when initialising the sampler
             :verbose (bool, default=True): Whether to print progress or not
+            :include_logdet (bool, default=True): For the method 'prof', whether to
+                include the normalisation term in the likelihood proportional
+                to log(det(S))
             
         Returns:
             :ngauss (int): The best number of Gaussians to use according to the metric
@@ -931,7 +953,8 @@ class RoxyRegressor():
                                             method='gmm',
                                             gmm_prior=gmm_prior,
                                             seed=seed,
-                                            verbose=verbose)
+                                            verbose=verbose,
+                                            include_logdet=include_logdet)
         
         ngauss = np.nanargmin(metric) + 1
         if verbose:
