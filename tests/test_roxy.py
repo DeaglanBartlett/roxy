@@ -424,3 +424,43 @@ def test_causality(monkeypatch):
         show=True, covmat=True)
         
     return
+    
+    
+def test_nodiag_cov():
+
+    def my_fun(x, theta):
+        return theta[0] * x + theta[1]
+        
+    param_names = ['A', 'B']
+    theta0 = [0.4, 1.0]
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+    
+    np.random.seed(0)
+        
+    # Make true data
+    nx = 20
+    xtrue = np.random.uniform(0, 30, nx)
+    ytrue = reg.value(xtrue, theta0)
+
+    # Make a random covariance matrix which is non-diagonal
+    # Sigma = A A^T since this is then a positive semi-definite, symmetric matrix
+    Sigma = np.random.randn(2*nx, 2*nx) * 0.05
+    Sigma = np.dot(Sigma, Sigma.transpose())
+    
+    # Generate observed data
+    obs = np.random.multivariate_normal(
+        np.concatenate([xtrue, ytrue]),
+        Sigma)
+    xobs = obs[:nx]
+    yobs = obs[nx:]
+    
+    nwarm = 50
+    nsamp = 50
+    
+    for method in ['unif', 'prof', 'mnr']:
+        reg.optimise(param_names, xobs, yobs, Sigma, method='mnr', covmat=True)
+        reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
+                covmat=True)
+    return
