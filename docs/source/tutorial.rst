@@ -86,7 +86,7 @@ We begin by finding the maximum likelihood point, which is as simple as
 
 .. code-block:: python
 
-	res = reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr')
+	res, param_names = reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr')
 
 .. code-block:: console
 
