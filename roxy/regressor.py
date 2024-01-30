@@ -65,7 +65,7 @@ class RoxyRegressor():
         self.secondgradfun = jax.vmap(self.single_secondgradfun, (0, None), 0)
         
         self.param_names = param_names
-        self.param_default = jnp.array(param_default)
+        self.param_default = jnp.array(param_default).astype(jnp.float32)
         self.param_prior = param_prior
         
     def value(self, x, theta):
