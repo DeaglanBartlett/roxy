@@ -1,4 +1,56 @@
 import jax.numpy as jnp
+import warnings
+
+def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
+    """
+    Raise warnings if using asymptotically biased likelihood
+    for the situation of interest.
+    
+    Args:
+        :method (str, default='mnr'): The name of the likelihood method to use
+                ('mnr', 'gmm', 'unif' or 'prof').
+        :infer_intrinsic (bool, default=True): Whether to infer the intrinsic
+                scatter in the y direction
+        :nx (int): The number of observed x values
+        :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
+                the error on the observed x and y values. Otherwise, this is the
+                covariance matrix in the order (x, y)
+        :covmat (bool, default=False): This determines whether the errors argument
+                is [xerr, yerr] (False) or a covariance matrix (True).
+    """
+    
+    # Modify the warnings filter to always show all warnings
+    warnings.filterwarnings('always')
+    
+    # Check if xerrs are all zero
+    if covmat:
+        xerr = errors[:nx,:nx]
+    else:
+        xerr = errors[0]
+    if isinstance(xerr, (float, int)):
+        no_xerr = (xerr == 0)
+    else:
+        no_xerr = jnp.all(jnp.array(xerr) == 0)
+        
+    warning_message = None
+    
+    if no_xerr and method not in ['unif', 'prof']:
+        warning_message = (
+            f'Not recommended method "{method}" for this setup. '
+            'Use "unif" or "prof" instead.')
+    elif (not no_xerr) and infer_intrinsic and method not in ['mnr', 'gmm']:
+        warning_message = (
+            f'Not recommended method "{method}" for this setup. '
+            'Use "mnr" or "gmm" instead.')
+    elif (not no_xerr) and (not infer_intrinsic) and method != 'prof':
+        warning_message = (
+            f'Not recommended method "{method}" for this setup. '
+            'Use "prof" instead.')
+    
+    if warning_message is not None:
+        warnings.warn(warning_message, UserWarning)
+
+    return
 
 def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """
