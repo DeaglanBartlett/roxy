@@ -46,6 +46,12 @@ Gaussian likelihood with a mean given by :math:`f(x_{\rm obs}, \theta)` and a va
 distribution of true x values and thus gives biased results. Instead, this package allows
 one to use the MNR (Marginalised Normal Regression) method which does not exhibit such 
 biases. 
+A range of likelihoods are available in ``roxy``, however we recommed you use the following one in
+these situations:
+
+- If you have :math:`x` and :math:`y` errors and DO wish to infer intrinsic scatter: use ``method='mnr'``.
+- If you have :math:`x` and :math:`y` errors and DO NOT wish to infer intrinsic scatter: use ``method='prof'``.
+- If you only have :math:`y` errors: use ``method='prof'`` or ``method='unif'`` (they are identical in this case).
 
 The code uses automatic differentiation enabled by jax to both sample the
 likelihood using Hamiltonian Monte Carlo and to compute the derivatives 
