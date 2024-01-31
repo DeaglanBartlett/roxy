@@ -820,9 +820,8 @@ class RoxyRegressor():
             :params_to_opt (list): The names of the parameters we wish to optimise
             :xobs (jnp.ndarray): The observed x values
             :yobs (jnp.ndarray): The observed y values
-            :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
-                the error on the observed x and y values. Otherwise, this is the
-                covariance matrix in the order (x, y)
+            :errors (jnp.ndarray): [xerr, yerr], giving the error on the observed
+                x and y values
             :ngauss (int, default = 1): The number of Gaussians to use in the GMM
                 prior. Only used if method='gmm'
             :infer_intrinsic (bool, default=True): Whether to infer the intrinsic
@@ -854,7 +853,7 @@ class RoxyRegressor():
         
         # Check if warning should be raised
         roxy.likelihoods.likelihood_warnings(
-            method, infer_intrinsic, len(xobs), errors, covmat)
+            method, infer_intrinsic, len(xobs), errors, False)
         
         if initial is None:
             # First run a MCMC to get a guess at the peak, catching the low neff warning
