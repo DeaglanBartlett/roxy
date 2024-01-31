@@ -24,7 +24,7 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
     
     # Check if xerrs are all zero
     if covmat:
-        xerr = covmat[:nx,:nx]
+        xerr = errors[:nx,:nx]
     else:
         xerr = errors[0]
     if isinstance(xerr, (float, int)):
@@ -38,10 +38,10 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
         warning_message = (
             f'Not recommended method "{method}" for this setup. '
             'Use "unif" or "prof" instead.')
-    elif (not no_xerr) and infer_intrinsic and method != 'mnr':
+    elif (not no_xerr) and infer_intrinsic and method not in ['mnr', 'gmm']:
         warning_message = (
             f'Not recommended method "{method}" for this setup. '
-            'Use "mnr" instead.')
+            'Use "mnr" or "gmm" instead.')
     elif (not no_xerr) and (not infer_intrinsic) and method != 'prof':
         warning_message = (
             f'Not recommended method "{method}" for this setup. '

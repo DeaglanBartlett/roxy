@@ -7,6 +7,7 @@ import jax.random
 import jax.numpy as jnp
 import roxy.likelihoods
 import matplotlib.pyplot as plt
+import unittest
 
 def test_example_standard(monkeypatch):
 
@@ -463,4 +464,160 @@ def test_nodiag_cov():
         reg.optimise(param_names, xobs, yobs, Sigma, method='mnr', covmat=True)
         reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
                 covmat=True)
+    return
+    
+def test_warnings():
+    # Test that warnings are raised for incorrectly used likelihoods
+    
+    def my_fun(x, theta):
+        return theta[0] * x + theta[1]
+        
+    param_names = ['A', 'B']
+    theta0 = [0.4, 1.0]
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+    
+    np.random.seed(0)
+        
+    # Make true data
+    nx = 20
+    xtrue = np.random.uniform(0, 30, nx)
+    ytrue = reg.value(xtrue, theta0)
+    
+    nwarm = 10
+    nsamp = 10
+
+    # ----------------------------------
+    # Warnings with a float for errors
+    
+    xerr = 0.1
+    yerr = 0.5
+    sig = 0.5
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+    
+    for method in ['unif', 'prof']:
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.optimise(
+                param_names, xobs, yobs, [xerr, yerr], method=method, covmat=False,
+                infer_intrinsic=True)
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.mcmc(
+                param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method,
+                covmat=False, infer_intrinsic=True)
+                
+    for method in ['unif', 'mnr', 'gmm']:
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.optimise(
+                param_names, xobs, yobs, [xerr, yerr], method=method, covmat=False,
+                infer_intrinsic=False)
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.mcmc(
+                param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method,
+                covmat=False, infer_intrinsic=False)
+                
+    xerr = 0.
+    
+    for method in ['mnr', 'gmm']:
+        for infer_intrinsic in [True, False]:
+            with unittest.TestCase().assertWarns(UserWarning):
+                reg.optimise(
+                    param_names, xobs, yobs, [xerr, yerr], method=method, covmat=False,
+                    infer_intrinsic=infer_intrinsic)
+            with unittest.TestCase().assertWarns(UserWarning):
+                reg.mcmc(
+                    param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method,
+                    covmat=False, infer_intrinsic=infer_intrinsic)
+    
+    # ----------------------------------
+    # Warnings with a float for errors
+    
+    xerr = np.random.uniform(0, 1, len(xtrue))
+    yerr = np.random.uniform(0, 1, len(ytrue))
+    sig = 0.5
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+    
+    for method in ['unif', 'prof']:
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.optimise(
+                param_names, xobs, yobs, [xerr, yerr], method=method, covmat=False,
+                infer_intrinsic=True)
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.mcmc(
+                param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method,
+                covmat=False, infer_intrinsic=True)
+                
+    for method in ['unif', 'mnr', 'gmm']:
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.optimise(
+                param_names, xobs, yobs, [xerr, yerr], method=method, covmat=False,
+                infer_intrinsic=False)
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.mcmc(
+                param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method,
+                covmat=False, infer_intrinsic=False)
+                
+    xerr[:] = 0.
+    
+    for method in ['mnr', 'gmm']:
+        for infer_intrinsic in [True, False]:
+            with unittest.TestCase().assertWarns(UserWarning):
+                reg.optimise(
+                    param_names, xobs, yobs, [xerr, yerr], method=method, covmat=False,
+                    infer_intrinsic=infer_intrinsic)
+            with unittest.TestCase().assertWarns(UserWarning):
+                reg.mcmc(
+                    param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method,
+                    covmat=False, infer_intrinsic=infer_intrinsic)
+    
+    # ----------------------------------
+    # Warnings with a covariance matrix
+    
+    # Make a random covariance matrix which is non-diagonal
+    # Sigma = A A^T since this is then a positive semi-definite, symmetric matrix
+    Sigma = np.random.randn(2*nx, 2*nx) * 0.05
+    Sigma = np.dot(Sigma, Sigma.transpose())
+    
+    # Generate observed data
+    obs = np.random.multivariate_normal(
+        np.concatenate([xtrue, ytrue]),
+        Sigma)
+    xobs = obs[:nx]
+    yobs = obs[nx:]
+    
+    for method in ['unif', 'prof']:
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.optimise(
+                param_names, xobs, yobs, Sigma, method=method, covmat=True,
+                infer_intrinsic=True)
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.mcmc(
+                param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
+                covmat=True, infer_intrinsic=True)
+                
+    for method in ['unif', 'mnr']:
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.optimise(
+                param_names, xobs, yobs, Sigma, method=method, covmat=True,
+                infer_intrinsic=False)
+        with unittest.TestCase().assertWarns(UserWarning):
+            reg.mcmc(
+                param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
+                covmat=True, infer_intrinsic=False)
+                
+    Sigma[:nx,:nx] = 0.
+    
+    for method in ['mnr']:
+        for infer_intrinsic in [True, False]:
+            with unittest.TestCase().assertWarns(UserWarning):
+                reg.optimise(
+                    param_names, xobs, yobs, Sigma, method=method, covmat=True,
+                    infer_intrinsic=infer_intrinsic)
+            with unittest.TestCase().assertWarns(UserWarning):
+                reg.mcmc(
+                    param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
+                    covmat=True, infer_intrinsic=infer_intrinsic)
+
     return
