@@ -7,10 +7,16 @@ In this tutorial we demonstrate how to fit a function to data using both a maxim
 MCMC using the ``roxy`` module. We then plot our results. 
 
 To start with, we call functions with the argument ``method='mnr'`` 
-as this is the simplest recommended likelihood for data with x and y errors, however this can be replaced with ``method='unif'`` 
+as this is the simplest recommended likelihood for data with x and y errors and if you infer intrinsic scatter, 
+however this can be replaced with ``method='unif'`` 
 for an infinite uniform prior on the true x values, or ``method='prof'`` to use the profile likelihood. 
 In the presence of x-errors, the profile method is accurate in the absence of intrinsic scatter and the 
 unif method able to recover intrinsic scatter, however MNR is the only method that is approximately unbiased in all the regression parameters.
+In summary, you should use the following likelihoods in the following situations:
+
+- If you have :math:`x` and :math:`y` errors and DO wish to infer intrinsic scatter: use ``method='mnr'``.
+- If you have :math:`x` and :math:`y` errors and DO NOT wish to infer intrinsic scatter: use ``method='prof'``.
+- If you only have :math:`y` errors: use ``method='prof'`` or ``method='unif'`` (they are identical in this case).
 
 Next, we show how to extend the MNR method to a sum of Gaussians using the argument
 ``method='gmm'``.

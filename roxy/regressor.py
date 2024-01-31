@@ -253,6 +253,10 @@ class RoxyRegressor():
             :res (OptResult): The result of the optimisation
             :param_names (list): List of parameter names in order of res.params
         """
+        
+        # Check if warning should be raised
+        roxy.likelihoods.likelihood_warnings(
+            method, infer_intrinsic, len(xobs), errors, covmat)
     
         # Get indices of params to optimise
         pidx = self.get_param_index(params_to_opt)
@@ -480,6 +484,10 @@ class RoxyRegressor():
             :samples (dict): The MCMC samples, where the keys are the parameter names
                 and values are ndarrays of the samples
         """
+        
+        # Check if warning should be raised
+        roxy.likelihoods.likelihood_warnings(
+            method, infer_intrinsic, len(xobs), errors, covmat)
 
         pidx = self.get_param_index(params_to_opt, verbose=False)
         
@@ -844,6 +852,10 @@ class RoxyRegressor():
         
         """
         
+        # Check if warning should be raised
+        roxy.likelihoods.likelihood_warnings(
+            method, infer_intrinsic, len(xobs), errors, covmat)
+        
         if initial is None:
             # First run a MCMC to get a guess at the peak, catching the low neff warning
             with warnings.catch_warnings():
@@ -934,6 +946,10 @@ class RoxyRegressor():
             :ngauss (int): The best number of Gaussians to use according to the metric
         
         """
+        
+        # Check if warning should be raised
+        roxy.likelihoods.likelihood_warnings(
+            'gmm', infer_intrinsic, len(xobs), [xerr, yerr], False)
     
         metric = np.empty(max_ngauss)
     
