@@ -215,7 +215,8 @@ class RoxyRegressor():
             
     def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr',
             infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
-            gmm_prior='hierarchical', include_logdet=True, verbose=True):
+            gmm_prior='hierarchical', include_logdet=True, verbose=True,
+            optimiser='l-bfgs-b'):
         """
         Optimise the parameters of the function given some data, under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -247,6 +248,8 @@ class RoxyRegressor():
                 include the normalisation term in the likelihood proportional
                 to log(det(S))
             :verbose (bool, default=True): Whether to print progress or not
+            :optimiser (str, default='l-bfgs-b'): The optimiser to use. This must be a
+                method supported by jaxopt.ScipyBoundedMinimize.
             
         
         Returns:
@@ -364,7 +367,7 @@ class RoxyRegressor():
                     raise NotImplementedError
             
         initial = jnp.array(initial)
-        lbfgsb = ScipyBoundedMinimize(fun=fopt, method="l-bfgs-b")
+        scipy_opt = ScipyBoundedMinimize(fun=fopt, method=optimiser)
         lower_bounds = jnp.ones_like(initial) * (-jnp.inf)
         upper_bounds = jnp.ones_like(initial) * jnp.inf
         for i, p in enumerate(params_to_opt):
@@ -392,7 +395,7 @@ class RoxyRegressor():
             upper_bounds = upper_bounds.at[imin+2*ngauss:imin+3*ngauss-1].set(1.)
             # Hierarchical params
             lower_bounds = lower_bounds.at[imin+3*ngauss:].set(0.)
-        res = lbfgsb.run(initial, bounds=(lower_bounds, upper_bounds))
+        res = scipy_opt.run(initial, bounds=(lower_bounds, upper_bounds))
         res = OptResult(res)
         
         # Print results
@@ -443,7 +446,7 @@ class RoxyRegressor():
     def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr',
             ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True,
             covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True, init=None,
-            include_logdet=True):
+            include_logdet=True, optimiser='l-bfgs-b'):
         """
         Run an MCMC using the NUTS sampler of ``numpyro`` for the parameters of the
         function given some data, under the assumption of an uncorrelated Gaussian
@@ -480,6 +483,9 @@ class RoxyRegressor():
             :include_logdet (bool, default=True): For the method 'prof', whether to
                 include the normalisation term in the likelihood proportional
                 to log(det(S))
+            :optimiser (str, default='l-bfgs-b'): The optimiser to use if a initial
+                point is not specified. This must be a method supported by
+                jaxopt.ScipyBoundedMinimize.
         Returns:
             :samples (dict): The MCMC samples, where the keys are the parameter names
                 and values are ndarrays of the samples
@@ -805,7 +811,7 @@ class RoxyRegressor():
     def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs,
             errors, ngauss=1, infer_intrinsic=True, progress_bar=True, initial=None,
             nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234,
-            verbose=True, include_logdet=True):
+            verbose=True, include_logdet=True, optimiser='l-bfgs-b'):
         """
         Compute an information criterion for a given setup
         If an initial guess is not given, we first run a MCMC
@@ -844,7 +850,8 @@ class RoxyRegressor():
             :include_logdet (bool, default=True): For the method 'prof', whether to
                 include the normalisation term in the likelihood proportional
                 to log(det(S))
-            
+            :optimiser (str, default='l-bfgs-b'): The optimiser to use. This must be a
+                method supported by jaxopt.ScipyBoundedMinimize.
         Returns:
             :negloglike (float): The optimum negative log-likelihood value
             :metric (float): The value of the information criterion
