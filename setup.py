@@ -20,7 +20,7 @@ setup(
 	'corner',
 	'getdist',
 	'arviz',
-	'fgivenx',
+	'fgivenx @ git+https://github.com/handley-lab/fgivenx.git',
 	'sphinx>=5.0',
 	'myst-parser',
 	'sphinx-rtd-theme',
