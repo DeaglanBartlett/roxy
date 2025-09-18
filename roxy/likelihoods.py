@@ -237,6 +237,30 @@ def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
     )
 
     return neglogP
+
+
+def check_valid_covmat(D, tol=1e-8):
+    """
+    Check if a covariance matrix is valid (symmetric and positive semi-definite)
+    - Symmetry (within tolerance)
+    - Positive semi-definiteness (eigvals >= -tol)
+    
+    Args:
+        :D (jnp.ndarray): The covariance matrix to check
+        :tol (float, default=1e-8): The tolerance for numerical checks
+
+    Returns:
+        :is_valid (bool): Whether the covariance matrix is valid
+    """
+
+    # Symmetry check
+    symmetric = jnp.allclose(D, D.T, atol=tol)
+
+    # PSD check
+    eigvals = jnp.linalg.eigvalsh(D)
+    psd = jnp.all(eigvals >= -tol)
+
+    return jnp.logical_and(symmetric, psd)
     
     
 def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
@@ -282,7 +306,12 @@ def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
     
     neglogP = 1/2 * logdet2piM + 1/2 * jnp.sum(z * jnp.matmul(Minv, z))
 
-    return neglogP
+    # Penalise invalid covariance matrices
+    is_valid = check_valid_covmat(M)
+    penalty = 1e20
+    
+    return jnp.where(is_valid, neglogP, penalty)
+
     
     
 def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig, include_logdet=True):
@@ -318,15 +347,20 @@ def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig, include_logdet=True):
     S = jnp.array(Sigma)
     S = S.at[nx:,nx:].set(S[nx:,nx:] + jnp.identity(ny) * sig ** 2)
     _, logdet2piS = jnp.linalg.slogdet(2 * jnp.pi * S)
-    Dinv = jnp.linalg.inv(D)
     
+    Dinv = jnp.linalg.inv(D)
+
     z = f - yobs
     if include_logdet:
         neglogP = 1/2 * logdet2piS + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
     else:
         neglogP = 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
-        
-    return neglogP
+
+    # Penalise invalid covariance matrices
+    is_valid = check_valid_covmat(D)
+    penalty = 1e20
+    
+    return jnp.where(is_valid, neglogP, penalty)
 
     
 def negloglike_unif_mv(xobs, yobs, Sigma, f, G, sig):
@@ -358,10 +392,16 @@ def negloglike_unif_mv(xobs, yobs, Sigma, f, G, sig):
         - jnp.matmul(Sigma[nx:,:nx], G.T) - jnp.matmul(G, Sigma[:nx,nx:])
     )
     _, logdet2piD = jnp.linalg.slogdet(2 * jnp.pi * D)
+
     Dinv = jnp.linalg.inv(D)
     
     z = f - yobs
     neglogP = 1/2 * logdet2piD + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
         
-    return neglogP
+    # Penalise invalid covariance matrices
+    is_valid = check_valid_covmat(D)
+    penalty = 1e20
+    
+    return jnp.where(is_valid, neglogP, penalty)
+
 

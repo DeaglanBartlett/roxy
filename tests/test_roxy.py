@@ -41,12 +41,12 @@ def test_example_standard(monkeypatch):
                 nwarm, nsamp, method='mnr')
 
     # Default plotting
-    roxy.plotting.trace_plot(samples, to_plot='all', savename='tests/trace.png',
+    roxy.plotting.trace_plot(samples, to_plot='all', savename='trace.png',
         show=True)
     roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-        show=True, savename='tests/predictive.png')
+        show=True, savename='predictive.png')
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-        param_prior=param_prior, savename='tests/corner.png', show=True)
+        param_prior=param_prior, savename='corner.png', show=True)
         
     # Just plot some variables
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
@@ -396,20 +396,20 @@ def test_causality(monkeypatch):
     for criterion in ['spearman', 'pearson', 'hsic']:
         roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
             param_names, theta0, param_prior, method='mnr',
-            criterion=criterion, savename='tests/causality.png', show=True)
+            criterion=criterion, savename='causality.png', show=True)
     
     # Check for unknown criterion we get an error
     try:
         roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
             param_names, theta0, param_prior, method='mnr',
-            criterion='unknown_criterion', savename='tests/causality.png', show=True)
+            criterion='unknown_criterion', savename='causality.png', show=True)
     except NotImplementedError:
         pass
         
     # Check it works the other way around x <-> y
     roxy.causality.assess_causality(my_fun, fun_inv, yobs, xobs, [yerr, xerr],
             param_names, theta0, param_prior, method='mnr',
-            criterion='hsic', savename='tests/causality.png', show=True)
+            criterion='hsic', savename='causality.png', show=True)
     
     # Now with covariance matrix
     Sxx = np.identity(nx) * xerr ** 2
@@ -421,7 +421,7 @@ def test_causality(monkeypatch):
                 np.concatenate([Syx, Syy], axis=-1)]
             )
     roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, Sigma,
-        param_names, theta0, param_prior, method='mnr', savename='tests/causality.png',
+        param_names, theta0, param_prior, method='mnr', savename='causality.png',
         show=True, covmat=True)
         
     return
