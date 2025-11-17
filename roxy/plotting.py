@@ -165,7 +165,7 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None,
     show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1,
     'zorder':10, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1},
-    fgivenx_kwargs={}):
+    fgivenx_kwargs={}, xscale='linear', yscale='linear', xlim=None, ylim=None):
     """
     Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
     of the function given the inferred parameters and plot the observed points on
@@ -186,6 +186,10 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
         :ylabel (str, default='$x$'): The label to use for the y axis
         :errorbar_kwargs (dict): Dictionary of kwargs to pass to plt.errorbar
         :fgivenx_kwargs (dict): Dictionary of kwargs to pass to fgivenx.plot_contours
+        :xscale (str, default='linear'): Scale to use for x axis ('linear' or 'log')
+        :yscale (str, default='linear'): Scale to use for y axis ('linear' or 'log')
+        :xlim (tuple, default=None): If not None, set the x limits to this value
+        :ylim (tuple, default=None): If not None, set the y limits to this value
     
     Returns:
         :fig (matplotlib.figure.Figure): The figure containing the posterior predictive
@@ -203,9 +207,19 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
     print('\nMaking posterior predictive plot')
     fig, ax = plt.subplots(1, 1)
     ax.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **errorbar_kwargs)
+
+    ax.set_xscale(xscale)
+    ax.set_yscale(yscale)
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
     
     xmin, xmax = ax.get_xlim()
-    x = np.linspace(xmin, xmax, 200)
+    if xscale == 'log':
+        x = np.logspace(np.log10(xmin), np.log10(xmax), 200)
+    else:
+        x = np.linspace(xmin, xmax, 200)
     cbar = plot_contours(f, x, all_samples, ax, **fgivenx_kwargs)
     cbar = plt.colorbar(cbar,ticks=[0,1,2,3])
     cbar.set_ticklabels(['',r'$1\sigma$',r'$2\sigma$',r'$3\sigma$'])
