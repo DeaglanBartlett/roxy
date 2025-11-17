@@ -31,7 +31,7 @@ def test_example_standard(monkeypatch):
     truths['sig'] = sig
 
     np.random.seed(0)
-    xtrue = np.linspace(0, 5, nx)
+    xtrue = np.linspace(0.01, 5, nx)
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
@@ -43,10 +43,15 @@ def test_example_standard(monkeypatch):
     # Default plotting
     roxy.plotting.trace_plot(samples, to_plot='all', savename='trace.png',
         show=True)
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-        show=True, savename='predictive.png')
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-        param_prior=param_prior, savename='corner.png', show=True)
+            param_prior=param_prior, savename='corner.png', show=True)
+    
+    xlim = (xobs.min()*0.8, xobs.max()*1.2)
+    ylim = (yobs.min()*0.8, yobs.max()*1.2)
+    for xscale in ['linear', 'log']:
+        roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
+            show=True, savename='predictive.png',
+            xlim=xlim, ylim=ylim, xscale=xscale, yscale=xscale)
         
     # Just plot some variables
     roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
