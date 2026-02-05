@@ -443,7 +443,7 @@ class RoxyRegressor():
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, errors, nwarm, nsamp, method='mnr',
+    def mcmc(self, params_to_opt, xobs, yobs, y_is_detected,  errors, nwarm, nsamp, method='mnr',
             ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True,
             covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True, init=None,
             include_logdet=True, optimiser='l-bfgs-b'):
@@ -456,6 +456,8 @@ class RoxyRegressor():
             :params_to_opt (list): The names of the parameters we wish to optimise
             :xobs (jnp.ndarray): The observed x values
             :yobs (jnp.ndarray): The observed y values
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs,
+                giving whether each point is a detection (True) or an upper limit (False).
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
                 the error on the observed x and y values. Otherwise, this is the
                 covariance matrix in the order (x, y)
