@@ -1,3 +1,6 @@
+import numpyro.distributions as dist
+from jax.scipy.special import erf
+from jax.scipy.special import erfc
 import jax.numpy as jnp
 import warnings
 
@@ -51,6 +54,74 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
         warnings.warn(warning_message, UserWarning)
 
     return
+
+
+
+def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
+    """
+    Computes the negative log-likelihood under the assumption of an uncorrelated
+    Gaussian likelihood with a Gaussian prior on the true x positions, where some of the y values are upper limits. 
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs, giving whether each point is a detection (True) or an upper limit (False)
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x positions
+    """
+
+    N = len(xobs)
+    Ai = fprime
+    if (not hasattr(Ai, "__len__")) or len(Ai) == 1:
+        Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
+    Bi = f - Ai * xobs
+
+
+    xdet = xobs[y_is_detected]
+    ydet = yobs[y_is_detected]
+    xerr_det = xerr[y_is_detected]
+    yerr_det = yerr[y_is_detected]
+    Ai_det = Ai[y_is_detected]
+    Bi_det = Bi[y_is_detected]
+
+    xuplim = xobs[~y_is_detected]
+    yuplim = yobs[~y_is_detected]
+    xerr_uplim = xerr[~y_is_detected]
+    yerr_uplim = yerr[~y_is_detected]
+    Ai_uplim = Ai[~y_is_detected]
+    Bi_uplim = Bi[~y_is_detected]
+
+
+    neglogP = 0.0
+
+    # DETECTIONS
+    if len(xdet)>0:
+        numerator_t1 = (w_gauss**2*(Ai_det*xdet + Bi_det - ydet)**2 + xerr_det**2*(Ai_det*mu_gauss + Bi_det - ydet)**2 + (yerr_det**2 + sig**2)*(xdet - mu_gauss)**2) 
+        denominator_t1 = (2*(Ai_det**2 * xerr_det**2 * w_gauss**2 + sig**2*(xerr_det**2 + w_gauss**2) + (xerr_det**2 + w_gauss**2)*yerr_det**2))
+        t2 = jnp.log(2 * jnp.pi * jnp.sqrt((Ai_det**2 * xerr_det**2 * w_gauss**2 + sig**2 * (xerr_det**2 + w_gauss**2)+ (xerr_det**2 + w_gauss**2)*yerr_det**2)))
+        neglogP =  jnp.sum(numerator_t1/denominator_t1 + t2)
+
+    # UPPER LIMITS
+    if len(xuplim)>0:
+        t1 = dist.Normal(xuplim, jnp.sqrt(xerr_uplim**2 + w_gauss**2)).log_prob(mu_gauss).sum()
+        sigma_c_squared = (1/w_gauss**2 + 1/xerr_uplim**2)**(-1)
+        mu_c = sigma_c_squared * (mu_gauss/w_gauss**2 + xuplim/xerr_uplim**2)
+        sigma_squared = yerr_uplim**2 + sig**2 
+        t2 =  jnp.sum( jnp.log( 0.5*erfc((Ai_uplim*mu_c + Bi_uplim - yuplim)/(jnp.sqrt( 2*sigma_squared + 2* Ai_uplim**2 *  sigma_c_squared ))) ))
+
+        neglogP_uplim = - t1 - t2
+
+        neglogP += neglogP_uplim
+
+    return neglogP
+
+
+
 
 def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """

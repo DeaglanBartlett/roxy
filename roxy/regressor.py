@@ -110,7 +110,7 @@ class RoxyRegressor():
         """
         return self.secondgradfun(x, theta)
         
-    def negloglike(self, theta, xobs, yobs, errors, sig=0., mu_gauss=0., w_gauss=1.,
+    def negloglike(self, theta, xobs, yobs, errors, y_is_detected=[], sig=0., mu_gauss=0., w_gauss=1.,
         weights_gauss=1., method='mnr', covmat=False, test_prior=True,
         include_logdet=True):
         """
@@ -125,6 +125,7 @@ class RoxyRegressor():
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
                 the error on the observed x and y values. Otherwise, this is the
                 covariance matrix in the order (x, y)
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs, giving whether each point is a detection (True) or an upper limit (False)
             :sig (float, default=0.): The intrinsic scatter, which is added in
                 quadrature with yerr
             :mu_gauss (float or jnp.ndarray, default=0.): The mean of the Gaussian
@@ -159,12 +160,17 @@ class RoxyRegressor():
         
         if method == 'mnr':
             if covmat:
+                if len(y_is_detected)>0: raise NotImplementedError
                 return roxy.likelihoods.negloglike_mnr_mv(xobs, yobs, errors, f, G, sig,
                         mu_gauss, w_gauss)
             else:
+                if len(y_is_detected)>0: 
+                    return roxy.likelihoods.negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, 
+                                                                  fprime, sig, mu_gauss, w_gauss)
                 return roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, yerr, f,
                         fprime, sig, mu_gauss, w_gauss)
         elif method == 'gmm':
+            if len(y_is_detected)>0: raise NotImplementedError
             mu = jnp.array(mu_gauss)
             w = jnp.array(w_gauss)
             weights = jnp.array(weights_gauss)
@@ -174,6 +180,7 @@ class RoxyRegressor():
                 return roxy.likelihoods.negloglike_gmm(xobs, yobs, xerr, yerr, f,
                         fprime, sig, mu, w, weights)
         elif method == 'unif':
+            if len(y_is_detected)>0: raise NotImplementedError
             if covmat:
                 return roxy.likelihoods.negloglike_unif_mv(xobs, yobs, errors, f, G,
                         sig)
@@ -181,6 +188,7 @@ class RoxyRegressor():
                 return roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, f,
                         fprime, sig)
         elif method == 'prof':
+            if len(y_is_detected)>0: raise NotImplementedError
             if covmat:
                 return roxy.likelihoods.negloglike_prof_mv(xobs, yobs, errors, f, G,
                         sig, include_logdet=include_logdet)
@@ -213,7 +221,7 @@ class RoxyRegressor():
                     print(f'{pname}:\t{pdefault}')
         return jnp.array(pidx)
             
-    def optimise(self, params_to_opt, xobs, yobs, errors, method='mnr',
+    def optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=[], method='mnr',
             infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
             gmm_prior='hierarchical', include_logdet=True, verbose=True,
             optimiser='l-bfgs-b'):
@@ -229,6 +237,7 @@ class RoxyRegressor():
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
                 the error on the observed x and y values. Otherwise, this is the
                 covariance matrix in the order (x, y)
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs, giving whether each point is a detection (True) or an upper limit (False)
             :method (str, default='mnr'): The name of the likelihood method to use
                 ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more
                 information
@@ -256,6 +265,22 @@ class RoxyRegressor():
             :res (OptResult): The result of the optimisation
             :param_names (list): List of parameter names in order of res.params
         """
+
+
+        # Check whether y_is_detected is either [] or an array of booleans the same length as xobs and yobs
+        if not (
+            (isinstance(y_is_detected, list) and len(y_is_detected) == 0)
+            or
+            (
+                isinstance(y_is_detected, np.ndarray)
+                and y_is_detected.dtype == bool
+                and len(y_is_detected) == len(xobs)
+            )
+        ):
+            raise ValueError(
+                "y_is_detected must be either an empty list or a boolean array "
+                "of the same length as xobs and yobs"
+            )
         
         # Check if warning should be raised
         roxy.likelihoods.likelihood_warnings(
@@ -317,7 +342,7 @@ class RoxyRegressor():
                 mu_gauss, w_gauss, weights_gauss = None, None, None
 
             ll = nll + self.negloglike(t, xobs, yobs, errors, sig=sig,
-                mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss,
+                mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss, y_is_detected=y_is_detected,
                 method=method, covmat=covmat, test_prior=False,
                 include_logdet=include_logdet)
             ll = jnp.where(bad_run, np.inf, ll)
@@ -443,7 +468,7 @@ class RoxyRegressor():
         
         return res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs, y_is_detected,  errors, nwarm, nsamp, method='mnr',
+    def mcmc(self, params_to_opt, xobs, yobs,  errors, nwarm, nsamp, y_is_detected=[], method='mnr',
             ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True,
             covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True, init=None,
             include_logdet=True, optimiser='l-bfgs-b'):
@@ -456,13 +481,13 @@ class RoxyRegressor():
             :params_to_opt (list): The names of the parameters we wish to optimise
             :xobs (jnp.ndarray): The observed x values
             :yobs (jnp.ndarray): The observed y values
-            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs,
-                giving whether each point is a detection (True) or an upper limit (False).
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
                 the error on the observed x and y values. Otherwise, this is the
                 covariance matrix in the order (x, y)
             :nwarm (int): The number of warmup steps to use in the MCMC
             :nsamp (int): The number of samples to obtain in the MCMC
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs,
+                giving whether each point is a detection (True) or an upper limit (False).
             :method (str, default='mnr'): The name of the likelihood method to use
                 ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more
                 information.
@@ -506,7 +531,24 @@ class RoxyRegressor():
             Syy = errors[nx:, nx:]
         else:
             xerr, yerr = errors
-                
+
+
+        # Check whether y_is_detected is either [] or an array of booleans the same length as xobs and yobs
+        if not (
+            (isinstance(y_is_detected, list) and len(y_is_detected) == 0)
+            or
+            (
+                isinstance(y_is_detected, np.ndarray)
+                and y_is_detected.dtype == bool
+                and len(y_is_detected) == len(xobs)
+            )
+        ):
+            raise ValueError(
+                "y_is_detected must be either an empty list or a boolean array "
+                "of the same length as xobs and yobs"
+            )
+              
+
         def model():
         
             # Parameters of function
@@ -572,20 +614,36 @@ class RoxyRegressor():
             # Sample
             if method == 'mnr':
                 if covmat:
+                    if len(y_is_detected)>0: raise NotImplementedError
+                    
                     numpyro.sample(
                         'obs',
                         roxy.mcmc.Likelihood_MNR_MV(xobs, yobs, Sxx, Syy, Sxy, f, G,
                             sig, mu_gauss, w_gauss),
                         obs=yobs,
                     )
+
                 else:
-                    numpyro.sample(
-                        'obs',
-                        roxy.mcmc.Likelihood_MNR(xobs, yobs, xerr, yerr, f, fprime,
-                            sig, mu_gauss, w_gauss),
-                        obs=yobs,
+                    if len(y_is_detected)>0: 
+                        numpyro.sample(
+                            'obs',
+                            roxy.mcmc.Likelihood_MNR_uplims(xobs, yobs, y_is_detected, xerr, yerr, f,
+                                fprime, sig, mu_gauss, w_gauss),
+                            obs=yobs,
+                        )
+                    
+                    else:
+                        numpyro.sample(
+                            'obs',
+                            roxy.mcmc.Likelihood_MNR(xobs, yobs, xerr, yerr, f, fprime,
+                                sig, mu_gauss, w_gauss),
+                            obs=yobs,
                     )
+            
             elif method == 'unif':
+                
+                if len(y_is_detected)>0: raise NotImplementedError
+                
                 if covmat:
                     numpyro.sample(
                         'obs',
@@ -600,7 +658,11 @@ class RoxyRegressor():
                             sig),
                         obs=yobs,
                     )
+
             elif method == 'prof':
+                
+                if len(y_is_detected)>0: raise NotImplementedError
+                
                 if covmat:
                     numpyro.sample(
                         'obs',
@@ -615,7 +677,11 @@ class RoxyRegressor():
                             sig, include_logdet=include_logdet),
                         obs=yobs,
                     )
-            elif method == 'gmm':
+
+            elif method == 'gmm': 
+                
+                if len(y_is_detected)>0: raise NotImplementedError
+                
                 if covmat:
                     raise NotImplementedError
                 else:
@@ -633,7 +699,7 @@ class RoxyRegressor():
         
         try:
             if init is None:
-                vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors,
+                vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, y_is_detected=y_is_detected,
                     method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss,
                     covmat=covmat, gmm_prior=gmm_prior, verbose=verbose,
                     include_logdet=include_logdet)

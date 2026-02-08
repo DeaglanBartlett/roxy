@@ -12,6 +12,62 @@ from jax.scipy.special import ndtri, ndtr
 
 import roxy.likelihoods
 
+
+class Likelihood_MNR_uplims(dist.Distribution):
+    """
+    Class to be used by ``numpyro`` to evaluate the log-likelihood under
+    the assumption of an uncorrelated Gaussian likelihood with a Gaussian
+    prior on the true x positions, where some of the points are upper limits
+    (i.e. non-detections in y).
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs,
+            giving whether each point is a detection (True) or an upper limit (False)
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated
+            at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx
+            evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x
+            positions
+    """
+
+
+
+    def __init__(self, xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig,
+        mu_gauss, w_gauss):
+
+        self.xobs, self.yobs, self.y_is_detected, self.xerr, self.yerr, self.f, self.fprime, self.sig, self.mu_gauss, self.w_gauss = \
+            promote_shapes(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss)
+        batch_shape = lax.broadcast_shapes(
+            jnp.shape(xobs),
+            jnp.shape(yobs),
+            jnp.shape(y_is_detected),
+            jnp.shape(xerr),
+            jnp.shape(yerr),
+            jnp.shape(f),
+            jnp.shape(fprime),
+            jnp.shape(sig),
+            jnp.shape(mu_gauss),
+            jnp.shape(w_gauss),
+        )
+        super(Likelihood_MNR_uplims, self).__init__(batch_shape = batch_shape)  
+
+    def sample(self, key, sample_shape=()):
+        raise NotImplementedError
+    
+    def log_prob(self, value):
+        return - roxy.likelihoods.negloglike_mnr_uplims(self.xobs, self.yobs, self.y_is_detected,
+            self.xerr, self.yerr, self.f, self.fprime, self.sig, self.mu_gauss, self.w_gauss)   
+
+
+
+
 class Likelihood_MNR(dist.Distribution):
     """
     Class to be used by ``numpyro`` to evaluate the log-likelihood under

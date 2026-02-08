@@ -9,6 +9,8 @@ import roxy.likelihoods
 import matplotlib.pyplot as plt
 import unittest
 
+
+
 def test_example_standard(monkeypatch):
 
     monkeypatch.setattr(plt, 'show', lambda: None)
@@ -313,6 +315,50 @@ def test_different_likes():
 
     return
     
+
+
+def test_example_with_uplims():
+    def my_fun(x, theta):
+        return theta[0] * x + theta[1]
+    
+    param_names = ['A', 'B']
+    theta0 = [2, 0.5]
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+
+    nx = 20
+    xerr = 0.1
+    yerr = 0.5
+    sig = 0.5
+    
+    np.random.seed(0)
+    xtrue = np.linspace(0.01, 5, nx)
+    ytrue = reg.value(xtrue, theta0)
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+    
+    # Make some upper limits
+    y_is_detected = np.ones_like(yobs).astype(bool)
+    y_is_detected[::5] = False
+
+
+    # Check that passing an incorrect y_is_detected raises an error
+    try:
+        reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr', y_is_detected=[0,1])
+    except ValueError:
+        pass
+
+
+    reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr', y_is_detected=y_is_detected)
+
+    nwarm, nsamp = 70, 500
+    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
+                nwarm, nsamp, method='mnr', y_is_detected=y_is_detected)
+    
+    return
+    
+
     
 def test_mcmc_classes():
 
