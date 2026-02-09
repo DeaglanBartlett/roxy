@@ -83,8 +83,7 @@ def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig,
 
     N = len(xobs)
     Ai = fprime
-    if (not hasattr(Ai, "__len__")) or len(Ai) == 1:
-        Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
+    Ai = jnp.broadcast_to(jnp.atleast_1d(Ai), (N,))
     Bi = f - Ai * xobs
 
     if not hasattr(xerr, '__len__') or len(xerr) == 1:

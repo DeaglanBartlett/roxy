@@ -105,6 +105,14 @@ def test_example_standard(monkeypatch):
             Ai, sig, [2.5], [1.0], [1.0])
         roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, ytrue,
             Ai, sig)
+    
+    # Test with scalar yerr
+    roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, 0.5, ytrue,
+        theta0[0], sig, 2.5, 1.0)
+    
+    # Test negloglike_mnr without include_logdet
+    roxy.likelihoods.negloglike_prof(xobs, yobs, xerr, yerr, ytrue,
+        theta0[0], sig, include_logdet=False)
             
     # Test regressor negloglike
     reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
@@ -344,11 +352,10 @@ def test_example_with_uplims():
 
 
     # Check that passing an incorrect y_is_detected raises an error
-    try:
-        reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr', y_is_detected=[0,1])
-    except ValueError:
-        pass
-
+    with unittest.TestCase().assertRaises(ValueError):
+        reg.optimise(param_names, xobs, yobs, [xerr, yerr], 
+                     y_is_detected=np.random.rand(len(yobs)-1) > 0.5,
+                     method='mnr')
 
     reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='mnr', y_is_detected=y_is_detected)
 
@@ -359,6 +366,45 @@ def test_example_with_uplims():
     for k in param_names + ['sig', 'mu_gauss', 'w_gauss']:
         assert k in samples, f"Samples should contain key {k}"
         assert len(samples[k]) == nsamp, f"Samples for {k} should have length {nsamp}"
+    
+    # Check that passing an incorrect y_is_detected raises an error
+    with unittest.TestCase().assertRaises(ValueError):
+        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr',
+                y_is_detected=np.random.rand(len(yobs)-1) > 0.5)
+
+    # Test posterior predictive plot with upper limits (covers lines 215, 217 in plotting.py)
+    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
+                                           y_is_detected=y_is_detected, show=False, savename=None)
+    
+    # Test NotImplementedErrors for various methods with upper limits and covmat
+    Sxx = np.identity(nx) * xerr ** 2
+    Sxy = np.zeros((nx,nx))
+    Syx = np.zeros((nx,nx))
+    Syy = np.identity(nx) * yerr ** 2
+    Sigma = np.concatenate(
+                [np.concatenate([Sxx, Sxy], axis=-1),
+                np.concatenate([Syx, Syy], axis=-1)]
+            )
+    
+    # Test MNR with covmat and upper limits
+    with unittest.TestCase().assertRaises(NotImplementedError):
+        reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method='mnr',
+                covmat=True, y_is_detected=y_is_detected)
+    
+    # Test unif with upper limits
+    with unittest.TestCase().assertRaises(NotImplementedError):
+        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='unif',
+                y_is_detected=y_is_detected)
+    
+    # Test prof with upper limits  
+    with unittest.TestCase().assertRaises(NotImplementedError):
+        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='prof',
+                y_is_detected=y_is_detected)
+    
+    # Test gmm with upper limits
+    with unittest.TestCase().assertRaises(NotImplementedError):
+        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm',
+                y_is_detected=y_is_detected)
     
     return
     
@@ -414,6 +460,23 @@ def test_mcmc_classes():
             obj.sample(rng_key, sample_shape=(5,))
         except NotImplementedError:
             pass
+    
+    # Test Likelihood_MNR_uplims.sample() raises NotImplementedError (line 62 in mcmc.py)
+    # Stack the Sxx, Sxy, Syy into a single covariance matrix for the test
+    Sigma = np.concatenate(
+                [np.concatenate([Sxx, Sxy], axis=-1),
+                np.concatenate([Sxy.T, Syy], axis=-1)]
+            )
+    y_is_detected = np.ones_like(yobs).astype(bool)
+    y_is_detected[::5] = False
+    data = [xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss]
+    obj_uplims = roxy.mcmc.Likelihood_MNR_uplims(*data)
+    with unittest.TestCase().assertRaises(NotImplementedError):
+        obj_uplims.sample(rng_key, sample_shape=(5,))
+    
+    # Test negloglike_prof_mv without include_logdet (line 448 in likelihoods.py)
+    roxy.likelihoods.negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig, 
+                                        include_logdet=False)
 
     return
     
