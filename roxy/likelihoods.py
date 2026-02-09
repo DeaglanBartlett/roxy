@@ -175,7 +175,7 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     den = Ai ** 2 * w_gauss ** 2 * xerr ** 2 + s2 * (w_gauss ** 2 + xerr ** 2)
     
     neglogP = (
-        N / 2 * jnp.log(2 * jnp.pi)
+        N * jnp.log(2 * jnp.pi)
         + 1/2 * jnp.sum(jnp.log(den))
         + 1/2 * jnp.sum(w_gauss ** 2 * (Ai * xobs + Bi - yobs) ** 2 / den)
         + 1/2 * jnp.sum(xerr ** 2 * (Ai * mu_gauss + Bi - yobs) ** 2 / den)
