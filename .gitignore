@@ -172,3 +172,4 @@ examples/bias_results/
 tests/*.png
 
 *.DS_Store
+docs/source/_build
