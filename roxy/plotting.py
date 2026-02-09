@@ -7,7 +7,7 @@ import arviz as az
 from fgivenx import plot_contours
 import roxy.mcmc
 
-rcParams['text.usetex'] = True
+rcParams['text.usetex'] = False
 rcParams.update({'font.size': 14})
 
 
