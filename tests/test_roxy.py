@@ -369,10 +369,10 @@ def test_mcmc_classes():
     obj = roxy.mcmc.OrderedNormal()
     rng_key = jax.random.PRNGKey(np.random.randint(1))
     obj.sample(rng_key, sample_shape=(5,))
-    obj.log_prob(jnp.array(1))
-    obj.cdf(jnp.array(1))
-    obj.log_cdf(jnp.array(1))
-    obj.icdf(jnp.array(0.5))
+    obj.log_prob(jnp.atleast_1d(1.0))
+    obj.cdf(jnp.atleast_1d(1.0))
+    obj.log_cdf(jnp.atleast_1d(1.0))
+    obj.icdf(jnp.atleast_1d(0.5))
     obj.mean
     obj.variance
     
