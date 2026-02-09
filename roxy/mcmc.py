@@ -23,8 +23,9 @@ class Likelihood_MNR_uplims(dist.Distribution):
     Args:
         :xobs (jnp.ndarray): The observed x values
         :yobs (jnp.ndarray): The observed y values
-        :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs,
-            giving whether each point is a detection (True) or an upper limit (False)
+        :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and 
+            yobs, giving whether each point is a detection (True) or an upper limit 
+            (False)
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
         :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated

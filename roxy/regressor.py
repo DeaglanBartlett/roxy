@@ -125,7 +125,9 @@ class RoxyRegressor():
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
                 the error on the observed x and y values. Otherwise, this is the
                 covariance matrix in the order (x, y)
-            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs, giving whether each point is a detection (True) or an upper limit (False)
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs 
+                and yobs, giving whether each point is a detection (True) or an upper 
+                limit (False)
             :sig (float, default=0.): The intrinsic scatter, which is added in
                 quadrature with yerr
             :mu_gauss (float or jnp.ndarray, default=0.): The mean of the Gaussian
@@ -237,7 +239,9 @@ class RoxyRegressor():
             :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
                 the error on the observed x and y values. Otherwise, this is the
                 covariance matrix in the order (x, y)
-            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs, giving whether each point is a detection (True) or an upper limit (False)
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs 
+                and yobs, giving whether each point is a detection (True) or an upper 
+                limit (False)
             :method (str, default='mnr'): The name of the likelihood method to use
                 ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more
                 information
@@ -486,8 +490,9 @@ class RoxyRegressor():
                 covariance matrix in the order (x, y)
             :nwarm (int): The number of warmup steps to use in the MCMC
             :nsamp (int): The number of samples to obtain in the MCMC
-            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and yobs,
-                giving whether each point is a detection (True) or an upper limit (False).
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs 
+                and yobs, giving whether each point is a detection (True) or an upper 
+                limit (False).
             :method (str, default='mnr'): The name of the likelihood method to use
                 ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more
                 information.
