@@ -355,6 +355,10 @@ def test_example_with_uplims():
     nwarm, nsamp = 70, 500
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
                 nwarm, nsamp, method='mnr', y_is_detected=y_is_detected)
+    assert isinstance(samples, dict), "MCMC should return a dictionary of samples"
+    for k in param_names + ['sig', 'mu_gauss', 'w_gauss']:
+        assert k in samples, f"Samples should contain key {k}"
+        assert len(samples[k]) == nsamp, f"Samples for {k} should have length {nsamp}"
     
     return
     
