@@ -2,6 +2,7 @@ import numpyro.distributions as dist
 from jax.scipy.special import erfc
 import jax.numpy as jnp
 import warnings
+import numpy as np
 
 def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
     """
@@ -56,6 +57,7 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
 
 
 
+
 def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
@@ -85,20 +87,28 @@ def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig,
         Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
     Bi = f - Ai * xobs
 
+    if not hasattr(xerr, '__len__') or len(xerr) == 1:
+        xerr = jnp.full(N, jnp.squeeze(jnp.array(xerr)))
+    if not hasattr(yerr, '__len__') or len(yerr) == 1:
+        yerr = jnp.full(N, jnp.squeeze(jnp.array(yerr)))
 
-    xdet = xobs[y_is_detected]
-    ydet = yobs[y_is_detected]
-    xerr_det = xerr[y_is_detected]
-    yerr_det = yerr[y_is_detected]
-    Ai_det = Ai[y_is_detected]
-    Bi_det = Bi[y_is_detected]
 
-    xuplim = xobs[~y_is_detected]
-    yuplim = yobs[~y_is_detected]
-    xerr_uplim = xerr[~y_is_detected]
-    yerr_uplim = yerr[~y_is_detected]
-    Ai_uplim = Ai[~y_is_detected]
-    Bi_uplim = Bi[~y_is_detected]
+    mask = np.asarray(y_is_detected, dtype=bool)
+    mask_uplim = ~mask
+
+    xdet = xobs[mask]
+    ydet = yobs[mask]
+    xerr_det = xerr[mask]
+    yerr_det = yerr[mask]
+    Ai_det = Ai[mask]
+    Bi_det = Bi[mask]
+
+    xuplim = xobs[mask_uplim]
+    yuplim = yobs[mask_uplim]
+    xerr_uplim = xerr[mask_uplim]
+    yerr_uplim = yerr[mask_uplim]
+    Ai_uplim = Ai[mask_uplim]
+    Bi_uplim = Bi[mask_uplim]
 
 
     neglogP = 0.0

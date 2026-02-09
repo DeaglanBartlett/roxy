@@ -276,7 +276,7 @@ class RoxyRegressor():
             (isinstance(y_is_detected, list) and len(y_is_detected) == 0)
             or
             (
-                isinstance(y_is_detected, np.ndarray)
+                isinstance(y_is_detected, (np.ndarray, jax.Array))
                 and y_is_detected.dtype == bool
                 and len(y_is_detected) == len(xobs)
             )
@@ -543,7 +543,7 @@ class RoxyRegressor():
             (isinstance(y_is_detected, list) and len(y_is_detected) == 0)
             or
             (
-                isinstance(y_is_detected, np.ndarray)
+                isinstance(y_is_detected, (np.ndarray, jax.Array))
                 and y_is_detected.dtype == bool
                 and len(y_is_detected) == len(xobs)
             )

@@ -162,8 +162,9 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 
     return
     
-def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=None,
-    show=True, xlabel=r'$x$', ylabel=r'$y$', errorbar_kwargs={'fmt':'.', 'markersize':1,
+def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, y_is_detected=[], 
+    savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$', 
+    errorbar_kwargs={'fmt':'.', 'markersize':1,
     'zorder':10, 'capsize':1, 'elinewidth':0.5, 'color':'k', 'alpha':1},
     fgivenx_kwargs={}, xscale='linear', yscale='linear', xlim=None, ylim=None):
     """
@@ -179,6 +180,8 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
         :yobs (jnp.ndarray): The observed y values
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
+        :y_is_detected (array-like, default=[]): Boolean array of the same length as
+            yobs, where True indicates a detected point and False indicates an upper limit.
         :savename (str, default=None): If not None, save the figure to the file given
             by this argument.
         :show (bool, default=True): If True, display the figure with plt.show()
@@ -206,7 +209,11 @@ def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=Non
 
     print('\nMaking posterior predictive plot')
     fig, ax = plt.subplots(1, 1)
-    ax.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **errorbar_kwargs)
+    if len(y_is_detected)>0:
+        ax.errorbar(xobs[y_is_detected], yobs[y_is_detected], xerr=xerr, yerr=yerr, **errorbar_kwargs)
+        ax.errorbar(xobs[~y_is_detected], yobs[~y_is_detected], xerr=xerr, yerr=yerr, uplims=True, **errorbar_kwargs)
+    else:
+        ax.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **errorbar_kwargs)
 
     ax.set_xscale(xscale)
     ax.set_yscale(yscale)

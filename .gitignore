@@ -1,4 +1,5 @@
 roxy_venv/
+tests/test.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

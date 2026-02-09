@@ -1,5 +1,6 @@
 import numpy as np
 from roxy.regressor import RoxyRegressor
+import roxy.plotting as plotting
 
 def test_example1():
 
@@ -79,3 +80,53 @@ def test_example2():
             best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
             
     return
+
+
+
+def test_example3():
+    """
+    Example for the upper limit functionality. 
+    """
+
+    
+    np.random.seed(0)
+
+
+    def my_fun(x, theta):
+        return theta[0] * x + theta[1]
+
+    param_names = ['A', 'B']
+    theta0 = [2, 0.5]
+    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+    reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+    
+
+    nx = 50
+    xerr = 0.1
+    yerr = 0.5
+    sig = 0.8
+
+    xtrue = np.linspace(0, 5, nx)
+    ytrue = reg.value(xtrue, theta0)
+    
+    xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+
+
+    det_threshold = 4.0
+    # mask = True where value is an *upper limit* / censored
+    mask = yobs <= det_threshold
+    # Replace censored yobs with the threshold (no in-place assignment)
+    yobs = np.where(mask, det_threshold, yobs)
+    # Detection flag: True if detected, False if upper-limit
+    y_is_detected = ~mask
+
+    nwarm, nsamp = 700, 5000
+    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
+            method='mnr', y_is_detected=y_is_detected)
+    
+    
+    plotting.trace_plot(samples, to_plot='all')
+    plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior)
+    #plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, y_is_detected=y_is_detected)
