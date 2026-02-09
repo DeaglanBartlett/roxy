@@ -1,0 +1,408 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>causality &mdash; roxy 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            roxy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">roxy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">causality</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for causality</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.optimize</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.stats</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">spearmanr</span><span class="p">,</span> <span class="n">pearsonr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">roxy.regressor</span><span class="w"> </span><span class="kn">import</span> <span class="n">RoxyRegressor</span>
+
+
+<div class="viewcode-block" id="assess_causality">
+<a class="viewcode-back" href="../api.html#causality.assess_causality">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">assess_causality</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="n">fun_inv</span><span class="p">,</span> <span class="n">xobs</span><span class="p">,</span> <span class="n">yobs</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">param_names</span><span class="p">,</span> <span class="n">param_default</span><span class="p">,</span>
+                     <span class="n">param_prior</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mnr&#39;</span><span class="p">,</span> <span class="n">criterion</span><span class="o">=</span><span class="s1">&#39;hsic&#39;</span><span class="p">,</span> <span class="n">ngauss</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">covmat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">gmm_prior</span><span class="o">=</span><span class="s1">&#39;hierarchical&#39;</span><span class="p">,</span> <span class="n">savename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Due to the asymmetry between x and y, this function assesses whether one</span>
+<span class="sd">    should fit y(x) or x(y) with the intrinsic scatter in the dependent variable.</span>
+<span class="sd">    The code runs both forward fits, i.e. y(x) and x(y), and the reverse fits,</span>
+<span class="sd">    where one uses the parameters obtained from the forward fit and uses the</span>
+<span class="sd">    inverse function. The correlation coefficient of the residuals</span>
+<span class="sd">    (normalised by the square root of the sum of the squares of the vertical</span>
+<span class="sd">    errors and the intrindic scatter) is then found, and the method which minimsies this</span>
+<span class="sd">    recommended as the best option. Plots of the fits and the residuals</span>
+<span class="sd">    are produced, since these can be more informative for some functions. The</span>
+<span class="sd">    recommended setup is indicated by a star in the plots.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        :fun (callable): The function, f, to be considered, y = f(x, theta).</span>
+<span class="sd">            The function must take two arguments, the first of which</span>
+<span class="sd">            is the independent variable, the second of which are the parameters (as an</span>
+<span class="sd">            array or list).</span>
+<span class="sd">        :fun_inv (callable): If `fun` is y = f(x, theta), then this callable gives</span>
+<span class="sd">            x = f^{-1}(y, theta) for the same theta. The function must take two</span>
+<span class="sd">            arguments, the first corresponding to y and the second is theta.</span>
+<span class="sd">        :xobs (jnp.ndarray): The observed x values</span>
+<span class="sd">        :yobs (jnp.ndarray): The observed y values</span>
+<span class="sd">        :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving</span>
+<span class="sd">            the error on the observed x and y values. Otherwise, this is the</span>
+<span class="sd">            covariance matrix in the order (x, y)</span>
+<span class="sd">        :param_names (list): The list of parameter names, in the order which they are</span>
+<span class="sd">            supplied to fun</span>
+<span class="sd">        :param_default (list): The default valus of the parameters</span>
+<span class="sd">        :param_prior (dict): The prior range for each of the parameters. The prior is</span>
+<span class="sd">            assumed to be uniform in this range. If either entry is None in the prior,</span>
+<span class="sd">            then an infinite uniform prior is assumed.</span>
+<span class="sd">        :method (str, default=&#39;mnr&#39;): The name of the likelihood method to use</span>
+<span class="sd">            (&#39;mnr&#39;, &#39;gmm&#39;, &#39;unif&#39; or &#39;prof&#39;). See ``roxy.likelihoods`` for more</span>
+<span class="sd">            information</span>
+<span class="sd">        :criterion (str, default=&#39;hsic&#39;): The method used to determine the weakest</span>
+<span class="sd">            correlation of the residuals. One of &#39;hsic&#39;, &#39;spearman&#39; or &#39;pearson&#39;.</span>
+<span class="sd">        :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior.</span>
+<span class="sd">            Only used if method=&#39;gmm&#39;</span>
+<span class="sd">        :covmat (bool, default=False): This determines whether the errors argument</span>
+<span class="sd">            is [xerr, yerr] (False) or a covariance matrix (True).</span>
+<span class="sd">        :gmm_prior (string, default=&#39;hierarchical&#39;): If method=&#39;gmm&#39;, this decides</span>
+<span class="sd">            what prior to put on the GMM componenents. If &#39;uniform&#39;, then the mean</span>
+<span class="sd">            and widths have a uniform prior, and if &#39;hierarchical&#39; mu and w^2 have</span>
+<span class="sd">            a Normal and Inverse Gamma prior, respectively.</span>
+<span class="sd">        :savename (str, default=None): If not None, save the figure to the file given by</span>
+<span class="sd">            this argument.</span>
+<span class="sd">        :show (bool, default=True): If True, display the figure with plt.show()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">reg</span> <span class="o">=</span> <span class="n">RoxyRegressor</span><span class="p">(</span><span class="n">fun</span><span class="p">,</span> <span class="n">param_names</span><span class="p">,</span> <span class="n">param_default</span><span class="p">,</span> <span class="n">param_prior</span><span class="p">)</span>
+
+    <span class="c1"># y vs x</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Fitting y vs x&#39;</span><span class="p">)</span>
+    <span class="n">res_yx</span><span class="p">,</span> <span class="n">names_yx</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">optimise</span><span class="p">(</span><span class="n">param_names</span><span class="p">,</span> <span class="n">xobs</span><span class="p">,</span> <span class="n">yobs</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+                                    <span class="n">ngauss</span><span class="o">=</span><span class="n">ngauss</span><span class="p">,</span> <span class="n">covmat</span><span class="o">=</span><span class="n">covmat</span><span class="p">,</span> <span class="n">gmm_prior</span><span class="o">=</span><span class="n">gmm_prior</span><span class="p">)</span>
+    <span class="n">theta_yx</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_names</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">param_names</span><span class="p">):</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">names_yx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">theta_yx</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_yx</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">theta_yx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">theta_yx</span><span class="p">)</span>
+    <span class="n">sig_yx</span> <span class="o">=</span> <span class="n">res_yx</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">names_yx</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;sig&#39;</span><span class="p">)]</span>
+
+    <span class="c1"># x vs y</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Fitting x vs y&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">covmat</span><span class="p">:</span>
+        <span class="n">new_errors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xobs</span><span class="p">)</span>
+        <span class="n">ny</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">yobs</span><span class="p">)</span>
+        <span class="n">new_errors</span><span class="p">[:</span><span class="n">ny</span><span class="p">,</span> <span class="p">:</span><span class="n">ny</span><span class="p">]</span> <span class="o">=</span> <span class="n">errors</span><span class="p">[</span><span class="n">nx</span><span class="p">:,</span> <span class="n">nx</span><span class="p">:]</span>
+        <span class="n">new_errors</span><span class="p">[:</span><span class="n">ny</span><span class="p">,</span> <span class="n">ny</span><span class="p">:]</span> <span class="o">=</span> <span class="n">errors</span><span class="p">[</span><span class="n">nx</span><span class="p">:,</span> <span class="p">:</span><span class="n">nx</span><span class="p">]</span>
+        <span class="n">new_errors</span><span class="p">[</span><span class="n">ny</span><span class="p">:,</span> <span class="p">:</span><span class="n">ny</span><span class="p">]</span> <span class="o">=</span> <span class="n">errors</span><span class="p">[:</span><span class="n">nx</span><span class="p">,</span> <span class="n">nx</span><span class="p">:]</span>
+        <span class="n">new_errors</span><span class="p">[</span><span class="n">ny</span><span class="p">:,</span> <span class="n">ny</span><span class="p">:]</span> <span class="o">=</span> <span class="n">errors</span><span class="p">[:</span><span class="n">nx</span><span class="p">,</span> <span class="p">:</span><span class="n">nx</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_errors</span> <span class="o">=</span> <span class="p">[</span><span class="n">errors</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">errors</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">res_xy</span><span class="p">,</span> <span class="n">names_xy</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">optimise</span><span class="p">(</span><span class="n">param_names</span><span class="p">,</span> <span class="n">yobs</span><span class="p">,</span> <span class="n">xobs</span><span class="p">,</span> <span class="n">new_errors</span><span class="p">,</span>
+                                    <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">ngauss</span><span class="o">=</span><span class="n">ngauss</span><span class="p">,</span> <span class="n">covmat</span><span class="o">=</span><span class="n">covmat</span><span class="p">,</span> <span class="n">gmm_prior</span><span class="o">=</span><span class="n">gmm_prior</span><span class="p">)</span>
+    <span class="n">theta_xy</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_names</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">param_names</span><span class="p">):</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">names_xy</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">theta_xy</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_xy</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">theta_xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">theta_xy</span><span class="p">)</span>
+    <span class="n">sig_xy</span> <span class="o">=</span> <span class="n">res_xy</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">names_xy</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;sig&#39;</span><span class="p">)]</span>
+
+    <span class="c1"># Get normalisation for residuals</span>
+    <span class="k">if</span> <span class="n">covmat</span><span class="p">:</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xobs</span><span class="p">)</span>
+        <span class="n">xscale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">errors</span><span class="p">)[:</span><span class="n">nx</span><span class="p">]</span> <span class="o">+</span> <span class="n">sig_xy</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">yscale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">errors</span><span class="p">)[</span><span class="n">nx</span><span class="p">:]</span> <span class="o">+</span> <span class="n">sig_yx</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xscale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">errors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">sig_xy</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">yscale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">errors</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">sig_yx</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Residuals</span>
+    <span class="n">resid_yx_forward</span> <span class="o">=</span> <span class="p">(</span><span class="n">yobs</span> <span class="o">-</span> <span class="n">fun</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">theta_yx</span><span class="p">))</span> <span class="o">/</span> <span class="n">yscale</span>
+    <span class="n">resid_yx_inverse</span> <span class="o">=</span> <span class="p">(</span><span class="n">yobs</span> <span class="o">-</span> <span class="n">fun_inv</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">theta_xy</span><span class="p">))</span> <span class="o">/</span> <span class="n">yscale</span>
+    <span class="n">resid_xy_forward</span> <span class="o">=</span> <span class="p">(</span><span class="n">xobs</span> <span class="o">-</span> <span class="n">fun</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">theta_xy</span><span class="p">))</span> <span class="o">/</span> <span class="n">xscale</span>
+    <span class="n">resid_xy_inverse</span> <span class="o">=</span> <span class="p">(</span><span class="n">xobs</span> <span class="o">-</span> <span class="n">fun_inv</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">theta_yx</span><span class="p">))</span> <span class="o">/</span> <span class="n">xscale</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;y(x) forward&#39;</span><span class="p">,</span> <span class="n">resid_yx_forward</span><span class="p">,</span> <span class="n">xobs</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;y(x) inverse&#39;</span><span class="p">,</span> <span class="n">resid_yx_inverse</span><span class="p">,</span> <span class="n">xobs</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;x(y) forward&#39;</span><span class="p">,</span> <span class="n">resid_xy_forward</span><span class="p">,</span> <span class="n">yobs</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;x(y) inverse&#39;</span><span class="p">,</span> <span class="n">resid_xy_inverse</span><span class="p">,</span> <span class="n">yobs</span><span class="p">)]</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">resid</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">criterion</span> <span class="o">==</span> <span class="s1">&#39;spearman&#39;</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pval</span> <span class="o">=</span> <span class="n">spearmanr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">resid</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> Spearman: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">, (p=</span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">pval</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">criterion</span> <span class="o">==</span> <span class="s1">&#39;pearson&#39;</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pval</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">resid</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> Pearson: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">, (p=</span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">pval</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">criterion</span> <span class="o">==</span> <span class="s1">&#39;hsic&#39;</span><span class="p">:</span>
+            <span class="n">stat</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_hsic</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                                            <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">resid</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                                            <span class="n">alph</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> HSIC: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">stat</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">, (p&lt;0.001)&quot;</span><span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> HSIC: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">stat</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">, (p=</span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Forward&#39;</span><span class="p">,</span> <span class="s1">&#39;Inverse&#39;</span><span class="p">,</span> <span class="s1">&#39;Forward&#39;</span><span class="p">,</span> <span class="s1">&#39;Inverse&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span>
+        <span class="n">ibest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanargmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">ibest</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Recommended direction: y(x)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Recommended direction: x(y)&quot;</span><span class="p">)</span>
+        <span class="n">labels</span><span class="p">[</span><span class="n">ibest</span><span class="p">]</span> <span class="o">+=</span> <span class="s1">&#39;*&#39;</span>
+
+    <span class="c1"># Plot</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+
+    <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;Set1&quot;</span><span class="p">)</span>
+
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">fun</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">theta_yx</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">fun_inv</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">theta_xy</span><span class="p">),</span>
+                   <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">fun</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">theta_xy</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">fun_inv</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">theta_yx</span><span class="p">),</span>
+                   <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">yobs</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">xobs</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">resid_yx_forward</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                      <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xobs</span><span class="p">,</span> <span class="n">resid_yx_inverse</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                      <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">resid_xy_forward</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                      <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">yobs</span><span class="p">,</span> <span class="n">resid_xy_inverse</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                      <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">axs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">sharex</span><span class="p">(</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Infer $y(x)$&#39;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Infer $x(y)$&#39;</span><span class="p">)</span>
+
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$y_{\rm pred}$&#39;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$x_{\rm pred}$&#39;</span><span class="p">)</span>
+
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$x_{\rm obs}$&#39;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Normalised $y$ residuals&#39;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$y_{\rm obs}$&#39;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Normalised $x$ residuals&#39;</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="o">.</span><span class="n">align_labels</span><span class="p">()</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">savename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">savename</span><span class="p">,</span> <span class="n">transparent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">())</span>
+
+    <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="compute_hsic">
+<a class="viewcode-back" href="../api.html#causality.compute_hsic">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_hsic</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">alph</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Python implementation of Hilbert Schmidt Independence Criterion</span>
+<span class="sd">    using a Gamma approximation. This code is largely taken from</span>
+<span class="sd">    https://github.com/amber0309/HSIC/tree/master (Shoubo (shoubo.sub AT gmail.com)</span>
+<span class="sd">    09/11/2016), with the new addition of the computation of the significance level.</span>
+
+<span class="sd">    Gretton, A., Fukumizu, K., Teo, C. H., Song, L., Scholkopf, B.,</span>
+<span class="sd">    &amp; Smola, A. J. (2007). A kernel statistical test of independence.</span>
+<span class="sd">    In Advances in neural information processing systems (pp. 585-592).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        :X (np.ndarray): Numpy vector of dependent variable. The row gives the sample</span>
+<span class="sd">            and the column is the dimension.</span>
+<span class="sd">        :Y (np.ndarry): Numpy vector of independent variable. The row gives the sample</span>
+<span class="sd">            and the column is the dimension.</span>
+<span class="sd">        :alph (float): Worst significance level to consider. If the correlation is</span>
+<span class="sd">            stronger than this, then we don&#39;t compute the correlation coefficient.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        :testStat (float): The test statistic</span>
+<span class="sd">        :best_alph (float): The significance of this result (if calculated)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">rbf_dot</span><span class="p">(</span><span class="n">pattern1</span><span class="p">,</span> <span class="n">pattern2</span><span class="p">,</span> <span class="n">deg</span><span class="p">):</span>
+        <span class="n">size1</span> <span class="o">=</span> <span class="n">pattern1</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">size2</span> <span class="o">=</span> <span class="n">pattern2</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pattern1</span><span class="o">*</span><span class="n">pattern1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">size1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pattern2</span><span class="o">*</span><span class="n">pattern2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">size2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size2</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="p">(</span><span class="n">size1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">+</span> <span class="n">R</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pattern1</span><span class="p">,</span> <span class="n">pattern2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">H</span><span class="o">/</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="n">deg</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">H</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># width of X</span>
+    <span class="n">Xmed</span> <span class="o">=</span> <span class="n">X</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Xmed</span><span class="o">*</span><span class="n">Xmed</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">+</span> <span class="n">R</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Xmed</span><span class="p">,</span> <span class="n">Xmed</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">dists</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">dists</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">width_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">dists</span><span class="p">[</span><span class="n">dists</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]))</span>
+
+    <span class="c1"># width of Y</span>
+    <span class="n">Ymed</span> <span class="o">=</span> <span class="n">Y</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Ymed</span><span class="o">*</span><span class="n">Ymed</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">+</span> <span class="n">R</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ymed</span><span class="p">,</span> <span class="n">Ymed</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">dists</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">dists</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">width_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">dists</span><span class="p">[</span><span class="n">dists</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]))</span>
+
+    <span class="n">bone</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="n">rbf_dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">width_x</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">rbf_dot</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">width_y</span><span class="p">)</span>
+
+    <span class="n">Kc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">K</span><span class="p">),</span> <span class="n">H</span><span class="p">)</span>
+    <span class="n">Lc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">L</span><span class="p">),</span> <span class="n">H</span><span class="p">)</span>
+
+    <span class="n">testStat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Kc</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">Lc</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+
+    <span class="n">varHSIC</span> <span class="o">=</span> <span class="p">(</span><span class="n">Kc</span> <span class="o">*</span> <span class="n">Lc</span> <span class="o">/</span> <span class="mi">6</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="n">varHSIC</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">varHSIC</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">varHSIC</span><span class="p">))</span> <span class="o">/</span> <span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">varHSIC</span> <span class="o">=</span> <span class="n">varHSIC</span> <span class="o">*</span> <span class="mi">72</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">4</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">K</span> <span class="o">=</span> <span class="n">K</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">K</span><span class="p">))</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">L</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">L</span><span class="p">))</span>
+
+    <span class="n">muX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">bone</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">K</span><span class="p">),</span> <span class="n">bone</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">muY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">bone</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">L</span><span class="p">),</span> <span class="n">bone</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">mHSIC</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">muX</span> <span class="o">*</span> <span class="n">muY</span> <span class="o">-</span> <span class="n">muX</span> <span class="o">-</span> <span class="n">muY</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+
+    <span class="n">al</span> <span class="o">=</span> <span class="n">mHSIC</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">varHSIC</span>
+    <span class="n">bet</span> <span class="o">=</span> <span class="n">varHSIC</span><span class="o">*</span><span class="n">n</span> <span class="o">/</span> <span class="n">mHSIC</span>
+
+    <span class="n">thresh</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">alph</span><span class="p">,</span> <span class="n">al</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">bet</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Find threshold of significance for sufficiently weak correlation</span>
+    <span class="k">if</span> <span class="n">testStat</span> <span class="o">&lt;</span> <span class="n">thresh</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">to_zero</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">al</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">bet</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">testStat</span>
+            <span class="k">return</span> <span class="n">r</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">root_scalar</span><span class="p">(</span><span class="n">to_zero</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="mi">1</span><span class="o">-</span><span class="n">alph</span><span class="p">)</span>
+        <span class="n">best_alph</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">res</span><span class="o">.</span><span class="n">root</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">best_alph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="k">return</span> <span class="n">testStat</span><span class="p">,</span> <span class="n">best_alph</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Deaglan Bartlett and Harry Desmond.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
