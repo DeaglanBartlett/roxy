@@ -14,3 +14,4 @@ sphinx-rtd-theme
 scikit-learn
 jaxopt
 prettytable
+ipywidgets

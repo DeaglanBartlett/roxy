@@ -453,6 +453,96 @@ We also caution that the test is more accurate the larger :math:`\sigma_{\rm int
 and may be unreliable in the opposite regime.
 
 
+Fitting with Upper Limits
+--------------------------
+
+We now consider the case where some of our data points are upper limits (i.e., censored data). 
+This happens, for example, when an instrument has a certain detection threshold, and any 
+measurement below that threshold is not detected and is instead reported as an upper limit.
+The ``roxy`` module can handle upper limits in the independent variable (``yobs``) by passing the 
+argument ``y_is_detected``. This is an array of booleans of the same length as ``yobs``, 
+indicating whether each data point is detected (True) or an upper limit (False). 
+By default, all data points are assumed to be detected. 
+So far, we have only implemented this functionality for the MNR likelihood, so you must use
+``method='mnr'`` when calling the relevant functions.
+In this case, the likelihood is modified to account for the censored data points.
+
+An example is given below.
+
+.. code-block:: python
+
+	import numpy as np
+	from roxy.regressor import RoxyRegressor
+	import roxy.plotting as plotting
+
+	np.random.seed(0)
+
+	def my_fun(x, theta):
+	    return theta[0] * x + theta[1]
+
+	param_names = ['A', 'B']
+	theta0 = [2, 0.5]
+	param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+
+	reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
+
+	nx = 50
+	xerr = 0.1
+	yerr = 0.5
+	sig = 0.8
+
+	xtrue = np.linspace(0, 5, nx)
+	ytrue = reg.value(xtrue, theta0)
+	
+	xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
+	yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+
+	det_threshold = 4.0
+
+	# mask = True where value is an *upper limit* / censored
+	mask = yobs <= det_threshold
+	
+	# Replace censored yobs with the threshold (no in-place assignment)
+	yobs = np.where(mask, det_threshold, yobs)
+	
+	# Detection flag: True if detected, False if upper-limit
+	y_is_detected = ~mask
+
+	nwarm, nsamp = 700, 5000
+	samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
+	                   method='mnr', y_is_detected=y_is_detected)
+	
+	plotting.trace_plot(samples, to_plot='all')
+	plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior)
+
+.. code-block:: console
+
+	Optimisation Results:
+	A:	2.3444559574127197
+	B:	-0.4485660791397095
+	sig:	0.5253092646598816
+	mu_gauss:	2.514636516571045
+	w_gauss:	1.4311318397521973
+
+	Running MCMC
+	sample: 100%|██████████| 5700/5700 [00:07<00:00, 715.31it/s, 31 steps of size 2.02e-01. acc. prob=0.91]
+
+	                mean       std    median      2.5%     97.5%     n_eff     r_hat
+	         A      2.35      0.14      2.35      2.10      2.63   2291.15      1.00
+	         B     -0.48      0.48     -0.47     -1.43      0.43   2309.41      1.00
+	  mu_gauss      2.51      0.20      2.52      2.11      2.90   3283.05      1.00
+	       sig      0.57      0.15      0.57      0.28      0.86   3340.44      1.00
+	   w_gauss      1.48      0.15      1.47      1.19      1.77   4024.05      1.00
+
+	Number of divergences: 0
+
+.. image:: uplims_trace_plot.png
+		:width: 700px
+
+.. image:: uplims_triangle_plot.png
+		:width: 700px
+
+
 Reproducibility
 ---------------
 
