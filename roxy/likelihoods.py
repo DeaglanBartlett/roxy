@@ -1,5 +1,8 @@
+import numpyro.distributions as dist
+from jax.scipy.special import erfc
 import jax.numpy as jnp
 import warnings
+import numpy as np
 
 def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
     """
@@ -52,6 +55,93 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
 
     return
 
+
+
+
+def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
+    """
+    Computes the negative log-likelihood under the assumption of an uncorrelated
+    Gaussian likelihood with a Gaussian prior on the true x positions, 
+        where some of the y values are upper limits. 
+    
+    Args:
+        :xobs (jnp.ndarray): The observed x values
+        :yobs (jnp.ndarray): The observed y values
+        :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and 
+            yobs, giving whether each point is a detection (True) or an upper limit (False)
+        :xerr (jnp.ndarray): The error on the observed x values
+        :yerr (jnp.ndarray): The error on the observed y values
+        :f (jnp.ndarray): If we are fitting the function f(x), this is f(x) evaluated 
+            at xobs
+        :fprime (jnp.ndarray): If we are fitting the function f(x), this is df/dx 
+            evaluated at xobs
+        :sig (float): The intrinsic scatter, which is added in quadrature with yerr
+        :mu_gauss (float): The mean of the Gaussian prior on the true x positions
+        :w_gauss (float): The standard deviation of the Gaussian prior on the true x 
+            positions
+    """
+
+    N = len(xobs)
+    Ai = fprime
+    Ai = jnp.broadcast_to(jnp.atleast_1d(Ai), (N,))
+    Bi = f - Ai * xobs
+
+    if not hasattr(xerr, '__len__') or len(xerr) == 1:
+        xerr = jnp.full(N, jnp.squeeze(jnp.array(xerr)))
+    if not hasattr(yerr, '__len__') or len(yerr) == 1:
+        yerr = jnp.full(N, jnp.squeeze(jnp.array(yerr)))
+
+
+    mask = np.asarray(y_is_detected, dtype=bool)
+    mask_uplim = ~mask
+
+    xdet = xobs[mask]
+    ydet = yobs[mask]
+    xerr_det = xerr[mask]
+    yerr_det = yerr[mask]
+    Ai_det = Ai[mask]
+    Bi_det = Bi[mask]
+
+    xuplim = xobs[mask_uplim]
+    yuplim = yobs[mask_uplim]
+    xerr_uplim = xerr[mask_uplim]
+    yerr_uplim = yerr[mask_uplim]
+    Ai_uplim = Ai[mask_uplim]
+    Bi_uplim = Bi[mask_uplim]
+
+
+    neglogP = 0.0
+
+    # DETECTIONS
+    if len(xdet)>0:
+        s2 = yerr_det** 2 + sig**2
+        den = Ai_det**2 * xerr_det**2 * w_gauss**2 + s2*(xerr_det**2 + w_gauss**2) 
+
+        numerator_t1 = w_gauss**2*(Ai_det*xdet + Bi_det - ydet)**2 + xerr_det**2*(Ai_det*mu_gauss + Bi_det - ydet)**2 + s2*(xdet - mu_gauss)**2 
+        denominator_t1 = 2*den
+
+        t2 = jnp.log(2 * jnp.pi * jnp.sqrt(den))
+
+        neglogP =  jnp.sum(numerator_t1/denominator_t1 + t2)
+
+    # UPPER LIMITS
+    if len(xuplim)>0:
+        sigma_c_squared = (1/w_gauss**2 + 1/xerr_uplim**2)**(-1)
+        mu_c = sigma_c_squared * (mu_gauss/w_gauss**2 + xuplim/xerr_uplim**2)
+        sigma_squared = yerr_uplim**2 + sig**2 
+
+        t1 = dist.Normal(xuplim, jnp.sqrt(xerr_uplim**2 + w_gauss**2)).log_prob(mu_gauss).sum()
+        
+        t2 =  jnp.sum( jnp.log( 0.5*erfc((Ai_uplim*mu_c + Bi_uplim - yuplim)/(jnp.sqrt( 2*sigma_squared + 2* Ai_uplim**2 *  sigma_c_squared ))) ))
+
+        neglogP_uplim = - t1 - t2
+        neglogP += neglogP_uplim
+
+    return neglogP
+
+
+
+
 def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
@@ -84,7 +174,7 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     den = Ai ** 2 * w_gauss ** 2 * xerr ** 2 + s2 * (w_gauss ** 2 + xerr ** 2)
     
     neglogP = (
-        N / 2 * jnp.log(2 * jnp.pi)
+        N * jnp.log(2 * jnp.pi)
         + 1/2 * jnp.sum(jnp.log(den))
         + 1/2 * jnp.sum(w_gauss ** 2 * (Ai * xobs + Bi - yobs) ** 2 / den)
         + 1/2 * jnp.sum(xerr ** 2 * (Ai * mu_gauss + Bi - yobs) ** 2 / den)

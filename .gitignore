@@ -1,3 +1,6 @@
+roxy_venv/
+tests/test.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -169,3 +172,4 @@ examples/bias_results/
 tests/*.png
 
 *.DS_Store
+docs/source/_build
