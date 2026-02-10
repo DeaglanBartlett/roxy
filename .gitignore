@@ -173,3 +173,4 @@ tests/*.png
 
 *.DS_Store
 docs/source/_build
+/*.png
