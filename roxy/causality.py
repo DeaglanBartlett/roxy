@@ -84,7 +84,7 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     else:
         new_errors = [errors[1], errors[0]]
     res_xy, names_xy = reg.optimise(param_names, yobs, xobs, new_errors,
-                                    method=method, ngauss=ngauss, 
+                                    method=method, ngauss=ngauss,
                                     covmat=covmat, gmm_prior=gmm_prior)
     theta_xy = [None] * len(param_names)
     for i, t in enumerate(param_names):
@@ -197,10 +197,8 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     plt.clf()
     plt.close(plt.gcf())
 
-    return
 
-
-def compute_hsic(X, Y, alph=0.05):
+def compute_hsic(x, y, alph=0.05):
     """
     Python implementation of Hilbert Schmidt Independence Criterion
     using a Gamma approximation. This code is largely taken from
@@ -212,9 +210,9 @@ def compute_hsic(X, Y, alph=0.05):
     In Advances in neural information processing systems (pp. 585-592).
 
     Args:
-        :X (np.ndarray): Numpy vector of dependent variable. The row gives the sample
+        :x (np.ndarray): Numpy vector of dependent variable. The row gives the sample
             and the column is the dimension.
-        :Y (np.ndarry): Numpy vector of independent variable. The row gives the sample
+        :y (np.ndarray): Numpy vector of independent variable. The row gives the sample
             and the column is the dimension.
         :alph (float): Worst significance level to consider. If the correlation is
             stronger than this, then we don't compute the correlation coefficient.
@@ -227,58 +225,58 @@ def compute_hsic(X, Y, alph=0.05):
     def rbf_dot(pattern1, pattern2, deg):
         size1 = pattern1.shape
         size2 = pattern2.shape
-        G = np.sum(pattern1*pattern1, 1).reshape(size1[0], 1)
-        H = np.sum(pattern2*pattern2, 1).reshape(size2[0], 1)
-        Q = np.tile(G, (1, size2[0]))
-        R = np.tile(H.T, (size1[0], 1))
-        H = Q + R - 2 * np.dot(pattern1, pattern2.T)
-        H = np.exp(-H/2/(deg**2))
-        return H
+        g = np.sum(pattern1*pattern1, 1).reshape(size1[0], 1)
+        h = np.sum(pattern2*pattern2, 1).reshape(size2[0], 1)
+        q = np.tile(g, (1, size2[0]))
+        r = np.tile(h.T, (size1[0], 1))
+        h = q + r - 2 * np.dot(pattern1, pattern2.T)
+        h = np.exp(-h/2/(deg**2))
+        return h
 
-    n = X.shape[0]
+    n = x.shape[0]
 
     # width of X
-    x_med = X
-    G = np.sum(x_med*x_med, 1).reshape(n, 1)
-    Q = np.tile(G, (1, n))
-    R = np.tile(G.T, (n, 1))
-    dists = Q + R - 2 * np.dot(x_med, x_med.T)
+    x_med = x
+    g = np.sum(x_med*x_med, 1).reshape(n, 1)
+    q = np.tile(g, (1, n))
+    r = np.tile(g.T, (n, 1))
+    dists = q + r - 2 * np.dot(x_med, x_med.T)
     dists = dists - np.tril(dists)
     dists = dists.reshape(n**2, 1)
     width_x = np.sqrt(0.5 * np.median(dists[dists > 0]))
 
     # width of Y
-    y_med = Y
-    G = np.sum(y_med*y_med, 1).reshape(n, 1)
-    Q = np.tile(G, (1, n))
-    R = np.tile(G.T, (n, 1))
-    dists = Q + R - 2 * np.dot(y_med, y_med.T)
+    y_med = y
+    g = np.sum(y_med*y_med, 1).reshape(n, 1)
+    q = np.tile(g, (1, n))
+    r = np.tile(g.T, (n, 1))
+    dists = q + r - 2 * np.dot(y_med, y_med.T)
     dists = dists - np.tril(dists)
     dists = dists.reshape(n**2, 1)
     width_y = np.sqrt(0.5 * np.median(dists[dists > 0]))
 
     bone = np.ones((n, 1), dtype=float)
-    H = np.identity(n) - np.ones((n, n), dtype=float) / n
+    h = np.identity(n) - np.ones((n, n), dtype=float) / n
 
-    K = rbf_dot(X, X, width_x)
-    L = rbf_dot(Y, Y, width_y)
+    k = rbf_dot(x, x, width_x)
+    ell = rbf_dot(y, y, width_y)
 
-    Kc = np.dot(np.dot(H, K), H)
-    Lc = np.dot(np.dot(H, L), H)
+    kc = np.dot(np.dot(h, k), h)
+    lc = np.dot(np.dot(h, ell), h)
 
-    test_stat = np.sum(Kc.T * Lc) / n
+    test_stat = np.sum(kc.T * lc) / n
 
-    var_hsic = (Kc * Lc / 6)**2
+    var_hsic = (kc * lc / 6)**2
 
     var_hsic = (np.sum(var_hsic) - np.trace(var_hsic)) / n / (n-1)
 
     var_hsic = var_hsic * 72 * (n-4) * (n-5) / n / (n-1) / (n-2) / (n-3)
 
-    K = K - np.diag(np.diag(K))
-    L = L - np.diag(np.diag(L))
+    k = k - np.diag(np.diag(k))
+    ell = ell - np.diag(np.diag(ell))
 
-    mu_x = np.dot(np.dot(bone.T, K), bone) / n / (n-1)
-    mu_y = np.dot(np.dot(bone.T, L), bone) / n / (n-1)
+    mu_x = np.dot(np.dot(bone.T, k), bone) / n / (n-1)
+    mu_y = np.dot(np.dot(bone.T, ell), bone) / n / (n-1)
 
     m_hsic = (1 + mu_x * mu_y - mu_x - mu_y) / n
 

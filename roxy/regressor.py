@@ -704,7 +704,7 @@ class RoxyRegressor():
 
                 if covmat:
                     raise NotImplementedError
-                    
+
                 numpyro.sample(
                         'obs',
                         roxy.mcmc.Likelihood_GMM(xobs, yobs, xerr, yerr, f, fprime, sig,

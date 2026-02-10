@@ -111,18 +111,14 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner',
     plt.clf()
     plt.close(plt.gcf())
 
-    return
 
-
-def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
+def trace_plot(samples, to_plot='all', savename=None, show=True):
     """
     Plot the trace of the parameter values as a function of MCMC step
 
     Args:
         :samples (dict): The MCMC samples, where the keys are the parameter names and
             values are ndarrays of the samples
-        :labels (list, default=None): List of parameter labels ot use in the plot. If
-            None, then use the names given as keys in samples.
         :to_plot (list, default='all'): If 'all', then use all parameters. If a list,
             then only use the parameters given in that list
         :savename (str, default=None): If not None, save the figure to the file given by
@@ -160,8 +156,6 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
         plt.show()
     plt.clf()
     plt.close(plt.gcf())
-
-    return
 
 
 def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, y_is_detected=[],
