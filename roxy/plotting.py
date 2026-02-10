@@ -12,7 +12,7 @@ rcParams.update({'font.size': 14})
 
 
 def triangle_plot(samples, labels=None, to_plot='all', module='corner',
-                  param_prior=None, savename=None, show=True):
+                  truths=None, param_prior=None, savename=None, show=True):
     """
     Plot the 1D and 2D posterior distributions of the parameters in a triangle plot.
 
@@ -25,6 +25,8 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner',
             then only use the parameters given in that list
         :module (str, default='corner'): Which module to use to make the triangle plot
             ('corner' or 'getdist' currently available)
+        :truths (dict, default=None): If not None, use this to specify the true
+            values of the parameters to plot.
         :param_prior (dict, default=None): If not None and using 'getdist', use this to
             specify the range of the varibales to prevent undesirable smoothing effects.
         :savename (str, default=None): If not None, save the figure to the file given
@@ -69,7 +71,10 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner',
     if module == 'corner':
         labs = ['$' + label + '$' for label in labs]
         fig, _ = plt.subplots(len(labs), len(labs), figsize=(8, 8))
-        corner.corner(all_samples, labels=labs, fig=fig)
+        markers = None
+        if truths is not None:
+            markers = [truths[n] if n in truths else None for n in names]
+        corner.corner(all_samples, labels=labs, fig=fig, truths=markers)
     elif module == 'getdist':
 
         if param_prior is None:
@@ -98,7 +103,7 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner',
         )
 
         g = plots.get_subplot_plotter(width_inch=8)
-        g.triangle_plot(samps, filled=True)
+        g.triangle_plot(samps, filled=True, markers=truths)
 
     else:
         raise NotImplementedError
@@ -112,7 +117,7 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner',
     plt.close(plt.gcf())
 
 
-def trace_plot(samples, to_plot='all', savename=None, show=True):
+def trace_plot(samples, to_plot='all', truths=None, savename=None, show=True):
     """
     Plot the trace of the parameter values as a function of MCMC step
 
@@ -121,6 +126,8 @@ def trace_plot(samples, to_plot='all', savename=None, show=True):
             values are ndarrays of the samples
         :to_plot (list, default='all'): If 'all', then use all parameters. If a list,
             then only use the parameters given in that list
+        :truths (dict, default=None): If not None, use this to specify the true
+            values of the parameters to plot.
         :savename (str, default=None): If not None, save the figure to the file given by
             this argument.
         :show (bool, default=True): If True, display the figure with plt.show()
@@ -144,10 +151,14 @@ def trace_plot(samples, to_plot='all', savename=None, show=True):
         npar = len(to_plot)
     figsize = (12, min(2 * npar, 10))
 
+    lines = {}
+    if truths is not None:
+        lines = [ (k, {}, [truths[k]]) for k in list(res['posterior'].data_vars) if k in truths]
+
     if to_plot == 'all':
-        az.plot_trace(res, compact=True, figsize=figsize)
+        az.plot_trace(res, compact=True, figsize=figsize, lines=lines)
     else:
-        az.plot_trace(res, compact=True, var_names=to_plot, figsize=figsize)
+        az.plot_trace(res, compact=True, var_names=to_plot, figsize=figsize, lines=lines)
     plt.tight_layout()
 
     if savename is not None:

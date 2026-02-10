@@ -43,10 +43,21 @@ def test_example_standard(monkeypatch):
                        nwarm, nsamp, method='mnr')
 
     # Default plotting
+    # Plot with truths
+    roxy.plotting.trace_plot(samples, to_plot='all', savename='trace.png',
+                             show=True, truths=truths)
+    # Plot without truths
     roxy.plotting.trace_plot(samples, to_plot='all', savename='trace.png',
                              show=True)
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-                                param_prior=param_prior, savename='corner.png', show=True)
+    for module in ['corner', 'getdist']:
+        # Plot with truths
+        roxy.plotting.triangle_plot(samples, to_plot='all', module=module,
+                                    param_prior=param_prior, savename='corner.png', 
+                                    show=True, truths=truths)
+        # Plot without truths
+        roxy.plotting.triangle_plot(samples, to_plot='all', module=module,
+                                    param_prior=param_prior, savename='corner.png', 
+                                    show=True,)
 
     xlim = (xobs.min()*0.8, xobs.max()*1.2)
     ylim = (yobs.min()*0.8, yobs.max()*1.2)
