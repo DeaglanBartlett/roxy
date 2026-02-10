@@ -225,10 +225,10 @@ class RoxyRegressor():
                     print(f'{pname}:\t{pdefault}')
         return jnp.array(pidx)
 
-    def optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=[], method='mnr',
-                 infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
-                 gmm_prior='hierarchical', include_logdet=True, verbose=True,
-                 optimiser='l-bfgs-b'):
+    def _optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=[], method='mnr',
+                  infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
+                  gmm_prior='hierarchical', include_logdet=True, verbose=True,
+                  optimiser='l-bfgs-b'):
         """
         Optimise the parameters of the function given some data, under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -480,6 +480,97 @@ class RoxyRegressor():
                 param_names.append('hyper_u2')
 
         return res, param_names
+
+    def optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=[], method='mnr',
+                 infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
+                 gmm_prior='hierarchical', include_logdet=True, verbose=True,
+                 optimiser='l-bfgs-b', niter=10, nconv=3, tol=1e-3):
+        """
+        Optimise the parameters of the function given some data, using multiple random 
+        restarts to check for convergence.
+
+        Args:
+            :params_to_opt (list): The names of the parameters we wish to optimise
+            :xobs (jnp.ndarray): The observed x values
+            :yobs (jnp.ndarray): The observed y values
+            :errors (jnp.ndarray): If covmat=False, then this is [xerr, yerr], giving
+                the error on the observed x and y values. Otherwise, this is the
+                covariance matrix in the order (x, y)
+            :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs 
+                and yobs, giving whether each point is a detection (True) or an upper 
+                limit (False)
+            :method (str, default='mnr'): The name of the likelihood method to use
+                ('mnr', 'gmm', 'unif' or 'prof'). See ``roxy.likelihoods`` for more
+                information
+            :infer_intrinsic (bool, default=True): Whether to infer the intrinsic
+                scatter in the y direction
+            :initial (jnp.ndarray, default=None): The starting point for the first 
+                optimisation. If None, a random value in the prior range is chosen.
+                For subsequent iterations, None is used.
+            :ngauss (int, default = 1): The number of Gaussians to use in the GMM prior.
+                Only used if method='gmm'
+            :covmat (bool, default=False): This determines whether the errors argument
+                is [xerr, yerr] (False) or a covariance matrix (True).
+            :gmm_prior (string, default='hierarchical'): If method='gmm', this decides
+                what prior to put on the GMM componenents. If 'uniform', then the mean
+                and widths have a uniform prior, and if 'hierarchical' mu and w^2 have
+                a Normal and Inverse Gamma prior, respectively.
+            :include_logdet (bool, default=True): For the method 'prof', whether to
+                include the normalisation term in the likelihood proportional
+                to log(det(S))
+            :verbose (bool, default=True): Whether to print progress or not
+            :optimiser (str, default='l-bfgs-b'): The optimiser to use. This must be a
+                method supported by jaxopt.ScipyBoundedMinimize.
+            :niter (int, default=10): The number of iterations (random restarts) to perform
+            :nconv (int, default=3): The number of times the best likelihood must be 
+                achieved (within tolerance) to declare convergence
+            :tol (float, default=1e-3): The tolerance for determining if two likelihoods
+                are the same
+
+        Returns:
+            :res (OptResult): The result of the best optimisation
+            :param_names (list): List of parameter names in order of res.params
+        """
+        
+        best_res = None
+        best_fun = np.inf
+        conv_count = 0
+        
+        for it in range(niter):
+            # Use the provided initial value only for the first iteration
+            init_val = initial if it == 0 else None
+            
+            if verbose and niter > 1:
+                print(f'\n========== Iteration {it+1}/{niter} ==========')
+            
+            res, param_names = self._optimise(
+                params_to_opt, xobs, yobs, errors, y_is_detected=y_is_detected,
+                method=method, infer_intrinsic=infer_intrinsic, initial=init_val,
+                ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior,
+                include_logdet=include_logdet, verbose=verbose, optimiser=optimiser
+            )
+            
+            # Check if this is the best result so far
+            if res.fun < best_fun - tol:
+                # Found a significantly better result
+                best_fun = res.fun
+                best_res = res
+                conv_count = 1
+            elif abs(res.fun - best_fun) <= tol:
+                # Same likelihood as best (within tolerance)
+                conv_count += 1
+            
+            # Check for convergence
+            if conv_count >= nconv:
+                if verbose and niter > 1:
+                    print(f'\nConverged after {it+1} iterations (same best '
+                          f'likelihood achieved {conv_count} times)')
+                break
+        
+        if verbose and niter > 1:
+            print(f'\nBest result achieved with likelihood: {best_fun}')
+        
+        return best_res, param_names
 
     def mcmc(self, params_to_opt, xobs, yobs,  errors, nwarm, nsamp, y_is_detected=[], method='mnr',
              ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True,
