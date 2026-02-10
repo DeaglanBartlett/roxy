@@ -316,10 +316,8 @@ def test_different_likes():
                     covmat=True)
     
     # Test unknown method raises exception in MCMC
-    try:
+    with unittest.TestCase().assertRaises(NotImplementedError):
         reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='unknown')
-    except NotImplementedError:
-        pass
 
     return
     
