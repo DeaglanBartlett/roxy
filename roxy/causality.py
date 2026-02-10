@@ -84,7 +84,8 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     else:
         new_errors = [errors[1], errors[0]]
     res_xy, names_xy = reg.optimise(param_names, yobs, xobs, new_errors,
-                                    method=method, ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior)
+                                    method=method, ngauss=ngauss, 
+                                    covmat=covmat, gmm_prior=gmm_prior)
     theta_xy = [None] * len(param_names)
     for i, t in enumerate(param_names):
         j = names_xy.index(t)
@@ -219,7 +220,7 @@ def compute_hsic(X, Y, alph=0.05):
             stronger than this, then we don't compute the correlation coefficient.
 
     Returns:
-        :testStat (float): The test statistic
+        :test_stat (float): The test statistic
         :best_alph (float): The significance of this result (if calculated)
     """
 
@@ -237,21 +238,21 @@ def compute_hsic(X, Y, alph=0.05):
     n = X.shape[0]
 
     # width of X
-    Xmed = X
-    G = np.sum(Xmed*Xmed, 1).reshape(n, 1)
+    x_med = X
+    G = np.sum(x_med*x_med, 1).reshape(n, 1)
     Q = np.tile(G, (1, n))
     R = np.tile(G.T, (n, 1))
-    dists = Q + R - 2 * np.dot(Xmed, Xmed.T)
+    dists = Q + R - 2 * np.dot(x_med, x_med.T)
     dists = dists - np.tril(dists)
     dists = dists.reshape(n**2, 1)
     width_x = np.sqrt(0.5 * np.median(dists[dists > 0]))
 
     # width of Y
-    Ymed = Y
-    G = np.sum(Ymed*Ymed, 1).reshape(n, 1)
+    y_med = Y
+    G = np.sum(y_med*y_med, 1).reshape(n, 1)
     Q = np.tile(G, (1, n))
     R = np.tile(G.T, (n, 1))
-    dists = Q + R - 2 * np.dot(Ymed, Ymed.T)
+    dists = Q + R - 2 * np.dot(y_med, y_med.T)
     dists = dists - np.tril(dists)
     dists = dists.reshape(n**2, 1)
     width_y = np.sqrt(0.5 * np.median(dists[dists > 0]))
@@ -265,35 +266,35 @@ def compute_hsic(X, Y, alph=0.05):
     Kc = np.dot(np.dot(H, K), H)
     Lc = np.dot(np.dot(H, L), H)
 
-    testStat = np.sum(Kc.T * Lc) / n
+    test_stat = np.sum(Kc.T * Lc) / n
 
-    varHSIC = (Kc * Lc / 6)**2
+    var_hsic = (Kc * Lc / 6)**2
 
-    varHSIC = (np.sum(varHSIC) - np.trace(varHSIC)) / n / (n-1)
+    var_hsic = (np.sum(var_hsic) - np.trace(var_hsic)) / n / (n-1)
 
-    varHSIC = varHSIC * 72 * (n-4) * (n-5) / n / (n-1) / (n-2) / (n-3)
+    var_hsic = var_hsic * 72 * (n-4) * (n-5) / n / (n-1) / (n-2) / (n-3)
 
     K = K - np.diag(np.diag(K))
     L = L - np.diag(np.diag(L))
 
-    muX = np.dot(np.dot(bone.T, K), bone) / n / (n-1)
-    muY = np.dot(np.dot(bone.T, L), bone) / n / (n-1)
+    mu_x = np.dot(np.dot(bone.T, K), bone) / n / (n-1)
+    mu_y = np.dot(np.dot(bone.T, L), bone) / n / (n-1)
 
-    mHSIC = (1 + muX * muY - muX - muY) / n
+    m_hsic = (1 + mu_x * mu_y - mu_x - mu_y) / n
 
-    al = mHSIC**2 / varHSIC
-    bet = varHSIC*n / mHSIC
+    al = m_hsic**2 / var_hsic
+    bet = var_hsic*n / m_hsic
 
     thresh = scipy.stats.gamma.ppf(1-alph, al, scale=bet)[0][0]
 
     # Find threshold of significance for sufficiently weak correlation
-    if testStat < thresh:
+    if test_stat < thresh:
         def to_zero(a):
-            r = scipy.stats.gamma.ppf(a, al, scale=bet)[0][0] - testStat
+            r = scipy.stats.gamma.ppf(a, al, scale=bet)[0][0] - test_stat
             return r
         res = scipy.optimize.root_scalar(to_zero, x0=1-alph)
         best_alph = 1 - res.root
     else:
         best_alph = np.nan
 
-    return testStat, best_alph
+    return test_stat, best_alph

@@ -1,11 +1,11 @@
+import warnings
+from operator import attrgetter
 import jax
 import jax.numpy as jnp
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-import warnings
 from sklearn.mixture import GaussianMixture
-from operator import attrgetter
 from jaxopt import ScipyBoundedMinimize
 
 import roxy.likelihoods
@@ -112,9 +112,9 @@ class RoxyRegressor():
         """
         return self.secondgradfun(x, theta)
 
-    def negloglike(self, theta, xobs, yobs, errors, y_is_detected=[], sig=0., mu_gauss=0., w_gauss=1.,
-                   weights_gauss=1., method='mnr', covmat=False, test_prior=True,
-                   include_logdet=True):
+    def negloglike(self, theta, xobs, yobs, errors, y_is_detected=[], sig=0., mu_gauss=0.,
+                   w_gauss=1., weights_gauss=1., method='mnr', covmat=False,
+                   test_prior=True, include_logdet=True):
         """
         Computes the negative log-likelihood under the assumption of
         an uncorrelated (correlated) Gaussian likelihood if covmat is False (True),
@@ -168,13 +168,13 @@ class RoxyRegressor():
                     raise NotImplementedError
                 return roxy.likelihoods.negloglike_mnr_mv(xobs, yobs, errors, f, G, sig,
                                                           mu_gauss, w_gauss)
-            else:
-                if len(y_is_detected) > 0:
-                    return roxy.likelihoods.negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f,
-                                                                  fprime, sig, mu_gauss, w_gauss)
-                return roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, yerr, f,
-                                                       fprime, sig, mu_gauss, w_gauss)
-        elif method == 'gmm':
+            if len(y_is_detected) > 0:
+                return roxy.likelihoods.negloglike_mnr_uplims(xobs, yobs, y_is_detected,
+                                                                xerr, yerr, f, fprime, sig,
+                                                                mu_gauss, w_gauss)
+            return roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, yerr, f,
+                                                    fprime, sig, mu_gauss, w_gauss)
+        if method == 'gmm':
             if len(y_is_detected) > 0:
                 raise NotImplementedError
             mu = jnp.array(mu_gauss)
@@ -182,29 +182,25 @@ class RoxyRegressor():
             weights = jnp.array(weights_gauss)
             if covmat:
                 raise NotImplementedError
-            else:
-                return roxy.likelihoods.negloglike_gmm(xobs, yobs, xerr, yerr, f,
-                                                       fprime, sig, mu, w, weights)
-        elif method == 'unif':
+            return roxy.likelihoods.negloglike_gmm(xobs, yobs, xerr, yerr, f,
+                                                    fprime, sig, mu, w, weights)
+        if method == 'unif':
             if len(y_is_detected) > 0:
                 raise NotImplementedError
             if covmat:
                 return roxy.likelihoods.negloglike_unif_mv(xobs, yobs, errors, f, G,
                                                            sig)
-            else:
-                return roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, f,
-                                                        fprime, sig)
-        elif method == 'prof':
+            return roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, f,
+                                                    fprime, sig)
+        if method == 'prof':
             if len(y_is_detected) > 0:
                 raise NotImplementedError
             if covmat:
                 return roxy.likelihoods.negloglike_prof_mv(xobs, yobs, errors, f, G,
                                                            sig, include_logdet=include_logdet)
-            else:
-                return roxy.likelihoods.negloglike_prof(xobs, yobs, xerr, yerr, f,
-                                                        fprime, sig, include_logdet=include_logdet)
-        else:
-            raise NotImplementedError
+            return roxy.likelihoods.negloglike_prof(xobs, yobs, xerr, yerr, f,
+                                                    fprime, sig, include_logdet=include_logdet)
+        raise NotImplementedError
 
     def get_param_index(self, params_to_opt, verbose=True):
         """
@@ -276,7 +272,8 @@ class RoxyRegressor():
             :param_names (list): List of parameter names in order of res.params
         """
 
-        # Check whether y_is_detected is either [] or an array of booleans the same length as xobs and yobs
+        # Check whether y_is_detected is either [] or an array of booleans the same
+        # length as xobs and yobs
         if not (
             (isinstance(y_is_detected, list) and len(y_is_detected) == 0)
             or
@@ -353,7 +350,9 @@ class RoxyRegressor():
                 mu_gauss, w_gauss, weights_gauss = None, None, None
 
             ll = nll + self.negloglike(t, xobs, yobs, errors, sig=sig,
-                                       mu_gauss=mu_gauss, w_gauss=w_gauss, weights_gauss=weights_gauss, y_is_detected=y_is_detected,
+                                       mu_gauss=mu_gauss, w_gauss=w_gauss,
+                                       weights_gauss=weights_gauss,
+                                       y_is_detected=y_is_detected,
                                        method=method, covmat=covmat, test_prior=False,
                                        include_logdet=include_logdet)
             ll = jnp.where(bad_run, np.inf, ll)
@@ -547,7 +546,8 @@ class RoxyRegressor():
         else:
             xerr, yerr = errors
 
-        # Check whether y_is_detected is either [] or an array of booleans the same length as xobs and yobs
+        # Check whether y_is_detected is either [] or an array of booleans the
+        # same length as xobs and yobs
         if not (
             (isinstance(y_is_detected, list) and len(y_is_detected) == 0)
             or
@@ -643,8 +643,9 @@ class RoxyRegressor():
                     if len(y_is_detected) > 0:
                         numpyro.sample(
                             'obs',
-                            roxy.mcmc.Likelihood_MNR_uplims(xobs, yobs, y_is_detected, xerr, yerr, f,
-                                                            fprime, sig, mu_gauss, w_gauss),
+                            roxy.mcmc.Likelihood_MNR_uplims(xobs, yobs, y_is_detected, xerr,
+                                                            yerr, f, fprime, sig, mu_gauss,
+                                                            w_gauss),
                             obs=yobs,
                         )
 
@@ -703,8 +704,8 @@ class RoxyRegressor():
 
                 if covmat:
                     raise NotImplementedError
-                else:
-                    numpyro.sample(
+                    
+                numpyro.sample(
                         'obs',
                         roxy.mcmc.Likelihood_GMM(xobs, yobs, xerr, yerr, f, fprime, sig,
                                                  all_mu_gauss, all_w_gauss, all_weights),
@@ -718,9 +719,11 @@ class RoxyRegressor():
 
         try:
             if init is None:
-                vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors, y_is_detected=y_is_detected,
-                                                  method=method, infer_intrinsic=infer_intrinsic, ngauss=ngauss,
-                                                  covmat=covmat, gmm_prior=gmm_prior, verbose=verbose,
+                vals, param_names = self.optimise(params_to_opt, xobs, yobs, errors,
+                                                  y_is_detected=y_is_detected,
+                                                  method=method, infer_intrinsic=infer_intrinsic,
+                                                  ngauss=ngauss, covmat=covmat,
+                                                  gmm_prior=gmm_prior, verbose=verbose,
                                                   include_logdet=include_logdet)
                 vals = vals.x
                 init = {k: v for k, v in zip(param_names, vals)}
@@ -751,11 +754,13 @@ class RoxyRegressor():
                     warnings.warn('Setting initial sigma to positive value')
                     init['sig'] = 1.e-5
             kernel = numpyro.infer.NUTS(model,
-                                        init_strategy=numpyro.infer.initialization.init_to_value(values=init))
+                                        init_strategy=numpyro.infer.initialization.init_to_value(
+                                            values=init))
             if verbose:
                 print('\nRunning MCMC')
             sampler = numpyro.infer.MCMC(kernel, num_chains=num_chains,
-                                         num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
+                                         num_warmup=nwarm, num_samples=nsamp,
+                                         progress_bar=progress_bar)
             sampler.run(rng_key_)
         except Exception:
             if verbose:
@@ -764,7 +769,8 @@ class RoxyRegressor():
             if verbose:
                 print('\nRunning MCMC')
             sampler = numpyro.infer.MCMC(kernel, num_chains=num_chains,
-                                         num_warmup=nwarm, num_samples=nsamp, progress_bar=progress_bar)
+                                         num_warmup=nwarm, num_samples=nsamp,
+                                         progress_bar=progress_bar)
             sampler.run(rng_key_)
 
         samples = sampler.get_samples()
@@ -787,7 +793,7 @@ class RoxyRegressor():
                     }
             numpyro.diagnostics.print_summary(sites, prob=0.95)
             extra_fields = sampler.get_extra_fields()
-            if ("diverging" in extra_fields):
+            if "diverging" in extra_fields:
                 print(
                     "Number of divergences: {}".format(
                         jnp.sum(extra_fields["diverging"]))
@@ -875,8 +881,10 @@ class RoxyRegressor():
 
         # Now put in order expected by optimisers
         param_idx = [i for i, k in enumerate(labels) if not ((k.startswith('weights')
-                                                              or k.startswith('mu_gauss') or k.startswith('w_gauss')
-                                                              or k.startswith('sig') or k.startswith('hierarchical')
+                                                              or k.startswith('mu_gauss')
+                                                              or k.startswith('w_gauss')
+                                                              or k.startswith('sig')
+                                                              or k.startswith('hierarchical')
                                                               or k.startswith('hyper')))]
         if infer_intrinsic:
             param_idx = param_idx + [labels.index('sig')]
@@ -897,9 +905,10 @@ class RoxyRegressor():
         return param_idx, param_names
 
     def compute_information_criterion(self, criterion, params_to_opt, xobs, yobs,
-                                      errors, ngauss=1, infer_intrinsic=True, progress_bar=True, initial=None,
-                                      nwarm=100, nsamp=100, method='mnr', gmm_prior='hierarchical', seed=1234,
-                                      verbose=True, include_logdet=True, optimiser='l-bfgs-b'):
+                                      errors, ngauss=1, infer_intrinsic=True, progress_bar=True,
+                                      initial=None, nwarm=100, nsamp=100, method='mnr',
+                                      gmm_prior='hierarchical', seed=1234,
+                                      verbose=True, include_logdet=True,):
         """
         Compute an information criterion for a given setup
         If an initial guess is not given, we first run a MCMC
@@ -938,8 +947,6 @@ class RoxyRegressor():
             :include_logdet (bool, default=True): For the method 'prof', whether to
                 include the normalisation term in the likelihood proportional
                 to log(det(S))
-            :optimiser (str, default='l-bfgs-b'): The optimiser to use. This must be a
-                method supported by jaxopt.ScipyBoundedMinimize.
         Returns:
             :negloglike (float): The optimum negative log-likelihood value
             :metric (float): The value of the information criterion
@@ -971,8 +978,9 @@ class RoxyRegressor():
                                     )
             labels, samples = roxy.mcmc.samples_to_array(samples)
             labels = list(labels)
-            param_idx, param_names = self.mcmc2opt_index(labels, ngauss=ngauss,
-                                                         method=method, gmm_prior=gmm_prior, infer_intrinsic=infer_intrinsic)
+            param_idx, _ = self.mcmc2opt_index(labels, ngauss=ngauss,
+                                                         method=method, gmm_prior=gmm_prior,
+                                                         infer_intrinsic=infer_intrinsic)
             initial = jnp.median(samples[:, param_idx], axis=0)
 
         # Run new optimiser

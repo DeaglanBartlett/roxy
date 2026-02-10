@@ -1,14 +1,14 @@
 from jax import lax
 import jax.random
 import jax.numpy as jnp
-import numpyro.distributions as dist
-from numpyro.distributions.util import promote_shapes
-import numpy as np
-from numpyro.distributions.util import validate_sample
-import scipy.optimize
-from numpyro.distributions.util import is_prng_key
 from jax.scipy.stats import norm as jax_norm
 from jax.scipy.special import ndtri, ndtr
+import numpy as np
+import scipy.optimize
+import numpyro.distributions as dist
+from numpyro.distributions.util import promote_shapes
+from numpyro.distributions.util import validate_sample
+from numpyro.distributions.util import is_prng_key
 
 import roxy.likelihoods
 
@@ -63,7 +63,8 @@ class Likelihood_MNR_uplims(dist.Distribution):
 
     def log_prob(self, value):
         return - roxy.likelihoods.negloglike_mnr_uplims(self.xobs, self.yobs, self.y_is_detected,
-                                                        self.xerr, self.yerr, self.f, self.fprime, self.sig, self.mu_gauss, self.w_gauss)
+                                                        self.xerr, self.yerr, self.f, self.fprime, 
+                                                        self.sig, self.mu_gauss, self.w_gauss)
 
 
 class Likelihood_MNR(dist.Distribution):
@@ -109,7 +110,8 @@ class Likelihood_MNR(dist.Distribution):
 
     def log_prob(self, value):
         return - roxy.likelihoods.negloglike_mnr(self.xobs, self.yobs, self.xerr,
-                                                 self.yerr, self.f, self.fprime, self.sig, self.mu_gauss, self.w_gauss)
+                                                 self.yerr, self.f, self.fprime, self.sig, 
+                                                 self.mu_gauss, self.w_gauss)
 
 
 class Likelihood_MNR_MV(dist.Distribution):
@@ -177,7 +179,8 @@ class Likelihood_MNR_MV(dist.Distribution):
 
     def log_prob(self, value):
         return - roxy.likelihoods.negloglike_mnr_mv(self.xobs, self.yobs, self.Sigma,
-                                                    self.f, self.G, self.sig, self.mu_gauss, self.w_gauss)
+                                                    self.f, self.G, self.sig, 
+                                                    self.mu_gauss, self.w_gauss)
 
 
 class Likelihood_prof(dist.Distribution):
@@ -287,7 +290,8 @@ class Likelihood_prof_MV(dist.Distribution):
 
     def log_prob(self, value):
         return - roxy.likelihoods.negloglike_prof_mv(self.xobs, self.yobs, self.Sigma,
-                                                     self.f, self.G, self.sig, include_logdet=self.include_logdet)
+                                                     self.f, self.G, self.sig, 
+                                                     include_logdet=self.include_logdet)
 
 
 class Likelihood_unif(dist.Distribution):
@@ -445,8 +449,9 @@ class Likelihood_GMM(dist.Distribution):
 
     def log_prob(self, value):
         return - roxy.likelihoods.negloglike_gmm(self.xobs, self.yobs, self.xerr,
-                                                 self.yerr, self.f, self.fprime, self.sig, self.all_mu_gauss,
-                                                 self.all_w_gauss, self.all_weights)
+                                                 self.yerr, self.f, self.fprime, self.sig, 
+                                                 self.all_mu_gauss, self.all_w_gauss, 
+                                                 self.all_weights)
 
 
 def samples_to_array(samples):

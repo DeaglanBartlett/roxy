@@ -1,7 +1,7 @@
+import warnings
 import numpyro.distributions as dist
 from jax.scipy.special import erfc
 import jax.numpy as jnp
-import warnings
 import numpy as np
 
 
@@ -32,7 +32,7 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
     else:
         xerr = errors[0]
     if isinstance(xerr, (float, int)):
-        no_xerr = (xerr == 0)
+        no_xerr = xerr == 0
     else:
         no_xerr = jnp.all(jnp.array(xerr) == 0)
 
@@ -53,8 +53,6 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
 
     if warning_message is not None:
         warnings.warn(warning_message, UserWarning)
-
-    return
 
 
 def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
@@ -107,7 +105,7 @@ def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig,
     Ai_uplim = Ai[mask_uplim]
     Bi_uplim = Bi[mask_uplim]
 
-    neglogP = 0.0
+    neglog_p = 0.0
 
     # DETECTIONS
     if len(xdet) > 0:
@@ -121,7 +119,7 @@ def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig,
 
         t2 = jnp.log(2 * jnp.pi * jnp.sqrt(den))
 
-        neglogP = jnp.sum(numerator_t1/denominator_t1 + t2)
+        neglog_p = jnp.sum(numerator_t1/denominator_t1 + t2)
 
     # UPPER LIMITS
     if len(xuplim) > 0:
@@ -135,10 +133,10 @@ def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig,
         t2 = jnp.sum(jnp.log(0.5*erfc((Ai_uplim*mu_c + Bi_uplim - yuplim) /
                      (jnp.sqrt(2*sigma_squared + 2 * Ai_uplim**2 * sigma_c_squared)))))
 
-        neglogP_uplim = - t1 - t2
-        neglogP += neglogP_uplim
+        neglog_p_uplim = - t1 - t2
+        neglog_p += neglog_p_uplim
 
-    return neglogP
+    return neglog_p
 
 
 def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
@@ -161,7 +159,7 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
             positions
 
     Returns:
-        :neglogP (float): The negative log-likelihood
+        :neglog_p (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = fprime
@@ -172,7 +170,7 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     s2 = yerr ** 2 + sig ** 2
     den = Ai ** 2 * w_gauss ** 2 * xerr ** 2 + s2 * (w_gauss ** 2 + xerr ** 2)
 
-    neglogP = (
+    neglog_p = (
         N * jnp.log(2 * jnp.pi)
         + 1/2 * jnp.sum(jnp.log(den))
         + 1/2 * jnp.sum(w_gauss ** 2 * (Ai * xobs + Bi - yobs) ** 2 / den)
@@ -180,7 +178,7 @@ def negloglike_mnr(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
         + 1/2 * jnp.sum(s2 * (xobs - mu_gauss) ** 2 / den)
     )
 
-    return neglogP
+    return neglog_p
 
 
 def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_gauss,
@@ -207,12 +205,12 @@ def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_g
             true x positions
 
     Returns:
-        :neglogP (float): The negative log-likelihood
+        :neglog_p (float): The negative log-likelihood
     """
 
     ngauss = len(all_weights)
     N = len(xobs)
-    all_logP = jnp.empty((ngauss, N))
+    all_log_p = jnp.empty((ngauss, N))
 
     for i in range(ngauss):
 
@@ -229,7 +227,7 @@ def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_g
         den = Ai ** 2 * w_gauss ** 2 * xerr ** 2 + \
             s2 * (w_gauss ** 2 + xerr ** 2)
 
-        all_logP = all_logP.at[i, :].set(
+        all_log_p = all_log_p.at[i, :].set(
             - jnp.log(weight)
             + 1/2 * jnp.log(2 * jnp.pi)
             + 1/2 * jnp.log(den)
@@ -238,15 +236,15 @@ def negloglike_gmm(xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss, all_w_g
             + 1/2 * (s2 * (xobs - mu_gauss) ** 2 / den)
         )
 
-    all_logP = - all_logP
+    all_log_p = - all_log_p
 
     # Combine the Gaussians
-    max_logP = jnp.amax(all_logP, axis=0)
-    neglogP = - \
-        (max_logP + jnp.log(jnp.sum(jnp.exp(all_logP - max_logP), axis=0)))
-    neglogP = jnp.sum(neglogP)
+    max_log_p = jnp.amax(all_log_p, axis=0)
+    neglog_p = - \
+        (max_log_p + jnp.log(jnp.sum(jnp.exp(all_log_p - max_log_p), axis=0)))
+    neglog_p = jnp.sum(neglog_p)
 
-    return neglogP
+    return neglog_p
 
 
 def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig, include_logdet=True):
@@ -269,7 +267,7 @@ def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig, include_logdet=True)
             in the likelihood proportional to log(det(S))
 
     Returns:
-        :neglogP (float): The negative log-likelihood
+        :neglog_p (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = fprime
@@ -279,19 +277,19 @@ def negloglike_prof(xobs, yobs, xerr, yerr, f, fprime, sig, include_logdet=True)
         sigy = jnp.full(N, sigy[0])
 
     if include_logdet:
-        neglogP = (
+        neglog_p = (
             N / 2 * jnp.log(2 * jnp.pi)
             + jnp.sum(jnp.log(sigy))
             + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
                             (Ai ** 2 * xerr ** 2 + sigy ** 2))
         )
     else:
-        neglogP = (
+        neglog_p = (
             1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
                           (Ai ** 2 * xerr ** 2 + sigy ** 2))
         )
 
-    return neglogP
+    return neglog_p
 
 
 def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
@@ -312,7 +310,7 @@ def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
 
     Returns:
-        :neglogP (float): The negative log-likelihood
+        :neglog_p (float): The negative log-likelihood
     """
     N = len(xobs)
     Ai = jnp.atleast_1d(fprime)
@@ -320,14 +318,14 @@ def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
         Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
     Bi = f - Ai * xobs
 
-    neglogP = (
+    neglog_p = (
         N / 2 * jnp.log(2 * jnp.pi)
         + 1/2 * jnp.sum(jnp.log(Ai ** 2 * xerr ** 2 + yerr ** 2 + sig ** 2))
         + 1/2 * jnp.sum((Ai * xobs + Bi - yobs) ** 2 /
                         (Ai ** 2 * xerr ** 2 + yerr ** 2 + sig ** 2))
     )
 
-    return neglogP
+    return neglog_p
 
 
 def check_valid_covmat(D, tol=1e-8):
@@ -375,7 +373,7 @@ def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
             positions
 
     Returns:
-        :neglogP (float): The negative log-likelihood
+        :neglog_p (float): The negative log-likelihood
     """
 
     nx = len(xobs)
@@ -396,13 +394,13 @@ def negloglike_mnr_mv(xobs, yobs, Sigma, f, G, sig, mu_gauss, w_gauss):
     z = jnp.concatenate(
         [mu_gauss - xobs, f + jnp.matmul(G, mu_gauss - xobs) - yobs])
 
-    neglogP = 1/2 * logdet2piM + 1/2 * jnp.sum(z * jnp.matmul(Minv, z))
+    neglog_p = 1/2 * logdet2piM + 1/2 * jnp.sum(z * jnp.matmul(Minv, z))
 
     # Penalise invalid covariance matrices
     is_valid = check_valid_covmat(M)
     penalty = 1e20
 
-    return jnp.where(is_valid, neglogP, penalty)
+    return jnp.where(is_valid, neglog_p, penalty)
 
 
 def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig, include_logdet=True):
@@ -425,7 +423,7 @@ def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig, include_logdet=True):
             in the likelihood proportional to log(det(S))
 
     Returns:
-        :neglogP (float): The negative log-likelihood
+        :neglog_p (float): The negative log-likelihood
     """
 
     nx = len(xobs)
@@ -443,15 +441,15 @@ def negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig, include_logdet=True):
 
     z = f - yobs
     if include_logdet:
-        neglogP = 1/2 * logdet2piS + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
+        neglog_p = 1/2 * logdet2piS + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
     else:
-        neglogP = 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
+        neglog_p = 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
 
     # Penalise invalid covariance matrices
     is_valid = check_valid_covmat(D)
     penalty = 1e20
 
-    return jnp.where(is_valid, neglogP, penalty)
+    return jnp.where(is_valid, neglog_p, penalty)
 
 
 def negloglike_unif_mv(xobs, yobs, Sigma, f, G, sig):
@@ -472,7 +470,7 @@ def negloglike_unif_mv(xobs, yobs, Sigma, f, G, sig):
         :sig (float): The intrinsic scatter, which is added in quadrature with yerr
 
     Returns:
-        :neglogP (float): The negative log-likelihood
+        :neglog_p (float): The negative log-likelihood
     """
 
     nx = len(xobs)
@@ -487,10 +485,10 @@ def negloglike_unif_mv(xobs, yobs, Sigma, f, G, sig):
     Dinv = jnp.linalg.inv(D)
 
     z = f - yobs
-    neglogP = 1/2 * logdet2piD + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
+    neglog_p = 1/2 * logdet2piD + 1/2 * jnp.sum(z * jnp.matmul(Dinv, z))
 
     # Penalise invalid covariance matrices
     is_valid = check_valid_covmat(D)
     penalty = 1e20
 
-    return jnp.where(is_valid, neglogP, penalty)
+    return jnp.where(is_valid, neglog_p, penalty)

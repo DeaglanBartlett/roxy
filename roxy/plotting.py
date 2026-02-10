@@ -40,8 +40,8 @@ def triangle_plot(samples, labels=None, to_plot='all', module='corner',
 
     if labels is None:
         labs = list(names)
-        for p, label in zip(['mu_gauss', 'w_gauss', 'sig'], [r'\mu_{\rm gauss}',
-                                                             r'w_{\rm gauss}', r'\sigma_{\rm int}']):
+        for p, label in zip(['mu_gauss', 'w_gauss', 'sig'],
+                            [r'\mu_{\rm gauss}', r'w_{\rm gauss}', r'\sigma_{\rm int}']):
             if (p in names) and ((p in to_plot) or (to_plot == 'all')):
                 i = np.squeeze(np.where(names == p))
                 labs[i] = label
@@ -167,8 +167,11 @@ def trace_plot(samples, labels=None, to_plot='all', savename=None, show=True):
 def posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, y_is_detected=[],
                               savename=None, show=True, xlabel=r'$x$', ylabel=r'$y$',
                               errorbar_kwargs={'fmt': '.', 'markersize': 1,
-                                               'zorder': 10, 'capsize': 1, 'elinewidth': 0.5, 'color': 'k', 'alpha': 1},
-                              fgivenx_kwargs={}, xscale='linear', yscale='linear', xlim=None, ylim=None):
+                                               'zorder': 10, 'capsize': 1,
+                                               'elinewidth': 0.5, 'color': 'k', 
+                                               'alpha': 1},
+                              fgivenx_kwargs={}, xscale='linear',
+                              yscale='linear', xlim=None, ylim=None):
     """
     Make the posterior predictive plot showing the 1, 2 and 3 sigma predictions
     of the function given the inferred parameters and plot the observed points on
