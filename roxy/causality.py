@@ -7,9 +7,23 @@ from scipy.stats import pearsonr, spearmanr
 from roxy.regressor import RoxyRegressor
 
 
-def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_default,
-                     param_prior, method='mnr', criterion='hsic', ngauss=1, covmat=False,
-                     gmm_prior='hierarchical', savename=None, show=True):
+def assess_causality(
+    fun,
+    fun_inv,
+    xobs,
+    yobs,
+    errors,
+    param_names,
+    param_default,
+    param_prior,
+    method="mnr",
+    criterion="hsic",
+    ngauss=1,
+    covmat=False,
+    gmm_prior="hierarchical",
+    savename=None,
+    show=True,
+):
     """
     Due to the asymmetry between x and y, this function assesses whether one
     should fit y(x) or x(y) with the intrinsic scatter in the dependent variable.
@@ -62,18 +76,26 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     reg = RoxyRegressor(fun, param_names, param_default, param_prior)
 
     # y vs x
-    print('\nFitting y vs x')
-    res_yx, names_yx = reg.optimise(param_names, xobs, yobs, errors, method=method,
-                                    ngauss=ngauss, covmat=covmat, gmm_prior=gmm_prior)
+    print("\nFitting y vs x")
+    res_yx, names_yx = reg.optimise(
+        param_names,
+        xobs,
+        yobs,
+        errors,
+        method=method,
+        ngauss=ngauss,
+        covmat=covmat,
+        gmm_prior=gmm_prior,
+    )
     theta_yx = [None] * len(param_names)
     for i, t in enumerate(param_names):
         j = names_yx.index(t)
         theta_yx[j] = res_yx.x[i]
     theta_yx = np.array(theta_yx)
-    sig_yx = res_yx.x[names_yx.index('sig')]
+    sig_yx = res_yx.x[names_yx.index("sig")]
 
     # x vs y
-    print('\nFitting x vs y')
+    print("\nFitting x vs y")
     if covmat:
         new_errors = np.empty(errors.shape)
         nx = len(xobs)
@@ -84,61 +106,67 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
         new_errors[ny:, ny:] = errors[:nx, :nx]
     else:
         new_errors = [errors[1], errors[0]]
-    res_xy, names_xy = reg.optimise(param_names, yobs, xobs, new_errors,
-                                    method=method, ngauss=ngauss,
-                                    covmat=covmat, gmm_prior=gmm_prior)
+    res_xy, names_xy = reg.optimise(
+        param_names,
+        yobs,
+        xobs,
+        new_errors,
+        method=method,
+        ngauss=ngauss,
+        covmat=covmat,
+        gmm_prior=gmm_prior,
+    )
     theta_xy = [None] * len(param_names)
     for i, t in enumerate(param_names):
         j = names_xy.index(t)
         theta_xy[j] = res_xy.x[i]
     theta_xy = np.array(theta_xy)
-    sig_xy = res_xy.x[names_xy.index('sig')]
+    sig_xy = res_xy.x[names_xy.index("sig")]
 
     # Get normalisation for residuals
     if covmat:
         nx = len(xobs)
-        xscale = np.sqrt(np.diag(errors)[:nx] + sig_xy ** 2)
-        yscale = np.sqrt(np.diag(errors)[nx:] + sig_yx ** 2)
+        xscale = np.sqrt(np.diag(errors)[:nx] + sig_xy**2)
+        yscale = np.sqrt(np.diag(errors)[nx:] + sig_yx**2)
     else:
-        xscale = np.sqrt(errors[0] ** 2 + sig_xy ** 2)
-        yscale = np.sqrt(errors[1] ** 2 + sig_yx ** 2)
+        xscale = np.sqrt(errors[0] ** 2 + sig_xy**2)
+        yscale = np.sqrt(errors[1] ** 2 + sig_yx**2)
 
     # Residuals
     resid_yx_forward = (yobs - fun(xobs, theta_yx)) / yscale
     resid_yx_inverse = (yobs - fun_inv(xobs, theta_xy)) / yscale
     resid_xy_forward = (xobs - fun(yobs, theta_xy)) / xscale
     resid_xy_inverse = (xobs - fun_inv(yobs, theta_yx)) / xscale
-    items = [('y(x) forward', resid_yx_forward, xobs),
-             ('y(x) inverse', resid_yx_inverse, xobs),
-             ('x(y) forward', resid_xy_forward, yobs),
-             ('x(y) inverse', resid_xy_inverse, yobs)]
+    items = [
+        ("y(x) forward", resid_yx_forward, xobs),
+        ("y(x) inverse", resid_yx_inverse, xobs),
+        ("x(y) forward", resid_xy_forward, yobs),
+        ("x(y) inverse", resid_xy_inverse, yobs),
+    ]
 
     results = np.ones(len(items)) * np.inf
 
     for i, (name, resid, data) in enumerate(items):
-        if criterion == 'spearman':
+        if criterion == "spearman":
             results[i], pval = spearmanr(data, resid)
-            print(
-                f"\n{name} Spearman: {round(results[i], 3)}, (p={round(pval, 3)})")
-        elif criterion == 'pearson':
+            print(f"\n{name} Spearman: {round(results[i], 3)}, (p={round(pval, 3)})")
+        elif criterion == "pearson":
             results[i], pval = pearsonr(data, resid)
-            print(
-                f"\n{name} Pearson: {round(results[i], 3)}, (p={round(pval, 3)})")
-        elif criterion == 'hsic':
-            stat, results[i] = compute_hsic(np.expand_dims(data, axis=1),
-                                            np.expand_dims(resid, axis=1),
-                                            alph=0.001)
+            print(f"\n{name} Pearson: {round(results[i], 3)}, (p={round(pval, 3)})")
+        elif criterion == "hsic":
+            stat, results[i] = compute_hsic(
+                np.expand_dims(data, axis=1), np.expand_dims(resid, axis=1), alph=0.001
+            )
             if np.isnan(results[i]):
                 print(f"\n{name} HSIC: {round(stat, 3)}, (p<0.001)")
-                results[i] = 0.
+                results[i] = 0.0
             else:
-                print(
-                    f"\n{name} HSIC: {round(stat, 3)}, (p={round(results[i], 3)})")
+                print(f"\n{name} HSIC: {round(stat, 3)}, (p={round(results[i], 3)})")
             results[i] = 1 - results[i]
         else:
             raise NotImplementedError
 
-    labels = ['Forward', 'Inverse', 'Forward', 'Inverse']
+    labels = ["Forward", "Inverse", "Forward", "Inverse"]
 
     if not np.all(np.isnan(results)):
         ibest = np.nanargmin(np.abs(results))
@@ -146,7 +174,7 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
             print("\nRecommended direction: y(x)")
         else:
             print("\nRecommended direction: x(y)")
-        labels[ibest] += '*'
+        labels[ibest] += "*"
 
     # Plot
     fig, axs = plt.subplots(2, 2, figsize=(10, 6))
@@ -154,39 +182,33 @@ def assess_causality(fun, fun_inv, xobs, yobs, errors, param_names, param_defaul
     cmap = plt.get_cmap("Set1")
 
     axs[0, 0].plot(xobs, fun(xobs, theta_yx), label=labels[0], color=cmap(0))
-    axs[0, 0].plot(xobs, fun_inv(xobs, theta_xy),
-                   label=labels[1], color=cmap(1))
+    axs[0, 0].plot(xobs, fun_inv(xobs, theta_xy), label=labels[1], color=cmap(1))
     axs[0, 1].plot(yobs, fun(yobs, theta_xy), label=labels[2], color=cmap(0))
-    axs[0, 1].plot(yobs, fun_inv(yobs, theta_yx),
-                   label=labels[3], color=cmap(1))
-    axs[0, 0].plot(xobs, yobs, '.', color=cmap(2))
-    axs[0, 1].plot(yobs, xobs, '.', color=cmap(2))
+    axs[0, 1].plot(yobs, fun_inv(yobs, theta_yx), label=labels[3], color=cmap(1))
+    axs[0, 0].plot(xobs, yobs, ".", color=cmap(2))
+    axs[0, 1].plot(yobs, xobs, ".", color=cmap(2))
 
-    axs[1, 0].scatter(xobs, resid_yx_forward, alpha=0.3,
-                      label=labels[0], color=cmap(0))
-    axs[1, 0].scatter(xobs, resid_yx_inverse, alpha=0.3,
-                      label=labels[1], color=cmap(1))
-    axs[1, 1].scatter(yobs, resid_xy_forward, alpha=0.3,
-                      label=labels[2], color=cmap(0))
-    axs[1, 1].scatter(yobs, resid_xy_inverse, alpha=0.3,
-                      label=labels[3], color=cmap(1))
+    axs[1, 0].scatter(xobs, resid_yx_forward, alpha=0.3, label=labels[0], color=cmap(0))
+    axs[1, 0].scatter(xobs, resid_yx_inverse, alpha=0.3, label=labels[1], color=cmap(1))
+    axs[1, 1].scatter(yobs, resid_xy_forward, alpha=0.3, label=labels[2], color=cmap(0))
+    axs[1, 1].scatter(yobs, resid_xy_inverse, alpha=0.3, label=labels[3], color=cmap(1))
 
     for i in range(axs.shape[1]):
         axs[0, i].sharex(axs[1, i])
         plt.setp(axs[0, i].get_xticklabels(), visible=False)
-        axs[1, i].axhline(y=0, color='k')
+        axs[1, i].axhline(y=0, color="k")
         axs[0, i].legend()
         axs[1, i].legend()
-    axs[0, 0].set_title(r'Infer $y(x)$')
-    axs[0, 1].set_title(r'Infer $x(y)$')
+    axs[0, 0].set_title(r"Infer $y(x)$")
+    axs[0, 1].set_title(r"Infer $x(y)$")
 
-    axs[0, 0].set_ylabel(r'$y_{\rm pred}$')
-    axs[0, 1].set_ylabel(r'$x_{\rm pred}$')
+    axs[0, 0].set_ylabel(r"$y_{\rm pred}$")
+    axs[0, 1].set_ylabel(r"$x_{\rm pred}$")
 
-    axs[1, 0].set_xlabel(r'$x_{\rm obs}$')
-    axs[1, 0].set_ylabel(r'Normalised $y$ residuals')
-    axs[1, 1].set_xlabel(r'$y_{\rm obs}$')
-    axs[1, 1].set_ylabel(r'Normalised $x$ residuals')
+    axs[1, 0].set_xlabel(r"$x_{\rm obs}$")
+    axs[1, 0].set_ylabel(r"Normalised $y$ residuals")
+    axs[1, 1].set_xlabel(r"$y_{\rm obs}$")
+    axs[1, 1].set_ylabel(r"Normalised $x$ residuals")
 
     fig.align_labels()
     fig.tight_layout()
@@ -226,19 +248,19 @@ def compute_hsic(x, y, alph=0.05):
     def rbf_dot(pattern1, pattern2, deg):
         size1 = pattern1.shape
         size2 = pattern2.shape
-        g = np.sum(pattern1*pattern1, 1).reshape(size1[0], 1)
-        h = np.sum(pattern2*pattern2, 1).reshape(size2[0], 1)
+        g = np.sum(pattern1 * pattern1, 1).reshape(size1[0], 1)
+        h = np.sum(pattern2 * pattern2, 1).reshape(size2[0], 1)
         q = np.tile(g, (1, size2[0]))
         r = np.tile(h.T, (size1[0], 1))
         h = q + r - 2 * np.dot(pattern1, pattern2.T)
-        h = np.exp(-h/2/(deg**2))
+        h = np.exp(-h / 2 / (deg**2))
         return h
 
     n = x.shape[0]
 
     # width of X
     x_med = x
-    g = np.sum(x_med*x_med, 1).reshape(n, 1)
+    g = np.sum(x_med * x_med, 1).reshape(n, 1)
     q = np.tile(g, (1, n))
     r = np.tile(g.T, (n, 1))
     dists = q + r - 2 * np.dot(x_med, x_med.T)
@@ -248,7 +270,7 @@ def compute_hsic(x, y, alph=0.05):
 
     # width of Y
     y_med = y
-    g = np.sum(y_med*y_med, 1).reshape(n, 1)
+    g = np.sum(y_med * y_med, 1).reshape(n, 1)
     q = np.tile(g, (1, n))
     r = np.tile(g.T, (n, 1))
     dists = q + r - 2 * np.dot(y_med, y_med.T)
@@ -267,31 +289,33 @@ def compute_hsic(x, y, alph=0.05):
 
     test_stat = np.sum(kc.T * lc) / n
 
-    var_hsic = (kc * lc / 6)**2
+    var_hsic = (kc * lc / 6) ** 2
 
-    var_hsic = (np.sum(var_hsic) - np.trace(var_hsic)) / n / (n-1)
+    var_hsic = (np.sum(var_hsic) - np.trace(var_hsic)) / n / (n - 1)
 
-    var_hsic = var_hsic * 72 * (n-4) * (n-5) / n / (n-1) / (n-2) / (n-3)
+    var_hsic = var_hsic * 72 * (n - 4) * (n - 5) / n / (n - 1) / (n - 2) / (n - 3)
 
     k = k - np.diag(np.diag(k))
     ell = ell - np.diag(np.diag(ell))
 
-    mu_x = np.dot(np.dot(bone.T, k), bone) / n / (n-1)
-    mu_y = np.dot(np.dot(bone.T, ell), bone) / n / (n-1)
+    mu_x = np.dot(np.dot(bone.T, k), bone) / n / (n - 1)
+    mu_y = np.dot(np.dot(bone.T, ell), bone) / n / (n - 1)
 
     m_hsic = (1 + mu_x * mu_y - mu_x - mu_y) / n
 
     al = m_hsic**2 / var_hsic
-    bet = var_hsic*n / m_hsic
+    bet = var_hsic * n / m_hsic
 
-    thresh = scipy.stats.gamma.ppf(1-alph, al, scale=bet)[0][0]
+    thresh = scipy.stats.gamma.ppf(1 - alph, al, scale=bet)[0][0]
 
     # Find threshold of significance for sufficiently weak correlation
     if test_stat < thresh:
+
         def to_zero(a):
             r = scipy.stats.gamma.ppf(a, al, scale=bet)[0][0] - test_stat
             return r
-        res = scipy.optimize.root_scalar(to_zero, x0=1-alph)
+
+        res = scipy.optimize.root_scalar(to_zero, x0=1 - alph)
         best_alph = 1 - res.root
     else:
         best_alph = np.nan

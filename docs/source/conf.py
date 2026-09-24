@@ -14,19 +14,19 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.getcwd()))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(1, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../roxy/'))
+sys.path.insert(0, os.path.abspath("../"))
+sys.path.insert(1, os.path.abspath("../../"))
+sys.path.insert(0, os.path.abspath("../../roxy/"))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'roxy'
-copyright = '2023, Deaglan Bartlett and Harry Desmond'
-author = 'Deaglan Bartlett and Harry Desmond'
+project = "roxy"
+copyright = "2023, Deaglan Bartlett and Harry Desmond"
+author = "Deaglan Bartlett and Harry Desmond"
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = "0.0.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,22 +36,22 @@ release = '0.0.1'
 # ones.
 extensions = [
     "myst_parser",
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.imgconverter',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.imgconverter",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
-source_suffix = '.rst'
-master_doc='index'
+templates_path = ["_templates"]
+source_suffix = ".rst"
+master_doc = "index"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -63,9 +63,9 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+# html_static_path = ['_static']

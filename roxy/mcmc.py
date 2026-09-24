@@ -23,8 +23,8 @@ class Likelihood_MNR_uplims(dist.Distribution):
     Args:
         :xobs (jnp.ndarray): The observed x values
         :yobs (jnp.ndarray): The observed y values
-        :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and 
-            yobs, giving whether each point is a detection (True) or an upper limit 
+        :y_is_detected (jnp.ndarray): A boolean array of the same length as xobs and
+            yobs, giving whether each point is a detection (True) or an upper limit
             (False)
         :xerr (jnp.ndarray): The error on the observed x values
         :yerr (jnp.ndarray): The error on the observed y values
@@ -38,12 +38,24 @@ class Likelihood_MNR_uplims(dist.Distribution):
             positions
     """
 
-    def __init__(self, xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig,
-                 mu_gauss, w_gauss):
+    def __init__(
+        self, xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss
+    ):
 
-        self.xobs, self.yobs, self.y_is_detected, self.xerr, self.yerr, self.f, self.fprime, self.sig, self.mu_gauss, self.w_gauss = \
-            promote_shapes(xobs, yobs, y_is_detected, xerr,
-                           yerr, f, fprime, sig, mu_gauss, w_gauss)
+        (
+            self.xobs,
+            self.yobs,
+            self.y_is_detected,
+            self.xerr,
+            self.yerr,
+            self.f,
+            self.fprime,
+            self.sig,
+            self.mu_gauss,
+            self.w_gauss,
+        ) = promote_shapes(
+            xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss
+        )
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
             jnp.shape(yobs),
@@ -62,9 +74,18 @@ class Likelihood_MNR_uplims(dist.Distribution):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_mnr_uplims(self.xobs, self.yobs, self.y_is_detected,
-                                                        self.xerr, self.yerr, self.f, self.fprime,
-                                                        self.sig, self.mu_gauss, self.w_gauss)
+        return -roxy.likelihoods.negloglike_mnr_uplims(
+            self.xobs,
+            self.yobs,
+            self.y_is_detected,
+            self.xerr,
+            self.yerr,
+            self.f,
+            self.fprime,
+            self.sig,
+            self.mu_gauss,
+            self.w_gauss,
+        )
 
 
 class Likelihood_MNR(dist.Distribution):
@@ -89,9 +110,17 @@ class Likelihood_MNR(dist.Distribution):
     """
 
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
-        self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig, \
-            self.mu_gauss, self.w_gauss = promote_shapes(xobs, yobs, xerr, yerr, f,
-                                                         fprime, sig, mu_gauss, w_gauss)
+        (
+            self.xobs,
+            self.yobs,
+            self.xerr,
+            self.yerr,
+            self.f,
+            self.fprime,
+            self.sig,
+            self.mu_gauss,
+            self.w_gauss,
+        ) = promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss)
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
             jnp.shape(yobs),
@@ -109,9 +138,17 @@ class Likelihood_MNR(dist.Distribution):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_mnr(self.xobs, self.yobs, self.xerr,
-                                                 self.yerr, self.f, self.fprime, self.sig,
-                                                 self.mu_gauss, self.w_gauss)
+        return -roxy.likelihoods.negloglike_mnr(
+            self.xobs,
+            self.yobs,
+            self.xerr,
+            self.yerr,
+            self.f,
+            self.fprime,
+            self.sig,
+            self.mu_gauss,
+            self.w_gauss,
+        )
 
 
 class Likelihood_MNR_MV(dist.Distribution):
@@ -143,9 +180,11 @@ class Likelihood_MNR_MV(dist.Distribution):
         xobs_p = xobs[..., jnp.newaxis]
         yobs_p = yobs[..., jnp.newaxis]
         f_p = f[..., jnp.newaxis]
-        xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, self.G, \
-            sig, mu_gauss, w_gauss = promote_shapes(xobs_p, yobs_p, Sxx, Syy, Sxy,
-                                                    f_p, G, sig, mu_gauss, w_gauss)
+        xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, self.G, sig, mu_gauss, w_gauss = (
+            promote_shapes(
+                xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, G, sig, mu_gauss, w_gauss
+            )
+        )
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs_p)[:-2],
             jnp.shape(yobs_p)[:-2],
@@ -162,25 +201,31 @@ class Likelihood_MNR_MV(dist.Distribution):
         self.xobs = xobs_p[..., 0]
         self.yobs = yobs_p[..., 0]
         self.Sigma = jnp.concatenate(
-            [jnp.concatenate([Sxx, Sxy], axis=-1),
-             jnp.concatenate([Sxy.T, Syy], axis=-1)]
+            [
+                jnp.concatenate([Sxx, Sxy], axis=-1),
+                jnp.concatenate([Sxy.T, Syy], axis=-1),
+            ]
         )
         self.f = f_p[..., 0]
         self.sig = sig[..., 0]
         self.mu_gauss = mu_gauss[..., 0]
         self.w_gauss = w_gauss[..., 0]
-        super().__init__(
-            batch_shape=batch_shape,
-            event_shape=event_shape
-        )
+        super().__init__(batch_shape=batch_shape, event_shape=event_shape)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_mnr_mv(self.xobs, self.yobs, self.Sigma,
-                                                    self.f, self.G, self.sig,
-                                                    self.mu_gauss, self.w_gauss)
+        return -roxy.likelihoods.negloglike_mnr_mv(
+            self.xobs,
+            self.yobs,
+            self.Sigma,
+            self.f,
+            self.G,
+            self.sig,
+            self.mu_gauss,
+            self.w_gauss,
+        )
 
 
 class Likelihood_prof(dist.Distribution):
@@ -204,9 +249,9 @@ class Likelihood_prof(dist.Distribution):
     """
 
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, include_logdet=True):
-        self.xobs, self.yobs, self.xerr, self.yerr, \
-            self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr,
-                                                           f, fprime, sig)
+        self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = (
+            promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
+        )
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
             jnp.shape(yobs),
@@ -223,9 +268,16 @@ class Likelihood_prof(dist.Distribution):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_prof(self.xobs, self.yobs, self.xerr,
-                                                  self.yerr, self.f, self.fprime, self.sig,
-                                                  include_logdet=self.include_logdet)
+        return -roxy.likelihoods.negloglike_prof(
+            self.xobs,
+            self.yobs,
+            self.xerr,
+            self.yerr,
+            self.f,
+            self.fprime,
+            self.sig,
+            include_logdet=self.include_logdet,
+        )
 
 
 class Likelihood_prof_MV(dist.Distribution):
@@ -253,13 +305,13 @@ class Likelihood_prof_MV(dist.Distribution):
             in the likelihood proportional to log(det(S))
     """
 
-    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig,
-                 include_logdet=True):
+    def __init__(self, xobs, yobs, Sxx, Syy, Sxy, f, G, sig, include_logdet=True):
         xobs_p = xobs[..., jnp.newaxis]
         yobs_p = yobs[..., jnp.newaxis]
         f_p = f[..., jnp.newaxis]
-        xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, self.G, sig = promote_shapes(xobs_p, yobs_p,
-                                                                         Sxx, Syy, Sxy, f_p, G, sig)
+        xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, self.G, sig = promote_shapes(
+            xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, G, sig
+        )
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs_p)[:-2],
             jnp.shape(yobs_p)[:-2],
@@ -274,24 +326,29 @@ class Likelihood_prof_MV(dist.Distribution):
         self.xobs = xobs_p[..., 0]
         self.yobs = yobs_p[..., 0]
         self.Sigma = jnp.concatenate(
-            [jnp.concatenate([Sxx, Sxy], axis=-1),
-             jnp.concatenate([Sxy.T, Syy], axis=-1)]
+            [
+                jnp.concatenate([Sxx, Sxy], axis=-1),
+                jnp.concatenate([Sxy.T, Syy], axis=-1),
+            ]
         )
         self.f = f_p[..., 0]
         self.sig = sig[..., 0]
         self.include_logdet = include_logdet
-        super().__init__(
-            batch_shape=batch_shape,
-            event_shape=event_shape
-        )
+        super().__init__(batch_shape=batch_shape, event_shape=event_shape)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_prof_mv(self.xobs, self.yobs, self.Sigma,
-                                                     self.f, self.G, self.sig,
-                                                     include_logdet=self.include_logdet)
+        return -roxy.likelihoods.negloglike_prof_mv(
+            self.xobs,
+            self.yobs,
+            self.Sigma,
+            self.f,
+            self.G,
+            self.sig,
+            include_logdet=self.include_logdet,
+        )
 
 
 class Likelihood_unif(dist.Distribution):
@@ -314,9 +371,9 @@ class Likelihood_unif(dist.Distribution):
     """
 
     def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig):
-        self.xobs, self.yobs, self.xerr, self.yerr, \
-            self.f, self.fprime, self.sig = promote_shapes(xobs, yobs, xerr, yerr,
-                                                           f, fprime, sig)
+        self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = (
+            promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
+        )
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
             jnp.shape(yobs),
@@ -332,8 +389,9 @@ class Likelihood_unif(dist.Distribution):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_unif(self.xobs, self.yobs, self.xerr,
-                                                  self.yerr, self.f, self.fprime, self.sig)
+        return -roxy.likelihoods.negloglike_unif(
+            self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig
+        )
 
 
 class Likelihood_unif_MV(dist.Distribution):
@@ -363,8 +421,9 @@ class Likelihood_unif_MV(dist.Distribution):
         xobs_p = xobs[..., jnp.newaxis]
         yobs_p = yobs[..., jnp.newaxis]
         f_p = f[..., jnp.newaxis]
-        xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, self.G, sig = promote_shapes(xobs_p, yobs_p,
-                                                                         Sxx, Syy, Sxy, f_p, G, sig)
+        xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, self.G, sig = promote_shapes(
+            xobs_p, yobs_p, Sxx, Syy, Sxy, f_p, G, sig
+        )
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs_p)[:-2],
             jnp.shape(yobs_p)[:-2],
@@ -379,22 +438,22 @@ class Likelihood_unif_MV(dist.Distribution):
         self.xobs = xobs_p[..., 0]
         self.yobs = yobs_p[..., 0]
         self.Sigma = jnp.concatenate(
-            [jnp.concatenate([Sxx, Sxy], axis=-1),
-             jnp.concatenate([Sxy.T, Syy], axis=-1)]
+            [
+                jnp.concatenate([Sxx, Sxy], axis=-1),
+                jnp.concatenate([Sxy.T, Syy], axis=-1),
+            ]
         )
         self.f = f_p[..., 0]
         self.sig = sig[..., 0]
-        super().__init__(
-            batch_shape=batch_shape,
-            event_shape=event_shape
-        )
+        super().__init__(batch_shape=batch_shape, event_shape=event_shape)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_unif_mv(self.xobs, self.yobs, self.Sigma,
-                                                     self.f, self.G, self.sig)
+        return -roxy.likelihoods.negloglike_unif_mv(
+            self.xobs, self.yobs, self.Sigma, self.f, self.G, self.sig
+        )
 
 
 class Likelihood_GMM(dist.Distribution):
@@ -421,14 +480,27 @@ class Likelihood_GMM(dist.Distribution):
             true x positions
     """
 
-    def __init__(self, xobs, yobs, xerr, yerr, f, fprime, sig, all_mu_gauss,
-                 all_w_gauss, all_weights):
+    def __init__(
+        self,
+        xobs,
+        yobs,
+        xerr,
+        yerr,
+        f,
+        fprime,
+        sig,
+        all_mu_gauss,
+        all_w_gauss,
+        all_weights,
+    ):
 
-        self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = \
+        self.xobs, self.yobs, self.xerr, self.yerr, self.f, self.fprime, self.sig = (
             promote_shapes(xobs, yobs, xerr, yerr, f, fprime, sig)
+        )
 
         self.all_mu_gauss, self.all_w_gauss, self.all_weights = promote_shapes(
-            all_mu_gauss, all_w_gauss, all_weights)
+            all_mu_gauss, all_w_gauss, all_weights
+        )
 
         batch_shape = lax.broadcast_shapes(
             jnp.shape(xobs),
@@ -440,18 +512,28 @@ class Likelihood_GMM(dist.Distribution):
             jnp.shape(sig),
             (),
             (),
-            ()
+            (),
         )
-        super().__init__(batch_shape=batch_shape,)
+        super().__init__(
+            batch_shape=batch_shape,
+        )
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
 
     def log_prob(self, value):
-        return - roxy.likelihoods.negloglike_gmm(self.xobs, self.yobs, self.xerr,
-                                                 self.yerr, self.f, self.fprime, self.sig,
-                                                 self.all_mu_gauss, self.all_w_gauss,
-                                                 self.all_weights)
+        return -roxy.likelihoods.negloglike_gmm(
+            self.xobs,
+            self.yobs,
+            self.xerr,
+            self.yerr,
+            self.f,
+            self.fprime,
+            self.sig,
+            self.all_mu_gauss,
+            self.all_w_gauss,
+            self.all_weights,
+        )
 
 
 def samples_to_array(samples):
@@ -481,7 +563,7 @@ def samples_to_array(samples):
             nparam[m] = 1
         else:
             nparam[m] = samples[keys[m]].shape[1]
-            labels += [f'{keys[m]}_{n}' for n in range(nparam[m])]
+            labels += [f"{keys[m]}_{n}" for n in range(nparam[m])]
 
     nparam = [0] + list(np.cumsum(nparam))
 
@@ -491,8 +573,8 @@ def samples_to_array(samples):
         if len(samples[keys[m]].shape) == 1:
             all_samples[:, nparam[m]] = samples[keys[m]][:]
         else:
-            for n in range(nparam[m+1]-nparam[m]):
-                all_samples[:, nparam[m]+n] = samples[keys[m]][:, n]
+            for n in range(nparam[m + 1] - nparam[m]):
+                all_samples[:, nparam[m] + n] = samples[keys[m]][:, n]
 
     labels = np.array(labels)
     all_samples = np.array(all_samples)
@@ -521,24 +603,27 @@ def compute_bias(samples, truths, verbose=True):
 
     for k, v in truths.items():
 
-        if k == 'sig':
+        if k == "sig":
 
             # Fit these samples to a truncated Gaussian
             def negloglike(pars, k=k):
                 mu, sig = pars
                 nll = (
-                    np.log(2) - 0.5 * np.log(2 * np.pi * sig ** 2)
+                    np.log(2)
+                    - 0.5 * np.log(2 * np.pi * sig**2)
                     - np.log(1 + scipy.special.erf(mu / np.sqrt(2) / sig))
-                    - (samples[k] - mu) ** 2 / 2 / sig ** 2
+                    - (samples[k] - mu) ** 2 / 2 / sig**2
                 )
-                return - np.sum(nll)
+                return -np.sum(nll)
+
             initial = [np.mean(samples[k]), np.std(samples[k])]
             bounds = [(None, None), (0, None)]  # sigma must be >= 0
-            res = scipy.optimize.minimize(negloglike, initial, bounds=bounds,
-                                          method='nelder-mead')
+            res = scipy.optimize.minimize(
+                negloglike, initial, bounds=bounds, method="nelder-mead"
+            )
             mu, sig = res.x
             if verbose:
-                print('Truncated normal fit for sig:', mu, sig)
+                print("Truncated normal fit for sig:", mu, sig)
 
         else:
             mu = float(np.mean(samples[k]))
@@ -547,9 +632,9 @@ def compute_bias(samples, truths, verbose=True):
         biases[k] = (mu - v) / sig
 
     if verbose:
-        print('\nComputed biases (units=sigma):')
+        print("\nComputed biases (units=sigma):")
         for k, b in biases.items():
-            print(f'{k}:\t{b}')
+            print(f"{k}:\t{b}")
 
     return biases
 
@@ -558,7 +643,7 @@ class OrderedNormal(dist.Distribution):
 
     arg_constraints: ClassVar[dict[str, dist.constraints.Constraint]] = {
         "loc": dist.constraints.real,
-        "scale": dist.constraints.positive
+        "scale": dist.constraints.positive,
     }
     support = dist.constraints.ordered_vector
     reparametrized_params: ClassVar[list[str]] = ["loc", "scale"]
@@ -566,9 +651,7 @@ class OrderedNormal(dist.Distribution):
     def __init__(self, loc=0.0, scale=1.0, *, validate_args=None):
         self.loc, self.scale = promote_shapes(loc, scale)
         batch_shape = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
-        super().__init__(
-            batch_shape=batch_shape, validate_args=validate_args
-        )
+        super().__init__(batch_shape=batch_shape, validate_args=validate_args)
 
     def sample(self, key, sample_shape=()):
         assert is_prng_key(key)

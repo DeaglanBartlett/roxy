@@ -17,31 +17,33 @@ import numpyro.distributions.distribution
 import roxy.plotting
 from roxy.regressor import RoxyRegressor
 
-run_name = 'linear'
+run_name = "linear"
 # run_name = 'quadratic'
 # all_method = ['unif', 'prof', 'mnr', 'gmm']
-all_method = ['mnr']
+all_method = ["mnr"]
 
-if run_name == 'linear':
+if run_name == "linear":
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [2, 0.5]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
-    
-elif run_name == 'quadratic':
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
+
+elif run_name == "quadratic":
 
     def my_fun(x, theta):
-        return theta[0] * x ** 2 + theta[1] * x + theta[2]
-    
-    param_names = ['A', 'B', 'C']
+        return theta[0] * x**2 + theta[1] * x + theta[2]
+
+    param_names = ["A", "B", "C"]
     theta0 = [2, 0.5, -3]
-    param_prior = {'A':[None, None],
-                'B':[None, None],
-                'C': [None, None],
-                'sig':[None, None]}
+    param_prior = {
+        "A": [None, None],
+        "B": [None, None],
+        "C": [None, None],
+        "sig": [None, None],
+    }
 
 reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -52,30 +54,38 @@ sig = 0.5
 nwarm, nsamp = 700, 5000
 
 np.random.seed(0)
-    
+
 xtrue = np.linspace(0.01, 5, nx)
 ytrue = reg.value(xtrue, theta0)
 xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
+yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
-plot_kwargs = {'fmt':'.', 'markersize':1, 'zorder':1,
-                 'capsize':1, 'elinewidth':1.0, 'color':'k', 'alpha':1}
+plot_kwargs = {
+    "fmt": ".",
+    "markersize": 1,
+    "zorder": 1,
+    "capsize": 1,
+    "elinewidth": 1.0,
+    "color": "k",
+    "alpha": 1,
+}
 plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
-plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
-plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
+plt.xlabel(r"$x_{\rm obs}$", fontsize=14)
+plt.ylabel(r"$y_{\rm obs}$", fontsize=14)
 plt.tight_layout()
-plt.savefig('../docs/source/data.png', transparent=True)
+plt.savefig("../docs/source/data.png", transparent=True)
 plt.show()
 plt.clf()
 plt.close(plt.gcf())
 
 for method in all_method:
     print(method)
-    if method == 'gmm':
-        for p in ['uniform', 'hierarchical']:
+    if method == "gmm":
+        for p in ["uniform", "hierarchical"]:
             print(p)
-            reg.optimise(param_names, xobs, yobs, [xerr, yerr],
-                method=method, gmm_prior=p)
+            reg.optimise(
+                param_names, xobs, yobs, [xerr, yerr], method=method, gmm_prior=p
+            )
     else:
         reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)
 
@@ -83,17 +93,25 @@ for method in all_method:
 
 for method in all_method:
     print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig, method=method))
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
-        method=method, num_chains=1)
-    if method == 'mnr':
-        savename_triangle = f'../docs/source/triangle.png'
-        savename_trace = f'../docs/source/trace.png'
-        savename_postpred = f'../docs/source/posterior_predictive.png'
+    samples = reg.mcmc(
+        param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method, num_chains=1
+    )
+    if method == "mnr":
+        savename_triangle = f"../docs/source/triangle.png"
+        savename_trace = f"../docs/source/trace.png"
+        savename_postpred = f"../docs/source/posterior_predictive.png"
     else:
         savename_triangle = None
         savename_trace = None
         savename_postpred = None
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-        param_prior=param_prior, savename=savename_triangle)
-    roxy.plotting.trace_plot(samples, to_plot='all', savename=savename_trace)
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=savename_postpred)
+    roxy.plotting.triangle_plot(
+        samples,
+        to_plot="all",
+        module="getdist",
+        param_prior=param_prior,
+        savename=savename_triangle,
+    )
+    roxy.plotting.trace_plot(samples, to_plot="all", savename=savename_trace)
+    roxy.plotting.posterior_predictive_plot(
+        reg, samples, xobs, yobs, xerr, yerr, savename=savename_postpred
+    )

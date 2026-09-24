@@ -23,38 +23,48 @@ from roxy.regressor import RoxyRegressor
 
 radius = 1.5
 
-data = pd.read_csv('cluster_data.txt', delim_whitespace=True)
+data = pd.read_csv("cluster_data.txt", delim_whitespace=True)
 print(data.keys())
 
 # Check the data is as expected
-for s in ['sigma2001p5', 'sigma2001', 'Mdyn1p5', 'Mdyn1', 'MSZ']:
-    m1 = (data[s] == '-')
-    m2 = (data['err_' + s] == '-')
+for s in ["sigma2001p5", "sigma2001", "Mdyn1p5", "Mdyn1", "MSZ"]:
+    m1 = data[s] == "-"
+    m2 = data["err_" + s] == "-"
     assert m1.sum() == m2.sum(), "Missing entries don't match with corresponding errors"
 
 # Replicate Table 1
 ptab = PrettyTable()
-ptab.field_names = ["Data set",
-                    "PSZ-North",
-                    "Others in PSZ2",
-                    "Beyond PSZ2",
-                    "1.5 x r200", "1 x r200"]
+ptab.field_names = [
+    "Data set",
+    "PSZ-North",
+    "Others in PSZ2",
+    "Beyond PSZ2",
+    "1.5 x r200",
+    "1 x r200",
+]
 t0, t1, t2, t3, t4 = 0, 0, 0, 0, 0
-for dset in ['LP15', 'ITP13', 'SDSS']:
-    m0 = ((data['Dataset'] == dset)
-            & (data['PSZ_other'] == 0)
-            & (data['Beyond_PSZ2'] == 0))
-    m1 = ((data['Dataset'] == dset)
-            & (data['PSZ_other'] == 1)
-            & (data['Beyond_PSZ2'] == 0))
-    m2 = ((data['Dataset'] == dset)
-            & (data['PSZ_other'] == 0)
-            & (data['Beyond_PSZ2'] == 1))
-    m3 = ((data['Dataset'] == dset)  & (data['Beyond_PSZ2'] == 0)
-            & ((data['Flag'] == '2') | (data['Flag'] == '1')))
-    m4 = ((data['Dataset'] == dset)
-            & (data['Flag'] == '1')
-            & (data['Beyond_PSZ2'] == 0))
+for dset in ["LP15", "ITP13", "SDSS"]:
+    m0 = (
+        (data["Dataset"] == dset)
+        & (data["PSZ_other"] == 0)
+        & (data["Beyond_PSZ2"] == 0)
+    )
+    m1 = (
+        (data["Dataset"] == dset)
+        & (data["PSZ_other"] == 1)
+        & (data["Beyond_PSZ2"] == 0)
+    )
+    m2 = (
+        (data["Dataset"] == dset)
+        & (data["PSZ_other"] == 0)
+        & (data["Beyond_PSZ2"] == 1)
+    )
+    m3 = (
+        (data["Dataset"] == dset)
+        & (data["Beyond_PSZ2"] == 0)
+        & ((data["Flag"] == "2") | (data["Flag"] == "1"))
+    )
+    m4 = (data["Dataset"] == dset) & (data["Flag"] == "1") & (data["Beyond_PSZ2"] == 0)
     print(m3.sum(), m4.sum())
     t0 += m0.sum()
     t1 += m1.sum()
@@ -62,32 +72,32 @@ for dset in ['LP15', 'ITP13', 'SDSS']:
     t3 += m3.sum()
     t4 += m4.sum()
     ptab.add_row([dset, m0.sum(), m1.sum(), m2.sum(), m3.sum(), m4.sum()])
-ptab.add_row(['Total', t0, t1, t2, t3, t4])
-print('\nCompare to Table 1 of arXiv:2111.13071')
+ptab.add_row(["Total", t0, t1, t2, t3, t4])
+print("\nCompare to Table 1 of arXiv:2111.13071")
 print(ptab)
 
 m = None
 if radius == 1.5:
-    m = (data['Flag'] == '2') | (data['Flag'] == '1')
-    s = '1p5'
+    m = (data["Flag"] == "2") | (data["Flag"] == "1")
+    s = "1p5"
 elif radius == 1:
-    s = '1'
-    m = (data['Flag'] == '1') & (data[f'Mdyn{s}'] != '-')
-m &= (data['Beyond_PSZ2'] == 0)
+    s = "1"
+    m = (data["Flag"] == "1") & (data[f"Mdyn{s}"] != "-")
+m &= data["Beyond_PSZ2"] == 0
 print(m.sum())
 
 data = data[m]
 
-# Linear space
+# Linear space
 if radius == 1.5:
-    s = '1p5'
+    s = "1p5"
 elif radius == 1:
-    s = '1'
-conv_factor = 5/3  # = 10^{15} / (6 x 10^{14}) = 10 / 6 = 5 / 3
-xobs = data[f'Mdyn{s}'].to_numpy(float) * conv_factor
-yobs = data['MSZ'].to_numpy(float) * conv_factor
-xerr = data[f'err_Mdyn{s}'].to_numpy(float) * conv_factor
-yerr = data['err_MSZ'].to_numpy(float) * conv_factor
+    s = "1"
+conv_factor = 5 / 3  # = 10^{15} / (6 x 10^{14}) = 10 / 6 = 5 / 3
+xobs = data[f"Mdyn{s}"].to_numpy(float) * conv_factor
+yobs = data["MSZ"].to_numpy(float) * conv_factor
+xerr = data[f"err_Mdyn{s}"].to_numpy(float) * conv_factor
+yerr = data["err_MSZ"].to_numpy(float) * conv_factor
 
 # Log space
 xerr = jnp.array(xerr / xobs)
@@ -95,15 +105,18 @@ yerr = jnp.array(yerr / yobs)
 xobs = jnp.array(jnp.log(xobs))
 yobs = jnp.array(jnp.log(yobs))
 
-print('Average x error:', np.mean(xerr), np.median(xerr))
-print('Average y error:', np.mean(yerr), np.median(yerr))
+print("Average x error:", np.mean(xerr), np.median(xerr))
+print("Average y error:", np.mean(yerr), np.median(yerr))
+
 
 # Define function
 def my_fun(x, theta):
     return theta[0] * x + theta[1]
-param_names = ['alpha', 'c']
-theta0 = [1.0, 0.5]  # defaults
-param_prior = {'alpha':[-3, 3], 'c':[-5, 5], 'sig':[0, 3]}
+
+
+param_names = ["alpha", "c"]
+theta0 = [1.0, 0.5]  # defaults
+param_prior = {"alpha": [-3, 3], "c": [-5, 5], "sig": [0, 3]}
 
 reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -111,68 +124,83 @@ reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 nwarm = 700
 nsamp = 5000
 
-all_method = ['mnr', 'unif', 'prof']
-#all_method_label = ['MNR', 'Uniform', 'Profile']
+all_method = ["mnr", "unif", "prof"]
+# all_method_label = ['MNR', 'Uniform', 'Profile']
 all_method_label = all_method
 
 ranges = param_prior
-ranges['w_gauss'] = [0, None]
+ranges["w_gauss"] = [0, None]
 all_samps = []
 all_gradient = []
 all_intercept = []
 
 for method, method_label in zip(all_method, all_method_label):
-    print('\nMETHOD:', method)
+    print("\nMETHOD:", method)
     samps = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
-    
-    if method == 'mnr':
-        mnr_samps = samps.copy()
-    
-    alpha = samps['alpha']
-    print(f'alpha: {np.median(alpha):.3f} +/- {np.percentile(alpha, 84) - np.median(alpha):.3f} {np.median(alpha) - np.percentile(alpha, 16):.3f}')
-    mB = np.exp(samps['c'])
-    print(f'1 - b: {np.median(mB):.3f} +/- {np.percentile(mB, 84) - np.median(mB):.3f} {np.median(mB) - np.percentile(mB, 16):.3f}')
-    all_gradient.append(np.median(alpha))
-    all_intercept.append(np.median(samps['c']))
-    
-    names, samps = roxy.mcmc.samples_to_array(samps)
-    
-    labs = list(names)
-    for p, label in zip(['mu_gauss', 'w_gauss', 'sig'],
-        [r'\mu', r'w', r'\sigma_{\rm int}']):
-        if (p in names):
-            i = np.squeeze(np.where(names==p))
-            labs[i] = label
-    i = np.squeeze(np.where(names=='alpha'))
-    labs[i] = r'$\alpha$'
-                
-    all_samps.append(MCSamples(
-            samples=samps,
-            names=names,
-            labels=labs,
-            ranges=ranges,
-            label=method_label
-        ))
-    all_samps[-1].addDerived(np.exp(all_samps[-1]['c']), name='mB', label='1-b')
 
-cm = plt.get_cmap('Set1')
+    if method == "mnr":
+        mnr_samps = samps.copy()
+
+    alpha = samps["alpha"]
+    print(
+        f"alpha: {np.median(alpha):.3f} +/- {np.percentile(alpha, 84) - np.median(alpha):.3f} {np.median(alpha) - np.percentile(alpha, 16):.3f}"
+    )
+    mB = np.exp(samps["c"])
+    print(
+        f"1 - b: {np.median(mB):.3f} +/- {np.percentile(mB, 84) - np.median(mB):.3f} {np.median(mB) - np.percentile(mB, 16):.3f}"
+    )
+    all_gradient.append(np.median(alpha))
+    all_intercept.append(np.median(samps["c"]))
+
+    names, samps = roxy.mcmc.samples_to_array(samps)
+
+    labs = list(names)
+    for p, label in zip(
+        ["mu_gauss", "w_gauss", "sig"], [r"\mu", r"w", r"\sigma_{\rm int}"]
+    ):
+        if p in names:
+            i = np.squeeze(np.where(names == p))
+            labs[i] = label
+    i = np.squeeze(np.where(names == "alpha"))
+    labs[i] = r"$\alpha$"
+
+    all_samps.append(
+        MCSamples(
+            samples=samps, names=names, labels=labs, ranges=ranges, label=method_label
+        )
+    )
+    all_samps[-1].addDerived(np.exp(all_samps[-1]["c"]), name="mB", label="1-b")
+
+cm = plt.get_cmap("Set1")
 g = plots.get_subplot_plotter(width_inch=5)
-g.triangle_plot(all_samps,
-                ['alpha', 'mB', 'sig', 'mu_gauss', 'w_gauss'],
-                contour_colors=[cm(i) for i in range(len(all_samps))],
-                line_args=[{'color':cm(i)} for i in range(len(all_samps))],
-                filled=True
+g.triangle_plot(
+    all_samps,
+    ["alpha", "mB", "sig", "mu_gauss", "w_gauss"],
+    contour_colors=[cm(i) for i in range(len(all_samps))],
+    line_args=[{"color": cm(i)} for i in range(len(all_samps))],
+    filled=True,
 )
 plt.gcf().align_labels()
-plt.savefig('cluster_corner.pdf')
+plt.savefig("cluster_corner.pdf")
 plt.clf()
 plt.close(plt.gcf())
 
-errorbar_kwargs={'fmt':'.', 'markersize':1, 'zorder':-1, 'capsize':1, 'elinewidth':0.2,
-                'color':'k', 'alpha':1}
-fgivenx_kwargs={'colors':plt.cm.Greys_r}
-xlabel=r'$\log\left(\frac{M_{500}^{\rm dyn}}{6\times 10^{14}{\rm \, M_{\odot}}}\right)$'
-ylabel=r'$\log\left(\frac{M_{500}^{\rm SZ}}{6\times 10^{14} {\rm \, M_{\odot}}}\right)$'
+errorbar_kwargs = {
+    "fmt": ".",
+    "markersize": 1,
+    "zorder": -1,
+    "capsize": 1,
+    "elinewidth": 0.2,
+    "color": "k",
+    "alpha": 1,
+}
+fgivenx_kwargs = {"colors": plt.cm.Greys_r}
+xlabel = (
+    r"$\log\left(\frac{M_{500}^{\rm dyn}}{6\times 10^{14}{\rm \, M_{\odot}}}\right)$"
+)
+ylabel = (
+    r"$\log\left(\frac{M_{500}^{\rm SZ}}{6\times 10^{14} {\rm \, M_{\odot}}}\right)$"
+)
 fig = roxy.plotting.posterior_predictive_plot(
     reg,
     mnr_samps,
@@ -189,11 +217,12 @@ fig = roxy.plotting.posterior_predictive_plot(
 )
 ax = fig.gca()
 x = np.array(ax.get_xlim())
-for i, (gradient, intercept, method_label) in enumerate(zip(all_gradient,
-                                                all_intercept, all_method_label)):
+for i, (gradient, intercept, method_label) in enumerate(
+    zip(all_gradient, all_intercept, all_method_label)
+):
     ax.plot(x, gradient * x + intercept, label=method_label, color=cm(i))
 ax.legend()
 ax.set_xlim(x)
-plt.savefig('cluster_predictive.pdf')
+plt.savefig("cluster_predictive.pdf")
 plt.clf()
 plt.close(fig)

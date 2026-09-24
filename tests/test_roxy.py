@@ -14,14 +14,14 @@ from roxy.regressor import RoxyRegressor
 
 def test_example_standard(monkeypatch):
 
-    monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, "show", lambda: None)
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [2, 0.5]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
 
     reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -31,76 +31,135 @@ def test_example_standard(monkeypatch):
     sig = 0.5
 
     truths = {p: v for p, v in zip(param_names, theta0)}
-    truths['sig'] = sig
+    truths["sig"] = sig
 
     np.random.seed(0)
     xtrue = np.linspace(0.01, 5, nx)
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
     nwarm, nsamp = 70, 500
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
-                       nwarm, nsamp, method='mnr')
+    samples = reg.mcmc(
+        param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method="mnr"
+    )
 
     # Default plotting
-    # Plot with truths
-    roxy.plotting.trace_plot(samples, to_plot='all', savename='trace.png',
-                             show=True, truths=truths)
+    # Plot with truths
+    roxy.plotting.trace_plot(
+        samples, to_plot="all", savename="trace.png", show=True, truths=truths
+    )
     # Plot without truths
-    roxy.plotting.trace_plot(samples, to_plot='all', savename='trace.png',
-                             show=True)
-    for module in ['corner', 'getdist']:
-        # Plot with truths
-        roxy.plotting.triangle_plot(samples, to_plot='all', module=module,
-                                    param_prior=param_prior, savename='corner.png', 
-                                    show=True, truths=truths)
+    roxy.plotting.trace_plot(samples, to_plot="all", savename="trace.png", show=True)
+    for module in ["corner", "getdist"]:
+        # Plot with truths
+        roxy.plotting.triangle_plot(
+            samples,
+            to_plot="all",
+            module=module,
+            param_prior=param_prior,
+            savename="corner.png",
+            show=True,
+            truths=truths,
+        )
         # Plot without truths
-        roxy.plotting.triangle_plot(samples, to_plot='all', module=module,
-                                    param_prior=param_prior, savename='corner.png', 
-                                    show=True,)
+        roxy.plotting.triangle_plot(
+            samples,
+            to_plot="all",
+            module=module,
+            param_prior=param_prior,
+            savename="corner.png",
+            show=True,
+        )
 
-    xlim = (xobs.min()*0.8, xobs.max()*1.2)
-    ylim = (yobs.min()*0.8, yobs.max()*1.2)
-    for xscale in ['linear', 'log']:
-        roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-                                                show=True, savename='predictive.png',
-                                                xlim=xlim, ylim=ylim, xscale=xscale, yscale=xscale)
+    xlim = (xobs.min() * 0.8, xobs.max() * 1.2)
+    ylim = (yobs.min() * 0.8, yobs.max() * 1.2)
+    for xscale in ["linear", "log"]:
+        roxy.plotting.posterior_predictive_plot(
+            reg,
+            samples,
+            xobs,
+            yobs,
+            xerr,
+            yerr,
+            show=True,
+            savename="predictive.png",
+            xlim=xlim,
+            ylim=ylim,
+            xscale=xscale,
+            yscale=xscale,
+        )
 
     # Just plot some variables
-    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
-                                param_prior=param_prior, savename=None, show=False)
-    roxy.plotting.trace_plot(
-        samples, to_plot=['A', 'B'], savename=None, show=False)
+    roxy.plotting.triangle_plot(
+        samples,
+        to_plot=["A", "B"],
+        module="getdist",
+        param_prior=param_prior,
+        savename=None,
+        show=False,
+    )
+    roxy.plotting.trace_plot(samples, to_plot=["A", "B"], savename=None, show=False)
 
     # Param prior checks
-    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
-                                param_prior=None, savename=None, show=False)
-    param_prior['A'] = [None, None]
-    param_prior['sig'] = [0, None]
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
-                       nwarm, nsamp, method='mnr')
-    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
-                                param_prior=param_prior, savename=None, show=False)
+    roxy.plotting.triangle_plot(
+        samples,
+        to_plot=["A", "B"],
+        module="getdist",
+        param_prior=None,
+        savename=None,
+        show=False,
+    )
+    param_prior["A"] = [None, None]
+    param_prior["sig"] = [0, None]
+    samples = reg.mcmc(
+        param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method="mnr"
+    )
+    roxy.plotting.triangle_plot(
+        samples,
+        to_plot=["A", "B"],
+        module="getdist",
+        param_prior=param_prior,
+        savename=None,
+        show=False,
+    )
 
     # Check warnings when prior too narrow
-    param_prior['A'] = [0.0, 1.0]
-    param_prior['sig'] = [0.0, 3.0]
-    reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr')
-    param_prior['A'] = [0.0, 5.0]
+    param_prior["A"] = [0.0, 1.0]
+    param_prior["sig"] = [0.0, 3.0]
+    reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method="mnr")
+    param_prior["A"] = [0.0, 5.0]
 
     # Check labels
-    roxy.plotting.triangle_plot(samples, to_plot=['A', 'B'], module='getdist',
-                                param_prior=param_prior, savename=None, show=False, labels={'A': 'A', 'B': 'B'})
+    roxy.plotting.triangle_plot(
+        samples,
+        to_plot=["A", "B"],
+        module="getdist",
+        param_prior=param_prior,
+        savename=None,
+        show=False,
+        labels={"A": "A", "B": "B"},
+    )
 
     # Check corner also works
-    roxy.plotting.triangle_plot(samples, to_plot='all', module='corner',
-                                param_prior=param_prior, savename=None, show=False)
+    roxy.plotting.triangle_plot(
+        samples,
+        to_plot="all",
+        module="corner",
+        param_prior=param_prior,
+        savename=None,
+        show=False,
+    )
 
     try:
-        roxy.plotting.triangle_plot(samples, to_plot='all', module='badmodule',
-                                    param_prior=param_prior, savename=None, show=False)
+        roxy.plotting.triangle_plot(
+            samples,
+            to_plot="all",
+            module="badmodule",
+            param_prior=param_prior,
+            savename=None,
+            show=False,
+        )
     except NotImplementedError:
         pass
 
@@ -108,49 +167,87 @@ def test_example_standard(monkeypatch):
     roxy.mcmc.compute_bias(samples, truths, verbose=True)
 
     # Check MCMC without intrinsic scatter
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
-                       nwarm, nsamp, method='mnr', infer_intrinsic=False)
+    samples = reg.mcmc(
+        param_names,
+        xobs,
+        yobs,
+        [xerr, yerr],
+        nwarm,
+        nsamp,
+        method="mnr",
+        infer_intrinsic=False,
+    )
 
     # A few likelihood checks
     for Ai in [theta0[0], [theta0[0]]]:
-        roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, yerr, ytrue,
-                                        Ai, sig, 2.5, 1.0)
-        roxy.likelihoods.negloglike_gmm(xobs, yobs, xerr, yerr, ytrue,
-                                        Ai, sig, [2.5], [1.0], [1.0])
-        roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, ytrue,
-                                         Ai, sig)
+        roxy.likelihoods.negloglike_mnr(
+            xobs, yobs, xerr, yerr, ytrue, Ai, sig, 2.5, 1.0
+        )
+        roxy.likelihoods.negloglike_gmm(
+            xobs, yobs, xerr, yerr, ytrue, Ai, sig, [2.5], [1.0], [1.0]
+        )
+        roxy.likelihoods.negloglike_unif(xobs, yobs, xerr, yerr, ytrue, Ai, sig)
 
     # Test with scalar yerr
-    roxy.likelihoods.negloglike_mnr(xobs, yobs, xerr, 0.5, ytrue,
-                                    theta0[0], sig, 2.5, 1.0)
+    roxy.likelihoods.negloglike_mnr(
+        xobs, yobs, xerr, 0.5, ytrue, theta0[0], sig, 2.5, 1.0
+    )
 
     # Test negloglike_mnr without include_logdet
-    roxy.likelihoods.negloglike_prof(xobs, yobs, xerr, yerr, ytrue,
-                                     theta0[0], sig, include_logdet=False)
+    roxy.likelihoods.negloglike_prof(
+        xobs, yobs, xerr, yerr, ytrue, theta0[0], sig, include_logdet=False
+    )
 
     # Test regressor negloglike
-    reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
-                   mu_gauss=2.5, w_gauss=1.0, test_prior=False)
+    reg.negloglike(
+        theta0,
+        xobs,
+        yobs,
+        [xerr, yerr],
+        sig=sig,
+        mu_gauss=2.5,
+        w_gauss=1.0,
+        test_prior=False,
+    )
     try:
-        reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
-                       mu_gauss=2.5, w_gauss=1.0, method='gmm', covmat=True)
+        reg.negloglike(
+            theta0,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            sig=sig,
+            mu_gauss=2.5,
+            w_gauss=1.0,
+            method="gmm",
+            covmat=True,
+        )
     except NotImplementedError:
         pass
     try:
-        reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig,
-                       mu_gauss=2.5, w_gauss=1.0, method='unknown')
+        reg.negloglike(
+            theta0,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            sig=sig,
+            mu_gauss=2.5,
+            w_gauss=1.0,
+            method="unknown",
+        )
     except NotImplementedError:
         pass
-    assert np.isnan(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=-1)), \
-        "Negative sigma should give nan loglike"
+    assert np.isnan(
+        reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=-1)
+    ), "Negative sigma should give nan loglike"
 
     # Test regressor optimise
-    reg.get_param_index(['A'])
-    reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif',
-                 infer_intrinsic=True)
-    reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif',
-                 infer_intrinsic=False)
-
+    reg.get_param_index(["A"])
+    reg.optimise(
+        param_names, xobs, yobs, [xerr, yerr], method="unif", infer_intrinsic=True
+    )
+    reg.optimise(
+        param_names, xobs, yobs, [xerr, yerr], method="unif", infer_intrinsic=False
+    )
 
 
 def test_example_gmm():
@@ -169,16 +266,16 @@ def test_example_gmm():
     p = np.cumsum(p)
     xtrue = np.empty(nx)
     for i in range(len(true_means)):
-        m = (which_gauss >= p[i]) & (which_gauss < p[i+1])
+        m = (which_gauss >= p[i]) & (which_gauss < p[i + 1])
         print(i, m.sum())
         xtrue[m] = np.random.normal(true_means[i], true_w[i], m.sum())
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [2, 0.5]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
     xerr = 0.1
     yerr = 0.5
     sig = 0.5
@@ -187,62 +284,112 @@ def test_example_gmm():
 
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
     nwarm, nsamp = 70, 500
-    for gmm_prior in ['uniform', 'hierarchical']:
-        samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
-                           method='gmm', ngauss=2, gmm_prior=gmm_prior)
-        roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-                                    param_prior=param_prior, show=False, savename=None)
-        roxy.plotting.trace_plot(
-            samples, to_plot='all', savename=None, show=False)
-        roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-                                                show=False, savename=None)
+    for gmm_prior in ["uniform", "hierarchical"]:
+        samples = reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            nwarm,
+            nsamp,
+            method="gmm",
+            ngauss=2,
+            gmm_prior=gmm_prior,
+        )
+        roxy.plotting.triangle_plot(
+            samples,
+            to_plot="all",
+            module="getdist",
+            param_prior=param_prior,
+            show=False,
+            savename=None,
+        )
+        roxy.plotting.trace_plot(samples, to_plot="all", savename=None, show=False)
+        roxy.plotting.posterior_predictive_plot(
+            reg, samples, xobs, yobs, xerr, yerr, show=False, savename=None
+        )
 
     # Check unknown priors raise exceptions
     try:
-        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
-                 method='gmm', ngauss=2, gmm_prior='unknown')
+        reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            nwarm,
+            nsamp,
+            method="gmm",
+            ngauss=2,
+            gmm_prior="unknown",
+        )
     except NotImplementedError:
         pass
 
     max_ngauss = 3
     np.random.seed(42)
-    ngauss = reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss,
-                               best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
+    ngauss = reg.find_best_gmm(
+        param_names,
+        xobs,
+        yobs,
+        xerr,
+        yerr,
+        max_ngauss,
+        best_metric="BIC",
+        nwarm=100,
+        nsamp=100,
+        gmm_prior="uniform",
+    )
     assert ngauss == 2, "Did not find 2 Gaussians for case which clearly needs 2"
 
     # Check different criteria work as expected
-    for criterion in ['AIC', 'BIC']:
-        reg.compute_information_criterion(criterion, param_names, xobs, yobs,
-                                          [xerr, yerr], ngauss=1)
+    for criterion in ["AIC", "BIC"]:
+        reg.compute_information_criterion(
+            criterion, param_names, xobs, yobs, [xerr, yerr], ngauss=1
+        )
     try:
-        reg.compute_information_criterion('DIC', param_names, xobs, yobs,
-                                          [xerr, yerr], ngauss=1)
+        reg.compute_information_criterion(
+            "DIC", param_names, xobs, yobs, [xerr, yerr], ngauss=1
+        )
     except NotImplementedError:
         pass
 
     # Check information criterion for hierarchical prior
-    reg.compute_information_criterion('BIC', param_names, xobs, yobs,
-                                      [xerr, yerr], ngauss=1, method='gmm', gmm_prior='hierarchical')
+    reg.compute_information_criterion(
+        "BIC",
+        param_names,
+        xobs,
+        yobs,
+        [xerr, yerr],
+        ngauss=1,
+        method="gmm",
+        gmm_prior="hierarchical",
+    )
 
     # Check GMM with covmat raises exception
-    Sxx = np.identity(nx) * xerr ** 2
+    Sxx = np.identity(nx) * xerr**2
     Sxy = np.zeros((nx, nx))
     Syx = np.zeros((nx, nx))
-    Syy = np.identity(nx) * yerr ** 2
+    Syy = np.identity(nx) * yerr**2
     Sigma = np.concatenate(
-        [np.concatenate([Sxx, Sxy], axis=-1),
-         np.concatenate([Syx, Syy], axis=-1)]
+        [np.concatenate([Sxx, Sxy], axis=-1), np.concatenate([Syx, Syy], axis=-1)]
     )
     try:
-        reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp,
-                 method='gmm', ngauss=2, covmat=True)
+        reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            Sigma,
+            nwarm,
+            nsamp,
+            method="gmm",
+            ngauss=2,
+            covmat=True,
+        )
     except NotImplementedError:
         pass
-
 
 
 def test_example_exp():
@@ -251,9 +398,9 @@ def test_example_exp():
         return jnp.exp(theta[0] * x)
 
     # Choose parameters so second derivative large to raise warning
-    param_names = ['A']
+    param_names = ["A"]
     theta0 = [1.5]
-    param_prior = {'A': [1.0, 3.0], 'sig': [0, 1]}
+    param_prior = {"A": [1.0, 3.0], "sig": [0, 1]}
 
     reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -268,12 +415,10 @@ def test_example_exp():
     xtrue = np.linspace(0, 1, nx)
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
     nwarm, nsamp = 70, 500
-    reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr')
-
+    reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method="mnr")
 
 
 def test_different_likes():
@@ -281,9 +426,9 @@ def test_different_likes():
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [2, 0.5]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
 
     reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -298,54 +443,51 @@ def test_different_likes():
     xtrue = np.linspace(0, 5, nx)
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
-    Sxx = np.identity(nx) * xerr ** 2
+    Sxx = np.identity(nx) * xerr**2
     Sxy = np.zeros((nx, nx))
     Syx = np.zeros((nx, nx))
-    Syy = np.identity(nx) * yerr ** 2
+    Syy = np.identity(nx) * yerr**2
     Sigma = np.concatenate(
-        [np.concatenate([Sxx, Sxy], axis=-1),
-         np.concatenate([Syx, Syy], axis=-1)]
+        [np.concatenate([Sxx, Sxy], axis=-1), np.concatenate([Syx, Syy], axis=-1)]
     )
 
-    for method in ['unif', 'prof', 'mnr', 'gmm']:
+    for method in ["unif", "prof", "mnr", "gmm"]:
         print(method)
-        if method == 'gmm':
-            for p in ['uniform', 'hierarchical']:
+        if method == "gmm":
+            for p in ["uniform", "hierarchical"]:
                 print(p)
-                reg.optimise(param_names, xobs, yobs, [xerr, yerr],
-                             method=method, gmm_prior=p)
-            p = 'unknown'
+                reg.optimise(
+                    param_names, xobs, yobs, [xerr, yerr], method=method, gmm_prior=p
+                )
+            p = "unknown"
             try:
-                reg.optimise(param_names, xobs, yobs, [xerr, yerr],
-                             method=method, gmm_prior=p)
+                reg.optimise(
+                    param_names, xobs, yobs, [xerr, yerr], method=method, gmm_prior=p
+                )
             except NotImplementedError:
                 pass
         else:
             reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)
-            reg.optimise(param_names, xobs, yobs, Sigma,
-                         method=method, covmat=True)
-            reg.mcmc(param_names, xobs, yobs, [
-                     xerr, yerr], nwarm, nsamp, method=method)
-            reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
-                     covmat=True)
+            reg.optimise(param_names, xobs, yobs, Sigma, method=method, covmat=True)
+            reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method=method)
+            reg.mcmc(
+                param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method, covmat=True
+            )
 
     # Test unknown method raises exception in MCMC
     with unittest.TestCase().assertRaises(NotImplementedError):
-        reg.mcmc(param_names, xobs, yobs, [
-                 xerr, yerr], nwarm, nsamp, method='unknown')
-
+        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method="unknown")
 
 
 def test_example_with_uplims():
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [2, 0.5]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
 
     reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -358,8 +500,7 @@ def test_example_with_uplims():
     xtrue = np.linspace(0.01, 5, nx)
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
     # Make some upper limits
     y_is_detected = np.ones_like(yobs).astype(bool)
@@ -367,62 +508,122 @@ def test_example_with_uplims():
 
     # Check that passing an incorrect y_is_detected raises an error
     with unittest.TestCase().assertRaises(ValueError):
-        reg.optimise(param_names, xobs, yobs, [xerr, yerr],
-                     y_is_detected=np.random.rand(len(yobs)-1) > 0.5,
-                     method='mnr')
+        reg.optimise(
+            param_names,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            y_is_detected=np.random.rand(len(yobs) - 1) > 0.5,
+            method="mnr",
+        )
 
-    reg.optimise(param_names, xobs, yobs, [
-                 xerr, yerr], method='mnr', y_is_detected=y_is_detected)
+    reg.optimise(
+        param_names, xobs, yobs, [xerr, yerr], method="mnr", y_is_detected=y_is_detected
+    )
 
     nwarm, nsamp = 70, 500
-    samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
-                       nwarm, nsamp, method='mnr', y_is_detected=y_is_detected)
-    assert isinstance(
-        samples, dict), "MCMC should return a dictionary of samples"
-    for k in param_names + ['sig', 'mu_gauss', 'w_gauss']:
+    samples = reg.mcmc(
+        param_names,
+        xobs,
+        yobs,
+        [xerr, yerr],
+        nwarm,
+        nsamp,
+        method="mnr",
+        y_is_detected=y_is_detected,
+    )
+    assert isinstance(samples, dict), "MCMC should return a dictionary of samples"
+    for k in param_names + ["sig", "mu_gauss", "w_gauss"]:
         assert k in samples, f"Samples should contain key {k}"
-        assert len(
-            samples[k]) == nsamp, f"Samples for {k} should have length {nsamp}"
+        assert len(samples[k]) == nsamp, f"Samples for {k} should have length {nsamp}"
 
     # Check that passing an incorrect y_is_detected raises an error
     with unittest.TestCase().assertRaises(ValueError):
-        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr',
-                 y_is_detected=np.random.rand(len(yobs)-1) > 0.5)
+        reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            nwarm,
+            nsamp,
+            method="mnr",
+            y_is_detected=np.random.rand(len(yobs) - 1) > 0.5,
+        )
 
     # Test posterior predictive plot with upper limits (covers lines 215, 217 in plotting.py)
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr,
-                                            y_is_detected=y_is_detected, show=False, savename=None)
+    roxy.plotting.posterior_predictive_plot(
+        reg,
+        samples,
+        xobs,
+        yobs,
+        xerr,
+        yerr,
+        y_is_detected=y_is_detected,
+        show=False,
+        savename=None,
+    )
 
     # Test NotImplementedErrors for various methods with upper limits and covmat
-    Sxx = np.identity(nx) * xerr ** 2
+    Sxx = np.identity(nx) * xerr**2
     Sxy = np.zeros((nx, nx))
     Syx = np.zeros((nx, nx))
-    Syy = np.identity(nx) * yerr ** 2
+    Syy = np.identity(nx) * yerr**2
     Sigma = np.concatenate(
-        [np.concatenate([Sxx, Sxy], axis=-1),
-         np.concatenate([Syx, Syy], axis=-1)]
+        [np.concatenate([Sxx, Sxy], axis=-1), np.concatenate([Syx, Syy], axis=-1)]
     )
 
     # Test MNR with covmat and upper limits
     with unittest.TestCase().assertRaises(NotImplementedError):
-        reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method='mnr',
-                 covmat=True, y_is_detected=y_is_detected)
+        reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            Sigma,
+            nwarm,
+            nsamp,
+            method="mnr",
+            covmat=True,
+            y_is_detected=y_is_detected,
+        )
 
     # Test unif with upper limits
     with unittest.TestCase().assertRaises(NotImplementedError):
-        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='unif',
-                 y_is_detected=y_is_detected)
+        reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            nwarm,
+            nsamp,
+            method="unif",
+            y_is_detected=y_is_detected,
+        )
 
     # Test prof with upper limits
     with unittest.TestCase().assertRaises(NotImplementedError):
-        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='prof',
-                 y_is_detected=y_is_detected)
+        reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            nwarm,
+            nsamp,
+            method="prof",
+            y_is_detected=y_is_detected,
+        )
 
     # Test gmm with upper limits
     with unittest.TestCase().assertRaises(NotImplementedError):
-        reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm',
-                 y_is_detected=y_is_detected)
-
+        reg.mcmc(
+            param_names,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            nwarm,
+            nsamp,
+            method="gmm",
+            y_is_detected=y_is_detected,
+        )
 
 
 def test_mcmc_classes():
@@ -445,29 +646,29 @@ def test_mcmc_classes():
     xtrue = np.linspace(0, 5, nx)
     ytrue = theta0[0] * xtrue + theta0[1]
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
     f = ytrue
     fprime = jnp.ones(f.shape) * theta0[0]
     mu_gauss = 2.5
     w_gauss = 1.0
-    Sxx = np.identity(nx) * xerr ** 2
+    Sxx = np.identity(nx) * xerr**2
     Sxy = np.zeros((nx, nx))
-    Syy = np.identity(nx) * yerr ** 2
+    Syy = np.identity(nx) * yerr**2
     G = np.identity(nx) * theta0[0]
 
     data = [xobs, yobs, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss]
-    all_obj = [roxy.mcmc.Likelihood_MNR(*data),
-               roxy.mcmc.Likelihood_prof(*data[:-2]),
-               roxy.mcmc.Likelihood_unif(*data[:-2]),
-               ]
+    all_obj = [
+        roxy.mcmc.Likelihood_MNR(*data),
+        roxy.mcmc.Likelihood_prof(*data[:-2]),
+        roxy.mcmc.Likelihood_unif(*data[:-2]),
+    ]
     data = [xobs, yobs, Sxx, Syy, Sxy, f, G, sig, mu_gauss, w_gauss]
-    all_obj += [roxy.mcmc.Likelihood_MNR_MV(*data),
-                roxy.mcmc.Likelihood_prof_MV(*data[:-2]),
-                roxy.mcmc.Likelihood_unif_MV(*data[:-2]),
-                ]
-    data = [xobs, yobs, xerr, yerr, f, fprime, sig,
-            [-10, 0.0], [1.0, 3.0], [0.7, 0.3]]
+    all_obj += [
+        roxy.mcmc.Likelihood_MNR_MV(*data),
+        roxy.mcmc.Likelihood_prof_MV(*data[:-2]),
+        roxy.mcmc.Likelihood_unif_MV(*data[:-2]),
+    ]
+    data = [xobs, yobs, xerr, yerr, f, fprime, sig, [-10, 0.0], [1.0, 3.0], [0.7, 0.3]]
     all_obj += [roxy.mcmc.Likelihood_GMM(*data)]
     for obj in all_obj:
         try:
@@ -478,26 +679,24 @@ def test_mcmc_classes():
     # Test Likelihood_MNR_uplims.sample() raises NotImplementedError (line 62 in mcmc.py)
     #  Stack the Sxx, Sxy, Syy into a single covariance matrix for the test
     Sigma = np.concatenate(
-        [np.concatenate([Sxx, Sxy], axis=-1),
-         np.concatenate([Sxy.T, Syy], axis=-1)]
+        [np.concatenate([Sxx, Sxy], axis=-1), np.concatenate([Sxy.T, Syy], axis=-1)]
     )
     y_is_detected = np.ones_like(yobs).astype(bool)
     y_is_detected[::5] = False
-    data = [xobs, yobs, y_is_detected, xerr,
-            yerr, f, fprime, sig, mu_gauss, w_gauss]
+    data = [xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss]
     obj_uplims = roxy.mcmc.Likelihood_MNR_uplims(*data)
     with unittest.TestCase().assertRaises(NotImplementedError):
         obj_uplims.sample(rng_key, sample_shape=(5,))
 
     # Test negloglike_prof_mv without include_logdet (line 448 in likelihoods.py)
-    roxy.likelihoods.negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig,
-                                        include_logdet=False)
-
+    roxy.likelihoods.negloglike_prof_mv(
+        xobs, yobs, Sigma, f, G, sig, include_logdet=False
+    )
 
 
 def test_causality(monkeypatch):
 
-    monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, "show", lambda: None)
 
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
@@ -505,9 +704,9 @@ def test_causality(monkeypatch):
     def fun_inv(y, theta):
         return y / theta[0] - theta[1] / theta[0]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [0.4, 1.0]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
 
     reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -523,40 +722,81 @@ def test_causality(monkeypatch):
     xtrue = np.random.uniform(0, 30, nx)
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
-    for criterion in ['spearman', 'pearson', 'hsic']:
-        roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
-                                        param_names, theta0, param_prior, method='mnr',
-                                        criterion=criterion, savename='causality.png', show=True)
+    for criterion in ["spearman", "pearson", "hsic"]:
+        roxy.causality.assess_causality(
+            my_fun,
+            fun_inv,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            param_names,
+            theta0,
+            param_prior,
+            method="mnr",
+            criterion=criterion,
+            savename="causality.png",
+            show=True,
+        )
 
     # Check for unknown criterion we get an error
     try:
-        roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, [xerr, yerr],
-                                        param_names, theta0, param_prior, method='mnr',
-                                        criterion='unknown_criterion', savename='causality.png', show=True)
+        roxy.causality.assess_causality(
+            my_fun,
+            fun_inv,
+            xobs,
+            yobs,
+            [xerr, yerr],
+            param_names,
+            theta0,
+            param_prior,
+            method="mnr",
+            criterion="unknown_criterion",
+            savename="causality.png",
+            show=True,
+        )
     except NotImplementedError:
         pass
 
     # Check it works the other way around x <-> y
-    roxy.causality.assess_causality(my_fun, fun_inv, yobs, xobs, [yerr, xerr],
-                                    param_names, theta0, param_prior, method='mnr',
-                                    criterion='hsic', savename='causality.png', show=True)
+    roxy.causality.assess_causality(
+        my_fun,
+        fun_inv,
+        yobs,
+        xobs,
+        [yerr, xerr],
+        param_names,
+        theta0,
+        param_prior,
+        method="mnr",
+        criterion="hsic",
+        savename="causality.png",
+        show=True,
+    )
 
     # Now with covariance matrix
-    Sxx = np.identity(nx) * xerr ** 2
+    Sxx = np.identity(nx) * xerr**2
     Sxy = np.zeros((nx, nx))
     Syx = np.zeros((nx, nx))
-    Syy = np.identity(nx) * yerr ** 2
+    Syy = np.identity(nx) * yerr**2
     Sigma = np.concatenate(
-        [np.concatenate([Sxx, Sxy], axis=-1),
-         np.concatenate([Syx, Syy], axis=-1)]
+        [np.concatenate([Sxx, Sxy], axis=-1), np.concatenate([Syx, Syy], axis=-1)]
     )
-    roxy.causality.assess_causality(my_fun, fun_inv, xobs, yobs, Sigma,
-                                    param_names, theta0, param_prior, method='mnr', savename='causality.png',
-                                    show=True, covmat=True)
-
+    roxy.causality.assess_causality(
+        my_fun,
+        fun_inv,
+        xobs,
+        yobs,
+        Sigma,
+        param_names,
+        theta0,
+        param_prior,
+        method="mnr",
+        savename="causality.png",
+        show=True,
+        covmat=True,
+    )
 
 
 def test_nodiag_cov():
@@ -564,9 +804,9 @@ def test_nodiag_cov():
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [0.4, 1.0]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
 
     reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -579,23 +819,22 @@ def test_nodiag_cov():
 
     # Make a random covariance matrix which is non-diagonal
     # Sigma = A A^T since this is then a positive semi-definite, symmetric matrix
-    Sigma = np.random.randn(2*nx, 2*nx) * 0.05
+    Sigma = np.random.randn(2 * nx, 2 * nx) * 0.05
     Sigma = np.dot(Sigma, Sigma.transpose())
 
     # Generate observed data
-    obs = np.random.multivariate_normal(
-        np.concatenate([xtrue, ytrue]),
-        Sigma)
+    obs = np.random.multivariate_normal(np.concatenate([xtrue, ytrue]), Sigma)
     xobs = obs[:nx]
     yobs = obs[nx:]
 
     nwarm = 50
     nsamp = 50
 
-    for method in ['unif', 'prof', 'mnr']:
-        reg.optimise(param_names, xobs, yobs, Sigma, method='mnr', covmat=True)
-        reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
-                 covmat=True)
+    for method in ["unif", "prof", "mnr"]:
+        reg.optimise(param_names, xobs, yobs, Sigma, method="mnr", covmat=True)
+        reg.mcmc(
+            param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method, covmat=True
+        )
 
 
 def test_warnings():
@@ -604,9 +843,9 @@ def test_warnings():
     def my_fun(x, theta):
         return theta[0] * x + theta[1]
 
-    param_names = ['A', 'B']
+    param_names = ["A", "B"]
     theta0 = [0.4, 1.0]
-    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
+    param_prior = {"A": [0, 5], "B": [-2, 2], "sig": [0, 3.0]}
 
     reg = RoxyRegressor(my_fun, param_names, theta0, param_prior)
 
@@ -627,47 +866,82 @@ def test_warnings():
     yerr = 0.5
     sig = 0.5
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
-    for method in ['unif', 'prof']:
+    for method in ["unif", "prof"]:
         with unittest.TestCase().assertWarns(UserWarning):
             reg.optimise(
-                param_names, xobs, yobs, [
-                    xerr, yerr], method=method, covmat=False,
-                infer_intrinsic=True)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                method=method,
+                covmat=False,
+                infer_intrinsic=True,
+            )
         with unittest.TestCase().assertWarns(UserWarning):
             reg.mcmc(
-                param_names, xobs, yobs, [
-                    xerr, yerr], nwarm, nsamp, method=method,
-                covmat=False, infer_intrinsic=True)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                nwarm,
+                nsamp,
+                method=method,
+                covmat=False,
+                infer_intrinsic=True,
+            )
 
-    for method in ['unif', 'mnr', 'gmm']:
+    for method in ["unif", "mnr", "gmm"]:
         with unittest.TestCase().assertWarns(UserWarning):
             reg.optimise(
-                param_names, xobs, yobs, [
-                    xerr, yerr], method=method, covmat=False,
-                infer_intrinsic=False)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                method=method,
+                covmat=False,
+                infer_intrinsic=False,
+            )
         with unittest.TestCase().assertWarns(UserWarning):
             reg.mcmc(
-                param_names, xobs, yobs, [
-                    xerr, yerr], nwarm, nsamp, method=method,
-                covmat=False, infer_intrinsic=False)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                nwarm,
+                nsamp,
+                method=method,
+                covmat=False,
+                infer_intrinsic=False,
+            )
 
-    xerr = 0.
+    xerr = 0.0
 
-    for method in ['mnr', 'gmm']:
+    for method in ["mnr", "gmm"]:
         for infer_intrinsic in [True, False]:
             with unittest.TestCase().assertWarns(UserWarning):
                 reg.optimise(
-                    param_names, xobs, yobs, [
-                        xerr, yerr], method=method, covmat=False,
-                    infer_intrinsic=infer_intrinsic)
+                    param_names,
+                    xobs,
+                    yobs,
+                    [xerr, yerr],
+                    method=method,
+                    covmat=False,
+                    infer_intrinsic=infer_intrinsic,
+                )
             with unittest.TestCase().assertWarns(UserWarning):
                 reg.mcmc(
-                    param_names, xobs, yobs, [
-                        xerr, yerr], nwarm, nsamp, method=method,
-                    covmat=False, infer_intrinsic=infer_intrinsic)
+                    param_names,
+                    xobs,
+                    yobs,
+                    [xerr, yerr],
+                    nwarm,
+                    nsamp,
+                    method=method,
+                    covmat=False,
+                    infer_intrinsic=infer_intrinsic,
+                )
 
     # ----------------------------------
     # Warnings with a float for errors
@@ -676,93 +950,167 @@ def test_warnings():
     yerr = np.random.uniform(0, 1, len(ytrue))
     sig = 0.5
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
-    yobs = ytrue + np.random.normal(size=len(xtrue)) * \
-        np.sqrt(yerr ** 2 + sig ** 2)
+    yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr**2 + sig**2)
 
-    for method in ['unif', 'prof']:
+    for method in ["unif", "prof"]:
         with unittest.TestCase().assertWarns(UserWarning):
             reg.optimise(
-                param_names, xobs, yobs, [
-                    xerr, yerr], method=method, covmat=False,
-                infer_intrinsic=True)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                method=method,
+                covmat=False,
+                infer_intrinsic=True,
+            )
         with unittest.TestCase().assertWarns(UserWarning):
             reg.mcmc(
-                param_names, xobs, yobs, [
-                    xerr, yerr], nwarm, nsamp, method=method,
-                covmat=False, infer_intrinsic=True)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                nwarm,
+                nsamp,
+                method=method,
+                covmat=False,
+                infer_intrinsic=True,
+            )
 
-    for method in ['unif', 'mnr', 'gmm']:
+    for method in ["unif", "mnr", "gmm"]:
         with unittest.TestCase().assertWarns(UserWarning):
             reg.optimise(
-                param_names, xobs, yobs, [
-                    xerr, yerr], method=method, covmat=False,
-                infer_intrinsic=False)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                method=method,
+                covmat=False,
+                infer_intrinsic=False,
+            )
         with unittest.TestCase().assertWarns(UserWarning):
             reg.mcmc(
-                param_names, xobs, yobs, [
-                    xerr, yerr], nwarm, nsamp, method=method,
-                covmat=False, infer_intrinsic=False)
+                param_names,
+                xobs,
+                yobs,
+                [xerr, yerr],
+                nwarm,
+                nsamp,
+                method=method,
+                covmat=False,
+                infer_intrinsic=False,
+            )
 
-    xerr[:] = 0.
+    xerr[:] = 0.0
 
-    for method in ['mnr', 'gmm']:
+    for method in ["mnr", "gmm"]:
         for infer_intrinsic in [True, False]:
             with unittest.TestCase().assertWarns(UserWarning):
                 reg.optimise(
-                    param_names, xobs, yobs, [
-                        xerr, yerr], method=method, covmat=False,
-                    infer_intrinsic=infer_intrinsic)
+                    param_names,
+                    xobs,
+                    yobs,
+                    [xerr, yerr],
+                    method=method,
+                    covmat=False,
+                    infer_intrinsic=infer_intrinsic,
+                )
             with unittest.TestCase().assertWarns(UserWarning):
                 reg.mcmc(
-                    param_names, xobs, yobs, [
-                        xerr, yerr], nwarm, nsamp, method=method,
-                    covmat=False, infer_intrinsic=infer_intrinsic)
+                    param_names,
+                    xobs,
+                    yobs,
+                    [xerr, yerr],
+                    nwarm,
+                    nsamp,
+                    method=method,
+                    covmat=False,
+                    infer_intrinsic=infer_intrinsic,
+                )
 
     # ----------------------------------
     # Warnings with a covariance matrix
 
     # Make a random covariance matrix which is non-diagonal
     # Sigma = A A^T since this is then a positive semi-definite, symmetric matrix
-    Sigma = np.random.randn(2*nx, 2*nx) * 0.05
+    Sigma = np.random.randn(2 * nx, 2 * nx) * 0.05
     Sigma = np.dot(Sigma, Sigma.transpose())
 
     # Generate observed data
-    obs = np.random.multivariate_normal(
-        np.concatenate([xtrue, ytrue]),
-        Sigma)
+    obs = np.random.multivariate_normal(np.concatenate([xtrue, ytrue]), Sigma)
     xobs = obs[:nx]
     yobs = obs[nx:]
 
-    for method in ['unif', 'prof']:
+    for method in ["unif", "prof"]:
         with unittest.TestCase().assertWarns(UserWarning):
             reg.optimise(
-                param_names, xobs, yobs, Sigma, method=method, covmat=True,
-                infer_intrinsic=True)
+                param_names,
+                xobs,
+                yobs,
+                Sigma,
+                method=method,
+                covmat=True,
+                infer_intrinsic=True,
+            )
         with unittest.TestCase().assertWarns(UserWarning):
             reg.mcmc(
-                param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
-                covmat=True, infer_intrinsic=True)
+                param_names,
+                xobs,
+                yobs,
+                Sigma,
+                nwarm,
+                nsamp,
+                method=method,
+                covmat=True,
+                infer_intrinsic=True,
+            )
 
-    for method in ['unif', 'mnr']:
+    for method in ["unif", "mnr"]:
         with unittest.TestCase().assertWarns(UserWarning):
             reg.optimise(
-                param_names, xobs, yobs, Sigma, method=method, covmat=True,
-                infer_intrinsic=False)
+                param_names,
+                xobs,
+                yobs,
+                Sigma,
+                method=method,
+                covmat=True,
+                infer_intrinsic=False,
+            )
         with unittest.TestCase().assertWarns(UserWarning):
             reg.mcmc(
-                param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
-                covmat=True, infer_intrinsic=False)
+                param_names,
+                xobs,
+                yobs,
+                Sigma,
+                nwarm,
+                nsamp,
+                method=method,
+                covmat=True,
+                infer_intrinsic=False,
+            )
 
-    Sigma[:nx, :nx] = 0.
+    Sigma[:nx, :nx] = 0.0
 
-    for method in ['mnr']:
+    for method in ["mnr"]:
         for infer_intrinsic in [True, False]:
             with unittest.TestCase().assertWarns(UserWarning):
                 reg.optimise(
-                    param_names, xobs, yobs, Sigma, method=method, covmat=True,
-                    infer_intrinsic=infer_intrinsic)
+                    param_names,
+                    xobs,
+                    yobs,
+                    Sigma,
+                    method=method,
+                    covmat=True,
+                    infer_intrinsic=infer_intrinsic,
+                )
             with unittest.TestCase().assertWarns(UserWarning):
                 reg.mcmc(
-                    param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
-                    covmat=True, infer_intrinsic=infer_intrinsic)
-
+                    param_names,
+                    xobs,
+                    yobs,
+                    Sigma,
+                    nwarm,
+                    nsamp,
+                    method=method,
+                    covmat=True,
+                    infer_intrinsic=infer_intrinsic,
+                )
