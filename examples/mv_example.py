@@ -14,6 +14,7 @@ import numpy as np
 
 from roxy.regressor import RoxyRegressor
 
+
 def my_fun(x, theta):
     return theta[0] * x + theta[1]
 

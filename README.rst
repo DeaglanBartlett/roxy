@@ -77,7 +77,7 @@ Installation
 ============
 
 Requirements
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 Since ``roxy`` is a python package, the user will need python3 installed.
 We have tested ``roxy`` using python3.11, so suggest that the user also uses
@@ -112,11 +112,8 @@ Ubuntu:
 
 	sudo apt-get install openmpi-bin libopenmpi-dev
 
-
-
-
 Installing
-^^^^^^^^^^
+~~~~~~~~~~
 
 To install roxy and its dependencies in a new virtual environment, run
 

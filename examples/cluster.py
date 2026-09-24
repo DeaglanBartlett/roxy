@@ -10,15 +10,16 @@
 # The above copyright notice and this permission notice shall be included in all copies
 # or substantial portions of the Software.
 
-import numpy as np
-import pandas as pd
-from prettytable import PrettyTable
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
-from roxy.regressor import RoxyRegressor
-import roxy.plotting
+import numpy as np
+import pandas as pd
+from getdist import MCSamples, plots
+from prettytable import PrettyTable
+
 import roxy.mcmc
-from getdist import plots, MCSamples
+import roxy.plotting
+from roxy.regressor import RoxyRegressor
 
 radius = 1.5
 
@@ -128,13 +129,9 @@ for method, method_label in zip(all_method, all_method_label):
         mnr_samps = samps.copy()
     
     alpha = samps['alpha']
-    print('alpha: %.3f +/- %.3f %.3f'%(np.median(alpha),
-                                    np.percentile(alpha, 84) - np.median(alpha),
-                                    np.median(alpha) - np.percentile(alpha, 16)))
+    print(f'alpha: {np.median(alpha):.3f} +/- {np.percentile(alpha, 84) - np.median(alpha):.3f} {np.median(alpha) - np.percentile(alpha, 16):.3f}')
     mB = np.exp(samps['c'])
-    print('1 - b: %.3f +/- %.3f %.3f'%(np.median(mB),
-        np.percentile(mB, 84) - np.median(mB),
-        np.median(mB) - np.percentile(mB, 16)))
+    print(f'1 - b: {np.median(mB):.3f} +/- {np.percentile(mB, 84) - np.median(mB):.3f} {np.median(mB) - np.percentile(mB, 16):.3f}')
     all_gradient.append(np.median(alpha))
     all_intercept.append(np.median(samps['c']))
     

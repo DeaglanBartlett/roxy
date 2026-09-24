@@ -1,13 +1,15 @@
-import numpy as np
-from roxy.regressor import RoxyRegressor
-import roxy.plotting
-import roxy.mcmc
-import roxy.causality
-import jax.random
-import jax.numpy as jnp
-import roxy.likelihoods
-import matplotlib.pyplot as plt
 import unittest
+
+import jax.numpy as jnp
+import jax.random
+import matplotlib.pyplot as plt
+import numpy as np
+
+import roxy.causality
+import roxy.likelihoods
+import roxy.mcmc
+import roxy.plotting
+from roxy.regressor import RoxyRegressor
 
 
 def test_example_standard(monkeypatch):
@@ -149,7 +151,6 @@ def test_example_standard(monkeypatch):
     reg.optimise(param_names, xobs, yobs, [xerr, yerr], method='unif',
                  infer_intrinsic=False)
 
-    return
 
 
 def test_example_gmm():
@@ -242,7 +243,6 @@ def test_example_gmm():
     except NotImplementedError:
         pass
 
-    return
 
 
 def test_example_exp():
@@ -274,7 +274,6 @@ def test_example_exp():
     nwarm, nsamp = 70, 500
     reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='mnr')
 
-    return
 
 
 def test_different_likes():
@@ -338,7 +337,6 @@ def test_different_likes():
         reg.mcmc(param_names, xobs, yobs, [
                  xerr, yerr], nwarm, nsamp, method='unknown')
 
-    return
 
 
 def test_example_with_uplims():
@@ -425,7 +423,6 @@ def test_example_with_uplims():
         reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm',
                  y_is_detected=y_is_detected)
 
-    return
 
 
 def test_mcmc_classes():
@@ -437,8 +434,6 @@ def test_mcmc_classes():
     obj.cdf(jnp.atleast_1d(1.0))
     obj.log_cdf(jnp.atleast_1d(1.0))
     obj.icdf(jnp.atleast_1d(0.5))
-    obj.mean
-    obj.variance
 
     #  Make data for likelihood tests
     theta0 = [2, 0.5]
@@ -498,7 +493,6 @@ def test_mcmc_classes():
     roxy.likelihoods.negloglike_prof_mv(xobs, yobs, Sigma, f, G, sig,
                                         include_logdet=False)
 
-    return
 
 
 def test_causality(monkeypatch):
@@ -563,7 +557,6 @@ def test_causality(monkeypatch):
                                     param_names, theta0, param_prior, method='mnr', savename='causality.png',
                                     show=True, covmat=True)
 
-    return
 
 
 def test_nodiag_cov():
@@ -603,7 +596,6 @@ def test_nodiag_cov():
         reg.optimise(param_names, xobs, yobs, Sigma, method='mnr', covmat=True)
         reg.mcmc(param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
                  covmat=True)
-    return
 
 
 def test_warnings():
@@ -774,4 +766,3 @@ def test_warnings():
                     param_names, xobs, yobs, Sigma, nwarm, nsamp, method=method,
                     covmat=True, infer_intrinsic=infer_intrinsic)
 
-    return

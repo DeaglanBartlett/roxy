@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='roxy',
-    version='0.1.0',
+    version='1.0.0',
     description='A Python package to perform Regression and Optimisation with X and Y '
             'errors',
     url='https://github.com/DeaglanBartlett/roxy',

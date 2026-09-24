@@ -10,9 +10,12 @@
 # The above copyright notice and this permission notice shall be included in all copies
 # or substantial portions of the Software.
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 from roxy.regressor import RoxyRegressor
+import roxy.plotting
+
 
 def my_fun(x, theta):
     return theta[0] * x + theta[1]
@@ -76,8 +79,14 @@ plt.savefig('../docs/source/gmm_data.png', transparent=True)
 plt.clf()
 plt.close(plt.gcf())
 
+nwarm, nsamp = 700, 5000
+samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp, method='gmm', ngauss=2, gmm_prior='uniform')
+roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist', param_prior=param_prior, show=True, 
+                            savename='../docs/source/gmm_corner.png')
+
 max_ngauss = 3
-gmm_prior = 'hierarchical'
+# gmm_prior = 'hierarchical'
+gmm_prior = 'uniform'
 reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss, best_metric='BIC',
     nwarm=100, nsamp=100, gmm_prior=gmm_prior)
 

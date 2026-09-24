@@ -1,8 +1,9 @@
 import warnings
-import numpyro.distributions as dist
-from jax.scipy.special import erfc
+
 import jax.numpy as jnp
 import numpy as np
+import numpyro.distributions as dist
+from jax.scipy.special import erfc
 
 
 def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
@@ -58,8 +59,8 @@ def likelihood_warnings(method, infer_intrinsic, nx, errors, covmat):
 def negloglike_mnr_uplims(xobs, yobs, y_is_detected, xerr, yerr, f, fprime, sig, mu_gauss, w_gauss):
     """
     Computes the negative log-likelihood under the assumption of an uncorrelated
-    Gaussian likelihood with a Gaussian prior on the true x positions, 
-        where some of the y values are upper limits. 
+    Gaussian likelihood with a Gaussian prior on the true x positions,
+    where some of the y values are upper limits.
 
     Args:
         :xobs (jnp.ndarray): The observed x values
@@ -313,7 +314,7 @@ def negloglike_unif(xobs, yobs, xerr, yerr, f, fprime, sig):
         :neglog_p (float): The negative log-likelihood
     """
     N = len(xobs)
-    Ai = jnp.atleast_1d(fprime)
+    Ai = jnp.atleast_1d(jnp.array(fprime))
     if (not hasattr(Ai, "__len__")) or len(Ai) == 1:
         Ai = jnp.full(N, jnp.squeeze(jnp.array(Ai)))
     Bi = f - Ai * xobs

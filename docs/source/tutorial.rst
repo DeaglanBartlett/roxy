@@ -42,7 +42,7 @@ We begin by defining a function which we wish to fit. Here we have ``my_fun``, w
 	import roxy.plotting
 
 	def my_fun(x, theta):
-            return theta[0] * x + theta[1]
+        return theta[0] * x + theta[1]
 
 The optimisation and MCMC functionality of ``roxy`` can be accessed by the ``roxy.regressor.RoxyRegressor`` class, which we define here. 
 We must supply the names of each of the parameters of ``my_fun``, as well as a fiducial point and the range of the priors (as a dictionary). We assume uniform priors for all parameters.
@@ -70,7 +70,7 @@ Let us make some mock data from this function
 
 	np.random.seed(0)
 
-	xtrue = np.linspace(0, 5, nx)
+	xtrue = np.linspace(0.01, 5, nx)
 	ytrue = reg.value(xtrue, theta0)
 	xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
 	yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
@@ -96,10 +96,34 @@ We begin by finding the maximum likelihood point, which is as simple as
 
 .. code-block:: console
 
+	========== Iteration 1/10 ==========
+
 	Optimisation Results:
-	A:	2.085973024368286
-	B:	0.20573419332504272
-	sig:	0.6321122646331787
+	A:      2.095768690109253
+	B:      0.17992371320724487
+	sig:    0.6321539282798767
+	mu_gauss:       2.562687397003174
+	w_gauss:        1.4787620306015015
+
+	========== Iteration 2/10 ==========
+
+	Optimisation Results:
+	A:      2.095731258392334
+	B:      0.1802535057067871
+	sig:    0.6319904923439026
+	mu_gauss:       2.5619261264801025
+	w_gauss:        1.478509545326233
+
+	========== Iteration 3/10 ==========
+
+	Optimisation Results:
+	A:      2.095707416534424
+	B:      0.18036945164203644
+	sig:    0.6320453882217407
+	mu_gauss:       2.562239170074463
+	w_gauss:        1.4784533977508545
+
+	Converged after 3 iterations (same best likelihood achieved 3 times)
 
 Note that ``res`` here is a ``scipy.optimize._optimize.OptimizeResult`` object, so you can use all the usual functionality this contains.
 
@@ -124,14 +148,14 @@ We print the parameter mean and median values, their standard deviations, the 5%
 .. code-block:: console
 
 	Running MCMC
-	sample: 100%|█████████████████████████████| 5700/5700 [00:02<00:00, 2665.71it/s, 15 steps of size 3.42e-01. acc. prob=0.91]
+	sample: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5700/5700 [00:01<00:00, 4624.05it/s, 7 steps of size 4.22e-01. acc. prob=0.89]
 
-			mean       std    median      2.5%     97.5%     n_eff     r_hat
-		 A      2.09      0.14      2.10      1.80      2.38   2221.65      1.00
-		 B      0.19      0.43      0.18     -0.65      1.06   2116.94      1.00
-	  mu_gauss      2.56      0.36      2.56      1.83      3.24   3358.24      1.00
-	       sig      0.74      0.22      0.73      0.36      1.19   2870.27      1.00
-	   w_gauss      1.63      0.29      1.59      1.11      2.18   3327.07      1.00
+			  mean       std    median      2.5%     97.5%     n_eff     r_hat
+	A     		  2.10      0.14      2.10      1.83      2.41   2215.63      1.00
+	B     		  0.18      0.43      0.18     -0.64      1.07   2130.46      1.00
+	mu_gauss          2.55      0.36      2.55      1.82      3.25   4090.51      1.00
+	sig       	  0.74      0.22      0.71      0.33      1.19   2753.59      1.00
+	w_gauss           1.62      0.28      1.58      1.12      2.18   3619.32      1.00
 
 	Number of divergences: 0
 
@@ -289,18 +313,18 @@ yields
 .. code-block:: console
 
 	Running MCMC
-	sample: 100%|██████████████████████████████| 5700/5700 [00:06<00:00, 898.22it/s, 15 steps of size 3.22e-01. acc. prob=0.94]
+	sample: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5700/5700 [00:03<00:00, 1588.50it/s, 15 steps of size 3.34e-01. acc. prob=0.94]
 
-			 mean       std    median      2.5%     97.5%     n_eff     r_hat
-		  A      2.00      0.00      2.00      1.99      2.01   4206.88      1.00
-		  B      0.51      0.04      0.51      0.43      0.58   3916.77      1.00
-	mu_gauss[0]    -10.00      0.08    -10.00    -10.17     -9.85   3809.84      1.00
-	mu_gauss[1]     -0.22      0.27     -0.20     -0.78      0.28   3374.51      1.00
-		sig      0.49      0.02      0.49      0.45      0.54   4462.18      1.00
-	 w_gauss[0]      1.86      0.06      1.86      1.73      1.99   3811.61      1.00
-	 w_gauss[1]      3.26      0.21      3.25      2.87      3.68   3498.38      1.00
-	 weights[0]      0.70      0.02      0.70      0.66      0.73   4183.47      1.00
-	 weights[1]      0.30      0.02      0.30      0.27      0.34   4183.47      1.00
+	              mean       std    median      2.5%     97.5%     n_eff     r_hat
+	A             2.00      0.00      2.00      1.99      2.01    4136.07      1.00
+	B             0.51      0.04      0.51      0.43      0.58    3815.57      1.00
+	mu_gauss[0] -10.00      0.08    -10.00    -10.16     -9.83    4080.23      1.00
+	mu_gauss[1]  -0.22      0.26     -0.21     -0.75      0.29    3379.30      1.00
+	sig           0.49      0.02      0.49      0.44      0.54    3751.45      1.00
+	w_gauss[0]    1.86      0.07      1.86      1.74      1.99    3894.48      1.00
+	w_gauss[1]    3.26      0.20      3.25      2.86      3.65    3297.93      1.00
+	weights[0]    0.70      0.02      0.70      0.66      0.73    4023.51      1.00
+	weights[1]    0.30      0.02      0.30      0.27      0.34    4023.51      1.00
 
 	Number of divergences: 0
 
@@ -324,9 +348,9 @@ which gives (alongside some other output)
 .. code-block:: console
 
 	Best ngauss according to BIC: 2
-	1 555.8955078125
+	1 555.93017578125
 	2 0.0
-	3 22.76904296875
+	3 18.2939453125
 
 so, indeed, 2 Gaussians are preferred.
 
@@ -550,116 +574,5 @@ This tutorial was run using MacOS with a M2 chip. We have found that the results
 marginally vary between architectures or between package versions of the dependenices of ``roxy``.
 Such changes are small, e.g. the fourth decimal place of an optimisation result may differ,
 so if there are minor differences between the above results and what you find, there is no reason
-to be concerned! For completeness, below we give the exact conda environment we used to obtain these
-results.
-
-
-.. code-block:: yaml
-
-	name: roxy_env
-	channels:
-	  - conda-forge
-	  - defaults
-	dependencies:
-	  - bzip2=1.0.8=h0d85af4_4
-	  - c-ares=1.20.1=h10d778d_0
-	  - ca-certificates=2023.7.22=h8857fd0_0
-	  - importlib-metadata=6.8.0=pyha770c72_0
-	  - importlib_metadata=6.8.0=hd8ed1ab_0
-	  - jax=0.4.16=pyhd8ed1ab_0
-	  - jaxlib=0.4.14=cpu_py311hb9eea52_1
-	  - libabseil=20230802.1=cxx17_h048a20a_0
-	  - libblas=3.9.0=18_osx64_openblas
-	  - libcblas=3.9.0=18_osx64_openblas
-	  - libcxx=16.0.6=hd57cbcb_0
-	  - libexpat=2.5.0=hf0c8a7f_1
-	  - libffi=3.4.2=h0d85af4_5
-	  - libgfortran=5.0.0=13_2_0_h97931a8_1
-	  - libgfortran5=13.2.0=h2873a65_1
-	  - libgrpc=1.58.1=hecc90c7_2
-	  - liblapack=3.9.0=18_osx64_openblas
-	  - libopenblas=0.3.24=openmp_h48a4ad5_0
-	  - libprotobuf=4.24.3=he0c2237_1
-	  - libre2-11=2023.06.02=h4694dbf_0
-	  - libsqlite=3.43.2=h92b6c6a_0
-	  - libzlib=1.2.13=h8a1eda9_5
-	  - llvm-openmp=17.0.2=hff08bdf_0
-	  - ml_dtypes=0.3.1=py311h1eadf79_1
-	  - ncurses=6.4=hf0c8a7f_0
-	  - numpy=1.26.0=py311hc44ba51_0
-	  - openssl=3.1.3=h8a1eda9_0
-	  - opt-einsum=3.3.0=hd8ed1ab_2
-	  - opt_einsum=3.3.0=pyhc1e730c_2
-	  - pip=23.2.1=pyhd8ed1ab_0
-	  - python=3.11.4=h30d4d87_0_cpython
-	  - python_abi=3.11=4_cp311
-	  - re2=2023.06.02=hd34609a_0
-	  - readline=8.2=h9e318b2_1
-	  - scipy=1.11.3=py311h16c3c4d_1
-	  - setuptools=68.2.2=pyhd8ed1ab_0
-	  - tk=8.6.13=hef22860_0
-	  - wheel=0.41.2=pyhd8ed1ab_0
-	  - xz=5.2.6=h775f41a_0
-	  - zipp=3.17.0=pyhd8ed1ab_0
-	  - pip:
-	      - alabaster==0.7.13
-	      - arviz==0.16.1
-	      - babel==2.13.0
-	      - certifi==2023.7.22
-	      - charset-normalizer==3.3.0
-	      - contourpy==1.1.1
-	      - corner==2.2.2
-	      - cycler==0.12.1
-	      - docutils==0.18.1
-	      - fgivenx==2.4.2
-	      - fonttools==4.43.1
-	      - getdist==1.4.5
-	      - h5netcdf==1.2.0
-	      - h5py==3.10.0
-	      - idna==3.4
-	      - imagesize==1.4.1
-	      - jaxopt==0.8.1
-	      - jinja2==3.1.2
-	      - joblib==1.3.2
-	      - kiwisolver==1.4.5
-	      - markdown-it-py==3.0.0
-	      - markupsafe==2.1.3
-	      - matplotlib==3.8.0
-	      - mdit-py-plugins==0.4.0
-	      - mdurl==0.1.2
-	      - multipledispatch==1.0.0
-	      - myst-parser==2.0.0
-	      - numpyro==0.13.2
-	      - packaging==23.2
-	      - pandas==2.1.1
-	      - pillow==10.0.1
-	      - prettytable==3.9.0
-	      - pygments==2.16.1
-	      - pyparsing==3.1.1
-	      - python-dateutil==2.8.2
-	      - pytz==2023.3.post1
-	      - pyyaml==6.0.1
-	      - requests==2.31.0
-	      - scikit-learn==1.3.1
-	      - six==1.16.0
-	      - snowballstemmer==2.2.0
-	      - sphinx==7.2.6
-	      - sphinx-rtd-theme==1.3.0
-	      - sphinxcontrib-applehelp==1.0.7
-	      - sphinxcontrib-devhelp==1.0.5
-	      - sphinxcontrib-htmlhelp==2.0.4
-	      - sphinxcontrib-jquery==4.1
-	      - sphinxcontrib-jsmath==1.0.1
-	      - sphinxcontrib-qthelp==1.0.6
-	      - sphinxcontrib-serializinghtml==1.1.9
-	      - threadpoolctl==3.2.0
-	      - tqdm==4.66.1
-	      - typing-extensions==4.8.0
-	      - tzdata==2023.3
-	      - urllib3==2.0.6
-	      - wcwidth==0.2.8
-	      - xarray==2023.9.0
-	      - xarray-einstats==0.6.0
-
-
+to be concerned!
 

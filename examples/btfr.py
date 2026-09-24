@@ -10,12 +10,13 @@
 # The above copyright notice and this permission notice shall be included in all copies
 # or substantial portions of the Software.
 
-import numpy as np
-import roxy.plotting
-import roxy.mcmc
-from roxy.regressor import RoxyRegressor
-from getdist import plots, MCSamples
 import matplotlib.pyplot as plt
+import numpy as np
+from getdist import MCSamples, plots
+
+import roxy.mcmc
+import roxy.plotting
+from roxy.regressor import RoxyRegressor
 
 # Get data
 arr = np.genfromtxt("BTFR.dat", dtype=None, encoding=None)

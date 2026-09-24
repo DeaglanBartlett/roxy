@@ -1,18 +1,19 @@
 import warnings
 from operator import attrgetter
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-from sklearn.mixture import GaussianMixture
 from jaxopt import ScipyBoundedMinimize
+from sklearn.mixture import GaussianMixture
 
 import roxy.likelihoods
 import roxy.mcmc
 
 
-class OptResult(object):
+class OptResult:
     """
     Class to make the output of a jaxopt optimisation appear like
     a scipy.optimize._optimize.OptimizeResult
@@ -37,7 +38,7 @@ class OptResult(object):
         self.maxcv = None
 
 
-class RoxyRegressor():
+class RoxyRegressor:
     """
     Regressor class which handles optimisation and MCMC for ``roxy``. One can
     use this class to evaluate the function of interest and its derivative,
@@ -112,7 +113,7 @@ class RoxyRegressor():
         """
         return self.secondgradfun(x, theta)
 
-    def negloglike(self, theta, xobs, yobs, errors, y_is_detected=[], sig=0., mu_gauss=0.,
+    def negloglike(self, theta, xobs, yobs, errors, y_is_detected=None, sig=0., mu_gauss=0.,
                    w_gauss=1., weights_gauss=1., method='mnr', covmat=False,
                    test_prior=True, include_logdet=True):
         """
@@ -158,9 +159,11 @@ class RoxyRegressor():
             fprime = self.gradient(xobs, theta)
             xerr, yerr = errors
 
-        if test_prior:
-            if sig < 0. or (method == 'mnr' and w_gauss < 0.):
-                return np.nan
+        if test_prior and (sig < 0. or (method == 'mnr' and w_gauss < 0.)):
+            return np.nan
+
+        if y_is_detected is None:
+            y_is_detected = []
 
         if method == 'mnr':
             if covmat:
@@ -225,7 +228,7 @@ class RoxyRegressor():
                     print(f'{pname}:\t{pdefault}')
         return jnp.array(pidx)
 
-    def _optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=[], method='mnr',
+    def _optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=None, method='mnr',
                   infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
                   gmm_prior='hierarchical', include_logdet=True, verbose=True,
                   optimiser='l-bfgs-b'):
@@ -271,6 +274,9 @@ class RoxyRegressor():
             :res (OptResult): The result of the optimisation
             :param_names (list): List of parameter names in order of res.params
         """
+
+        if y_is_detected is None:
+            y_is_detected = []
 
         # Check whether y_is_detected is either [] or an array of booleans the same
         # length as xobs and yobs
@@ -481,7 +487,7 @@ class RoxyRegressor():
 
         return res, param_names
 
-    def optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=[], method='mnr',
+    def optimise(self, params_to_opt, xobs, yobs, errors, y_is_detected=None, method='mnr',
                  infer_intrinsic=True, initial=None, ngauss=1, covmat=False,
                  gmm_prior='hierarchical', include_logdet=True, verbose=True,
                  optimiser='l-bfgs-b', niter=10, nconv=3, tol=1e-3):
@@ -535,6 +541,9 @@ class RoxyRegressor():
         best_res = None
         best_fun = np.inf
         conv_count = 0
+
+        if y_is_detected is None:
+            y_is_detected = []
         
         for it in range(niter):
             # Use the provided initial value only for the first iteration
@@ -572,7 +581,7 @@ class RoxyRegressor():
         
         return best_res, param_names
 
-    def mcmc(self, params_to_opt, xobs, yobs,  errors, nwarm, nsamp, y_is_detected=[], method='mnr',
+    def mcmc(self, params_to_opt, xobs, yobs,  errors, nwarm, nsamp, y_is_detected=None, method='mnr',
              ngauss=1, infer_intrinsic=True, num_chains=1, progress_bar=True,
              covmat=False, gmm_prior='hierarchical', seed=1234, verbose=True, init=None,
              include_logdet=True, optimiser='l-bfgs-b'):
@@ -622,6 +631,9 @@ class RoxyRegressor():
             :samples (dict): The MCMC samples, where the keys are the parameter names
                 and values are ndarrays of the samples
         """
+
+        if y_is_detected is None:
+            y_is_detected = []
 
         # Check if warning should be raised
         roxy.likelihoods.likelihood_warnings(
@@ -841,7 +853,7 @@ class RoxyRegressor():
                     init['mu_gauss'] = init['mu_gauss'][idx]
                     init['w_gauss'] = init['w_gauss'][idx]
                     init['weight_gauss'] = init['weight_gauss'][idx]
-                if 'sig' in init.keys() and init['sig'] <= 0:
+                if 'sig' in init and init['sig'] <= 0:
                     warnings.warn('Setting initial sigma to positive value')
                     init['sig'] = 1.e-5
             kernel = numpyro.infer.NUTS(model,
@@ -853,9 +865,10 @@ class RoxyRegressor():
                                          num_warmup=nwarm, num_samples=nsamp,
                                          progress_bar=progress_bar)
             sampler.run(rng_key_)
-        except Exception:
+        except Exception as e:  # noqa: BLE001
             if verbose:
                 print('\nCould not init to optimised values')
+                print(e)
             kernel = numpyro.infer.NUTS(model)
             if verbose:
                 print('\nRunning MCMC')
@@ -896,7 +909,7 @@ class RoxyRegressor():
             x = jnp.expand_dims(v, axis=0)
             try:
                 neff[i] = numpyro.diagnostics.effective_sample_size(x)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 neff[i] = min(numpyro.diagnostics.effective_sample_size(x))
         m = neff < 100
         if m.sum() > 0:
@@ -971,12 +984,10 @@ class RoxyRegressor():
         """
 
         # Now put in order expected by optimisers
-        param_idx = [i for i, k in enumerate(labels) if not ((k.startswith('weights')
-                                                              or k.startswith('mu_gauss')
-                                                              or k.startswith('w_gauss')
-                                                              or k.startswith('sig')
-                                                              or k.startswith('hierarchical')
-                                                              or k.startswith('hyper')))]
+        param_idx = [i for i, k in enumerate(labels)
+             if not k.startswith(('weights', 'mu_gauss', 'w_gauss',
+                                  'sig', 'hierarchical', 'hyper'))]
+        
         if infer_intrinsic:
             param_idx = param_idx + [labels.index('sig')]
         if method == 'gmm':

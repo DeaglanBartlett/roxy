@@ -12,12 +12,15 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpyro.distributions.distribution
 
-from roxy.regressor import RoxyRegressor
 import roxy.plotting
+from roxy.regressor import RoxyRegressor
 
 run_name = 'linear'
-#run_name = 'quadratic'
+# run_name = 'quadratic'
+# all_method = ['unif', 'prof', 'mnr', 'gmm']
+all_method = ['mnr']
 
 if run_name == 'linear':
 
@@ -26,7 +29,7 @@ if run_name == 'linear':
 
     param_names = ['A', 'B']
     theta0 = [2, 0.5]
-    param_prior = {'A':[0, 5], 'B':[-2, 2], 'sig':[0, 3.0]}
+    param_prior = {'A': [0, 5], 'B': [-2, 2], 'sig': [0, 3.0]}
     
 elif run_name == 'quadratic':
 
@@ -50,7 +53,7 @@ nwarm, nsamp = 700, 5000
 
 np.random.seed(0)
     
-xtrue = np.linspace(0, 5, nx)
+xtrue = np.linspace(0.01, 5, nx)
 ytrue = reg.value(xtrue, theta0)
 xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
 yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
@@ -61,12 +64,12 @@ plt.errorbar(xobs, yobs, xerr=xerr, yerr=yerr, **plot_kwargs)
 plt.xlabel(r'$x_{\rm obs}$', fontsize=14)
 plt.ylabel(r'$y_{\rm obs}$', fontsize=14)
 plt.tight_layout()
-#plt.savefig('../docs/source/data.png', transparent=True)
+plt.savefig('../docs/source/data.png', transparent=True)
 plt.show()
 plt.clf()
 plt.close(plt.gcf())
 
-for method in ['unif', 'prof', 'mnr', 'gmm']:
+for method in all_method:
     print(method)
     if method == 'gmm':
         for p in ['uniform', 'hierarchical']:
@@ -76,24 +79,21 @@ for method in ['unif', 'prof', 'mnr', 'gmm']:
     else:
         reg.optimise(param_names, xobs, yobs, [xerr, yerr], method=method)
 
-#theta0 = [2, 0.5, -3]
+# theta0 = [2, 0.5, -3]
 
-for method in ['unif', 'prof', 'mnr']:
-    print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig, method=method))
+for method in all_method:
+    print(reg.negloglike(theta0, xobs, yobs, [xerr, yerr], sig=sig, method=method))
     samples = reg.mcmc(param_names, xobs, yobs, [xerr, yerr], nwarm, nsamp,
-        method=method, num_chains=2)
+        method=method, num_chains=1)
+    if method == 'mnr':
+        savename_triangle = f'../docs/source/triangle.png'
+        savename_trace = f'../docs/source/trace.png'
+        savename_postpred = f'../docs/source/posterior_predictive.png'
+    else:
+        savename_triangle = None
+        savename_trace = None
+        savename_postpred = None
     roxy.plotting.triangle_plot(samples, to_plot='all', module='getdist',
-        param_prior=param_prior,)
-    roxy.plotting.trace_plot(samples, to_plot='all',)
-    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr)
-
-
-#y = reg.value(all_x, theta0)
-#yp = reg.gradient(all_x, theta0)
-
-#plt.plot(all_x, yp, '.')
-#plt.plot(all_x, 2 * theta0[0] * all_x + theta0[1])
-#plt.plot(xobs, yobs, '.')
-#plt.plot(xtrue, ytrue)
-#plt.show()
-
+        param_prior=param_prior, savename=savename_triangle)
+    roxy.plotting.trace_plot(samples, to_plot='all', savename=savename_trace)
+    roxy.plotting.posterior_predictive_plot(reg, samples, xobs, yobs, xerr, yerr, savename=savename_postpred)

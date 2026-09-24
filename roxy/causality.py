@@ -1,8 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy.optimize
 import scipy.stats
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import pearsonr, spearmanr
+
 from roxy.regressor import RoxyRegressor
 
 

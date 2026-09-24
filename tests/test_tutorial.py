@@ -1,6 +1,8 @@
 import numpy as np
+
+from roxy import plotting
 from roxy.regressor import RoxyRegressor
-import roxy.plotting as plotting
+
 
 def test_example1():
 
@@ -20,7 +22,7 @@ def test_example1():
 
     np.random.seed(0)
 
-    xtrue = np.linspace(0, 5, nx)
+    xtrue = np.linspace(0.01, 5, nx)
     ytrue = reg.value(xtrue, theta0)
     xobs = xtrue + np.random.normal(size=len(xtrue)) * xerr
     yobs = ytrue + np.random.normal(size=len(xtrue)) * np.sqrt(yerr ** 2 + sig ** 2)
@@ -31,7 +33,6 @@ def test_example1():
     reg.mcmc(param_names, xobs, yobs, [xerr, yerr],
             nwarm, nsamp, method='mnr')
 
-    return
     
     
 def test_example2():
@@ -79,7 +80,6 @@ def test_example2():
     reg.find_best_gmm(param_names, xobs, yobs, xerr, yerr, max_ngauss,
             best_metric='BIC', nwarm=100, nsamp=100, gmm_prior='uniform')
             
-    return
 
 
 

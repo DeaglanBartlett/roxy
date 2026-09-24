@@ -10,16 +10,18 @@
 # The above copyright notice and this permission notice shall be included in all copies
 # or substantial portions of the Software.
 
+import contextlib
 import os
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
-from mpi4py import MPI
-import warnings
-from roxy.regressor import RoxyRegressor
-import roxy.plotting
-import roxy.mcmc
 import scipy.stats
-import contextlib
+from mpi4py import MPI
+
+import roxy.mcmc
+import roxy.plotting
+from roxy.regressor import RoxyRegressor
 
 plt.rc('text', usetex=False)
 
@@ -225,7 +227,7 @@ for ipar, par in enumerate(all_param):
                             savename=savename
                         )
 
-                except Exception:
+                except Exception:  # noqa: BLE001
                     print(f"\t\t\tFailure on rank {rank}")
                     all_bias[ngauss-1,:,i] = np.nan
 

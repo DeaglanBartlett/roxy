@@ -1,14 +1,14 @@
-from jax import lax
-import jax.random
+from typing import ClassVar
+
 import jax.numpy as jnp
-from jax.scipy.stats import norm as jax_norm
-from jax.scipy.special import ndtri, ndtr
+import jax.random
 import numpy as np
-import scipy.optimize
 import numpyro.distributions as dist
-from numpyro.distributions.util import promote_shapes
-from numpyro.distributions.util import validate_sample
-from numpyro.distributions.util import is_prng_key
+import scipy.optimize
+from jax import lax
+from jax.scipy.special import ndtr, ndtri
+from jax.scipy.stats import norm as jax_norm
+from numpyro.distributions.util import is_prng_key, promote_shapes, validate_sample
 
 import roxy.likelihoods
 
@@ -56,7 +56,7 @@ class Likelihood_MNR_uplims(dist.Distribution):
             jnp.shape(mu_gauss),
             jnp.shape(w_gauss),
         )
-        super(Likelihood_MNR_uplims, self).__init__(batch_shape=batch_shape)
+        super().__init__(batch_shape=batch_shape)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
@@ -103,7 +103,7 @@ class Likelihood_MNR(dist.Distribution):
             jnp.shape(mu_gauss),
             jnp.shape(w_gauss),
         )
-        super(Likelihood_MNR, self).__init__(batch_shape=batch_shape)
+        super().__init__(batch_shape=batch_shape)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
@@ -169,7 +169,7 @@ class Likelihood_MNR_MV(dist.Distribution):
         self.sig = sig[..., 0]
         self.mu_gauss = mu_gauss[..., 0]
         self.w_gauss = w_gauss[..., 0]
-        super(Likelihood_MNR_MV, self).__init__(
+        super().__init__(
             batch_shape=batch_shape,
             event_shape=event_shape
         )
@@ -217,7 +217,7 @@ class Likelihood_prof(dist.Distribution):
             jnp.shape(sig),
         )
         self.include_logdet = include_logdet
-        super(Likelihood_prof, self).__init__(batch_shape=batch_shape)
+        super().__init__(batch_shape=batch_shape)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
@@ -280,7 +280,7 @@ class Likelihood_prof_MV(dist.Distribution):
         self.f = f_p[..., 0]
         self.sig = sig[..., 0]
         self.include_logdet = include_logdet
-        super(Likelihood_prof_MV, self).__init__(
+        super().__init__(
             batch_shape=batch_shape,
             event_shape=event_shape
         )
@@ -326,7 +326,7 @@ class Likelihood_unif(dist.Distribution):
             jnp.shape(fprime),
             jnp.shape(sig),
         )
-        super(Likelihood_unif, self).__init__(batch_shape=batch_shape)
+        super().__init__(batch_shape=batch_shape)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
@@ -384,7 +384,7 @@ class Likelihood_unif_MV(dist.Distribution):
         )
         self.f = f_p[..., 0]
         self.sig = sig[..., 0]
-        super(Likelihood_unif_MV, self).__init__(
+        super().__init__(
             batch_shape=batch_shape,
             event_shape=event_shape
         )
@@ -442,7 +442,7 @@ class Likelihood_GMM(dist.Distribution):
             (),
             ()
         )
-        super(Likelihood_GMM, self).__init__(batch_shape=batch_shape,)
+        super().__init__(batch_shape=batch_shape,)
 
     def sample(self, key, sample_shape=()):
         raise NotImplementedError
@@ -481,7 +481,7 @@ def samples_to_array(samples):
             nparam[m] = 1
         else:
             nparam[m] = samples[keys[m]].shape[1]
-            labels += [keys[m] + '_%i' % n for n in range(nparam[m])]
+            labels += [f'{keys[m]}_{n}' for n in range(nparam[m])]
 
     nparam = [0] + list(np.cumsum(nparam))
 
@@ -524,7 +524,7 @@ def compute_bias(samples, truths, verbose=True):
         if k == 'sig':
 
             # Fit these samples to a truncated Gaussian
-            def negloglike(pars):
+            def negloglike(pars, k=k):
                 mu, sig = pars
                 nll = (
                     np.log(2) - 0.5 * np.log(2 * np.pi * sig ** 2)
@@ -555,15 +555,18 @@ def compute_bias(samples, truths, verbose=True):
 
 
 class OrderedNormal(dist.Distribution):
-    arg_constraints = {"loc": dist.constraints.real,
-                       "scale": dist.constraints.positive}
+
+    arg_constraints: ClassVar[dict[str, dist.constraints.Constraint]] = {
+        "loc": dist.constraints.real,
+        "scale": dist.constraints.positive
+    }
     support = dist.constraints.ordered_vector
-    reparametrized_params = ["loc", "scale"]
+    reparametrized_params: ClassVar[list[str]] = ["loc", "scale"]
 
     def __init__(self, loc=0.0, scale=1.0, *, validate_args=None):
         self.loc, self.scale = promote_shapes(loc, scale)
         batch_shape = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
-        super(OrderedNormal, self).__init__(
+        super().__init__(
             batch_shape=batch_shape, validate_args=validate_args
         )
 
