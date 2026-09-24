@@ -80,7 +80,7 @@ Requirements
 ~~~~~~~~~~~~
 
 Since ``roxy`` is a python package, the user will need python3 installed.
-We have tested ``roxy`` using python3.11, so suggest that the user also uses
+We have tested ``roxy`` using python3.13, so suggest that the user also uses
 this python version.
 
 The plotting functions supplied with ``roxy`` require LaTeX to be installed, due to the
