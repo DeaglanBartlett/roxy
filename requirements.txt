@@ -6,7 +6,7 @@ numpyro
 matplotlib
 corner
 getdist
-arviz
+arviz>=1.0.0
 fgivenx @ git+https://github.com/handley-lab/fgivenx.git
 sphinx>=5.0
 myst-parser
