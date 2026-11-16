@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "roxy"
+name = "roxy-regression"
 dynamic = ["version"]
 description = "Regression and Optimisation with X and Y errors"
 readme = "README.rst"
@@ -45,7 +45,7 @@ dependencies = [
 mpi = ["mpi4py"]
 docs = ["sphinx>=5.0", "myst-parser", "sphinx-rtd-theme"]
 test = ["pytest", "pytest-cov"]
-all = ["roxy[mpi,docs,test]"]
+all = ["roxy-regression[mpi,docs,test]"]
 
 [project.urls]
 Homepage = "https://github.com/DeaglanBartlett/roxy"

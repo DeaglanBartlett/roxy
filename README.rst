@@ -84,9 +84,11 @@ To install the latest release from PyPI, run
 
 .. code:: bash
 
-	pip install roxy
+	pip install roxy-regression
 
-This also installs the runtime dependencies: numpy, scipy, jax, numpyro, jaxopt,
+Note that the package is called ``roxy-regression`` on PyPI, but is imported
+as ``roxy`` (e.g. ``from roxy.regressor import RoxyRegressor``).
+Installing it also installs the runtime dependencies: numpy, scipy, jax, numpyro, jaxopt,
 scikit-learn, matplotlib, corner, getdist, arviz and fgivenx.
 
 We recommend installing into a fresh virtual environment, for example
@@ -95,7 +97,7 @@ We recommend installing into a fresh virtual environment, for example
 
 	python3 -m venv roxy_env
 	source roxy_env/bin/activate
-	pip install roxy
+	pip install roxy-regression
 
 Optional extras
 ~~~~~~~~~~~~~~~
@@ -120,7 +122,7 @@ after which ``mpi4py`` can be installed alongside ``roxy`` with
 
 .. code:: bash
 
-	pip install "roxy[mpi]"
+	pip install "roxy-regression[mpi]"
 
 Development version
 ~~~~~~~~~~~~~~~~~~~
