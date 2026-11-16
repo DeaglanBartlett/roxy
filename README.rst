@@ -146,19 +146,16 @@ Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2309.00948
 .. code:: bibtex
 
   @ARTICLE{roxy,
-       author = {{Bartlett}, D.~J. and {Desmond}, H.},
-        title = "{Marginalised Normal Regression: unbiased curve fitting in the presence of x-errors}",
-      journal = {arXiv e-prints},
-     keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics},
-         year = 2023,
-        month = sep,
-          eid = {arXiv:2309.00948},
-        pages = {arXiv:2309.00948},
-	  doi = {10.48550/arXiv.2309.00948},
-  archivePrefix = {arXiv},
-       eprint = {2309.00948},
-  primaryClass = {astro-ph.CO},
-          url = {https://arxiv.org/abs/2309.00948},
+    author = {{Bartlett}, D.~J. and {Desmond}, H.},
+    title = "{Marginalised Normal Regression: Unbiased curve fitting in the presence of x-errors}",
+    eprint = "2309.00948",
+    archivePrefix = "arXiv",
+    primaryClass = "stat.ME",
+    doi = "10.21105/astro.2309.00948",
+    journal = "Open J. Astrophys.",
+    volume = "6",
+    pages = "astro.2309.00948",
+    year = "2023"
   }
 
 and are encourgaed to cite the ``numpyro`` papers
@@ -248,7 +245,7 @@ and if you use ``module="getdist"``, please cite
 
 MIT License
 
-Copyright (c) 2023 Deaglan John Bartlett
+Copyright (c) 2023--2026 Deaglan John Bartlett
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
