@@ -79,7 +79,7 @@ Installation
 Installing
 ~~~~~~~~~~
 
-``roxy`` requires python 3.11 or later; we test it with python 3.11 and 3.13.
+``roxy`` requires python 3.12 or later; we test it with python 3.12 and 3.13.
 To install the latest release from PyPI, run
 
 .. code:: bash
