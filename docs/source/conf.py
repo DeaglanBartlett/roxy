@@ -26,7 +26,10 @@ copyright = "2023, Deaglan Bartlett and Harry Desmond"
 author = "Deaglan Bartlett and Harry Desmond"
 
 # The full version, including alpha/beta/rc tags
-release = "0.0.1"
+from roxy import __version__  # noqa: E402
+
+release = __version__
+version = __version__
 
 
 # -- General configuration ---------------------------------------------------

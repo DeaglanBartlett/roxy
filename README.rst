@@ -76,35 +76,39 @@ the relevant citations one must use if one uses these modules.
 Installation
 ============
 
-Requirements
-~~~~~~~~~~~~
+Installing
+~~~~~~~~~~
 
-Since ``roxy`` is a python package, the user will need python3 installed.
-We have tested ``roxy`` using python3.13, so suggest that the user also uses
-this python version.
-
-The plotting functions supplied with ``roxy`` require LaTeX to be installed, due to the
-requirements of ``matplotlib``. If this is not already installed, check out the 
-`matplotlib documentation <https://matplotlib.org/stable/users/explain/text/usetex.html>`_
-for more information. For Ubuntu, one simply needs to run 
+``roxy`` requires python 3.11 or later; we test it with python 3.11 and 3.13.
+To install the latest release from PyPI, run
 
 .. code:: bash
 
-	sudo apt-get update && sudo apt-get install texlive texlive-publishers texlive-science latexmk cm-super dvipng
+	pip install roxy
 
-to obtain the required dependencies.
+This also installs the runtime dependencies: numpy, scipy, jax, numpyro, jaxopt,
+scikit-learn, matplotlib, corner, getdist, arviz and fgivenx.
+
+We recommend installing into a fresh virtual environment, for example
+
+.. code:: bash
+
+	python3 -m venv roxy_env
+	source roxy_env/bin/activate
+	pip install roxy
+
+Optional extras
+~~~~~~~~~~~~~~~
 
 If one wants to reproduce the results of the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_,
-one needs to run the example given in ``roxy.examples.bias_example.py``, which requires
-``mpi4py``. 
-This is not installed by default (see below), but if you do want to install it, you will need
-mpi to be installed beforehand. This can be done by running the following
+one needs to run the example given in ``examples/bias_example.py``, which requires
+``mpi4py``. This is not installed by default, and needs MPI to be installed beforehand:
 
 MacOS:
 
 .. code:: bash
 
-	brew install open-mpi 
+	brew install open-mpi
 
 Ubuntu:
 
@@ -112,50 +116,24 @@ Ubuntu:
 
 	sudo apt-get install openmpi-bin libopenmpi-dev
 
-Installing
-~~~~~~~~~~
-
-To install roxy and its dependencies in a new virtual environment, run
+after which ``mpi4py`` can be installed alongside ``roxy`` with
 
 .. code:: bash
 
-        python3 -m venv roxy_env
-        source roxy_env/bin/activate
-        git clone git@github.com:DeaglanBartlett/roxy.git
-        pip install -e roxy
+	pip install "roxy[mpi]"
 
-These dependencies are:
+Development version
+~~~~~~~~~~~~~~~~~~~
 
-- numpy
-- jax
-- jaxlib
-- scipy
-- numpyro
-- matplotlib
-- corner
-- getdist
-- arviz
-- fgivenx
-- sphinx>=5.0
-- myst-parser
-- sphinx-rtd-theme
-- scikit-learn
-- jaxopt
-- prettytable
-
-If you are unable to clone the repo with the above, try the https version instead
+To install the development version from GitHub, with the tools needed to build the
+documentation and run the tests, run
 
 .. code:: bash
 
-        git clone https://github.com/DeaglanBartlett/roxy.git
+	git clone https://github.com/DeaglanBartlett/roxy.git
+	pip install -e "roxy[docs,test]"
 
-To run the script ``roxy.examples.bias_example.py``, you will need to install ``mpi4py``
-which can be done alongside installing ``roxy`` by, instead of using the ``pip install``
-instruction above,  running
-
-.. code:: bash
-
-	pip install -e "roxy[all]"
+and then run the tests with ``pytest roxy/tests``.
 
 
 Licence and Citation

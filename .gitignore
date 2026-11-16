@@ -170,6 +170,7 @@ examples/figs/
 backup_res/
 examples/bias_results/
 tests/*.png
+tests/junit/
 
 *.DS_Store
 docs/source/_build
