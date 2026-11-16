@@ -1,17 +1,4 @@
-numpy
-jax
-jaxlib
-scipy
-numpyro
-matplotlib
-corner
-getdist
-arviz>=1.0.0
-fgivenx @ git+https://github.com/handley-lab/fgivenx.git
-sphinx>=5.0
-myst-parser
-sphinx-rtd-theme
-scikit-learn
-jaxopt
-prettytable
+# Development environment: roxy (editable) plus docs and test tooling.
+# Runtime dependencies are declared in pyproject.toml.
+-e .[docs,test]
 ipywidgets

@@ -1,5 +1,5 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# Build the sdist and wheel, install the built wheel (not an editable install)
+# and run the test suite against it.
 
 name: build-mac
 
@@ -16,20 +16,35 @@ jobs:
   build:
 
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 pytest
-          pip install -e .
+          python-version: ${{ matrix.python-version }}
       - name: Lint with Ruff
         run: |
+          python -m pip install --upgrade pip
           pip install ruff
           ruff check roxy
-        continue-on-error: false
+      - name: Build sdist and wheel
+        run: |
+          pip install build twine
+          python -m build
+          twine check --strict dist/*
+      - name: Install built wheel
+        shell: bash
+        run: pip install "$(ls dist/*.whl)[test]"
+      - name: Test installed package
+        shell: bash
+        env:
+          MPLBACKEND: Agg
+        run: |
+          cd tests
+          python -c "import roxy; print(roxy.__file__, roxy.__version__)"
+          pytest test_roxy.py

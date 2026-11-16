@@ -1,0 +1,78 @@
+# Publish roxy to PyPI using Trusted Publishing (no API tokens needed).
+#
+# - Publishing a GitHub release uploads to PyPI.
+# - Running this workflow manually ("Run workflow" in the Actions tab) uploads to
+#   TestPyPI, for a dry run.
+#
+# One-off setup: on pypi.org and test.pypi.org, add a trusted publisher for this
+# repository with workflow "publish.yml" and environments "pypi" / "testpypi"
+# respectively, and create matching environments in the GitHub repo settings.
+
+name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          twine check --strict dist/*
+      - name: Check version matches release tag
+        if: github.event_name == 'release'
+        run: |
+          pkg_version=$(python -c "import re; s=open('roxy/__init__.py').read(); print(re.search(r'__version__ = \"(.+?)\"', s).group(1))")
+          tag="${GITHUB_REF_NAME#v}"
+          echo "package version: $pkg_version, tag: $tag"
+          test "$pkg_version" = "$tag"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-testpypi:
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/roxy-regression
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/roxy-regression
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

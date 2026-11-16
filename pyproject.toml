@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roxy-regression"
+dynamic = ["version"]
+description = "Regression and Optimisation with X and Y errors"
+readme = "README.rst"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [
+    { name = "Deaglan J. Bartlett" },
+    { name = "Harry Desmond" },
+]
+keywords = ["regression", "x-errors", "mcmc", "jax", "numpyro", "bayesian"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "jax",
+    "numpyro",
+    "jaxopt",
+    "scikit-learn",
+    "matplotlib",
+    "corner",
+    "getdist",
+    "arviz>=1.0.0",
+    "fgivenx>=2.5.2",
+]
+
+[project.optional-dependencies]
+mpi = ["mpi4py"]
+docs = ["sphinx>=5.0", "myst-parser", "sphinx-rtd-theme"]
+test = ["pytest", "pytest-cov"]
+all = ["roxy-regression[mpi,docs,test]"]
+
+[project.urls]
+Homepage = "https://github.com/DeaglanBartlett/roxy"
+Documentation = "https://roxy.readthedocs.io"
+Source = "https://github.com/DeaglanBartlett/roxy"
+Issues = "https://github.com/DeaglanBartlett/roxy/issues"
+Paper = "https://arxiv.org/abs/2309.00948"
+
+[tool.setuptools]
+packages = ["roxy"]
+
+[tool.setuptools.dynamic]
+version = { attr = "roxy.__version__" }

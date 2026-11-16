@@ -76,35 +76,41 @@ the relevant citations one must use if one uses these modules.
 Installation
 ============
 
-Requirements
-~~~~~~~~~~~~
+Installing
+~~~~~~~~~~
 
-Since ``roxy`` is a python package, the user will need python3 installed.
-We have tested ``roxy`` using python3.13, so suggest that the user also uses
-this python version.
-
-The plotting functions supplied with ``roxy`` require LaTeX to be installed, due to the
-requirements of ``matplotlib``. If this is not already installed, check out the 
-`matplotlib documentation <https://matplotlib.org/stable/users/explain/text/usetex.html>`_
-for more information. For Ubuntu, one simply needs to run 
+``roxy`` requires python 3.12 or later; we test it with python 3.12 and 3.13.
+To install the latest release from PyPI, run
 
 .. code:: bash
 
-	sudo apt-get update && sudo apt-get install texlive texlive-publishers texlive-science latexmk cm-super dvipng
+	pip install roxy-regression
 
-to obtain the required dependencies.
+Note that the package is called ``roxy-regression`` on PyPI, but is imported
+as ``roxy`` (e.g. ``from roxy.regressor import RoxyRegressor``).
+Installing it also installs the runtime dependencies: numpy, scipy, jax, numpyro, jaxopt,
+scikit-learn, matplotlib, corner, getdist, arviz and fgivenx.
+
+We recommend installing into a fresh virtual environment, for example
+
+.. code:: bash
+
+	python3 -m venv roxy_env
+	source roxy_env/bin/activate
+	pip install roxy-regression
+
+Optional extras
+~~~~~~~~~~~~~~~
 
 If one wants to reproduce the results of the ``roxy`` `paper <https://arxiv.org/abs/2309.00948>`_,
-one needs to run the example given in ``roxy.examples.bias_example.py``, which requires
-``mpi4py``. 
-This is not installed by default (see below), but if you do want to install it, you will need
-mpi to be installed beforehand. This can be done by running the following
+one needs to run the example given in ``examples/bias_example.py``, which requires
+``mpi4py``. This is not installed by default, and needs MPI to be installed beforehand:
 
 MacOS:
 
 .. code:: bash
 
-	brew install open-mpi 
+	brew install open-mpi
 
 Ubuntu:
 
@@ -112,50 +118,24 @@ Ubuntu:
 
 	sudo apt-get install openmpi-bin libopenmpi-dev
 
-Installing
-~~~~~~~~~~
-
-To install roxy and its dependencies in a new virtual environment, run
+after which ``mpi4py`` can be installed alongside ``roxy`` with
 
 .. code:: bash
 
-        python3 -m venv roxy_env
-        source roxy_env/bin/activate
-        git clone git@github.com:DeaglanBartlett/roxy.git
-        pip install -e roxy
+	pip install "roxy-regression[mpi]"
 
-These dependencies are:
+Development version
+~~~~~~~~~~~~~~~~~~~
 
-- numpy
-- jax
-- jaxlib
-- scipy
-- numpyro
-- matplotlib
-- corner
-- getdist
-- arviz
-- fgivenx
-- sphinx>=5.0
-- myst-parser
-- sphinx-rtd-theme
-- scikit-learn
-- jaxopt
-- prettytable
-
-If you are unable to clone the repo with the above, try the https version instead
+To install the development version from GitHub, with the tools needed to build the
+documentation and run the tests, run
 
 .. code:: bash
 
-        git clone https://github.com/DeaglanBartlett/roxy.git
+	git clone https://github.com/DeaglanBartlett/roxy.git
+	pip install -e "roxy[docs,test]"
 
-To run the script ``roxy.examples.bias_example.py``, you will need to install ``mpi4py``
-which can be done alongside installing ``roxy`` by, instead of using the ``pip install``
-instruction above,  running
-
-.. code:: bash
-
-	pip install -e "roxy[all]"
+and then run the tests with ``pytest roxy/tests``.
 
 
 Licence and Citation
@@ -166,19 +146,16 @@ Users are required to cite the ``roxy`` `paper <https://arxiv.org/abs/2309.00948
 .. code:: bibtex
 
   @ARTICLE{roxy,
-       author = {{Bartlett}, D.~J. and {Desmond}, H.},
-        title = "{Marginalised Normal Regression: unbiased curve fitting in the presence of x-errors}",
-      journal = {arXiv e-prints},
-     keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics},
-         year = 2023,
-        month = sep,
-          eid = {arXiv:2309.00948},
-        pages = {arXiv:2309.00948},
-	  doi = {10.48550/arXiv.2309.00948},
-  archivePrefix = {arXiv},
-       eprint = {2309.00948},
-  primaryClass = {astro-ph.CO},
-          url = {https://arxiv.org/abs/2309.00948},
+    author = {{Bartlett}, D.~J. and {Desmond}, H.},
+    title = "{Marginalised Normal Regression: Unbiased curve fitting in the presence of x-errors}",
+    eprint = "2309.00948",
+    archivePrefix = "arXiv",
+    primaryClass = "stat.ME",
+    doi = "10.21105/astro.2309.00948",
+    journal = "Open J. Astrophys.",
+    volume = "6",
+    pages = "astro.2309.00948",
+    year = "2023"
   }
 
 and are encourgaed to cite the ``numpyro`` papers
@@ -268,7 +245,7 @@ and if you use ``module="getdist"``, please cite
 
 MIT License
 
-Copyright (c) 2023 Deaglan John Bartlett
+Copyright (c) 2023--2026 Deaglan John Bartlett
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
